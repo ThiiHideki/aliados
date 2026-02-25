@@ -661,6 +661,32 @@ export async function registerRoutes(
     }
   });
 
+  app.get('/api/matches/latest-mvp', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await storage.getLatestMatchWithMvp();
+      if (!result) {
+        return res.json(null);
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching latest MVP:", error);
+      res.status(500).json({ message: "Erro ao buscar MVP" });
+    }
+  });
+
+  app.get('/api/matches/latest-ace', isAuthenticated, async (req: any, res) => {
+    try {
+      const result = await storage.getLatestAce();
+      if (!result) {
+        return res.json(null);
+      }
+      res.json(result);
+    } catch (error) {
+      console.error("Error fetching latest ACE:", error);
+      res.status(500).json({ message: "Erro ao buscar ACE" });
+    }
+  });
+
   // Get match details with player stats
   app.get('/api/matches/:id', isAuthenticated, async (req: any, res) => {
     try {
@@ -2223,33 +2249,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting news:", error);
       res.status(500).json({ message: "Erro ao deletar notícia" });
-    }
-  });
-
-  // Get latest match MVP for mural
-  app.get('/api/matches/latest-mvp', isAuthenticated, async (req: any, res) => {
-    try {
-      const result = await storage.getLatestMatchWithMvp();
-      if (!result) {
-        return res.json(null);
-      }
-      res.json(result);
-    } catch (error) {
-      console.error("Error fetching latest MVP:", error);
-      res.status(500).json({ message: "Erro ao buscar MVP" });
-    }
-  });
-
-  app.get('/api/matches/latest-ace', isAuthenticated, async (req: any, res) => {
-    try {
-      const result = await storage.getLatestAce();
-      if (!result) {
-        return res.json(null);
-      }
-      res.json(result);
-    } catch (error) {
-      console.error("Error fetching latest ACE:", error);
-      res.status(500).json({ message: "Erro ao buscar ACE" });
     }
   });
 
