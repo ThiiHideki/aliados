@@ -39,6 +39,7 @@ import RankingMensal from "@/pages/ranking-mensal";
 import MixVetoMapas from "@/pages/mix-veto-mapas";
 import MixDisponibilidade from "@/pages/mix-disponibilidade";
 import AdminHistoricoRankings from "@/pages/admin-historico-rankings";
+import AdminPunicoes from "@/pages/admin-punicoes";
 import Apostas from "@/pages/apostas";
 import Cassino from "@/pages/cassino";
 import Mural from "@/pages/mural";
@@ -101,6 +102,7 @@ function Router() {
       <Route path="/admin/denuncias" component={AdminDenuncias} />
       <Route path="/admin/campeonato" component={AdminCampeonato} />
       <Route path="/admin/historico-rankings" component={AdminHistoricoRankings} />
+      <Route path="/admin/punicoes" component={AdminPunicoes} />
       <Route component={NotFound} />
     </Switch>
   );

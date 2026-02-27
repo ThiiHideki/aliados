@@ -119,6 +119,7 @@ export interface IStorage {
 
   // Mix penalty operations
   getUserPenalties(userId: string): Promise<MixPenalty[]>;
+  getAllPenalties(): Promise<MixPenalty[]>;
   getActivePenaltyCount(userId: string): Promise<number>;
   addPenalty(userId: string, listDate: string): Promise<MixPenalty>;
   getMixListUserIds(listDate: string): Promise<string[]>;
@@ -1053,6 +1054,11 @@ export class DatabaseStorage implements IStorage {
   async getUserPenalties(userId: string): Promise<MixPenalty[]> {
     return db.select().from(mixPenalties)
       .where(eq(mixPenalties.userId, userId))
+      .orderBy(desc(mixPenalties.createdAt));
+  }
+
+  async getAllPenalties(): Promise<MixPenalty[]> {
+    return db.select().from(mixPenalties)
       .orderBy(desc(mixPenalties.createdAt));
   }
 

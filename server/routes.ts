@@ -2024,6 +2024,47 @@ export async function registerRoutes(
     }
   });
 
+  app.get('/api/mix/penalties', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ message: "Apenas admins podem ver todas as penalidades" });
+      }
+      const penalties = await storage.getAllPenalties();
+      res.json(penalties);
+    } catch (error) {
+      console.error("Error fetching all penalties:", error);
+      res.status(500).json({ message: "Erro ao buscar penalidades" });
+    }
+  });
+
+  app.post('/api/mix/penalties', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminId = req.user.claims.sub;
+      const currentUser = await storage.getUser(adminId);
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ message: "Apenas admins podem aplicar penalidades" });
+      }
+
+      const penaltySchema = z.object({
+        userId: z.string(),
+        listDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve estar no formato YYYY-MM-DD"),
+      });
+
+      const parsed = penaltySchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ message: parsed.error.errors[0]?.message || "Dados inválidos" });
+      }
+
+      const penalty = await storage.addPenalty(parsed.data.userId, parsed.data.listDate);
+      res.json(penalty);
+    } catch (error) {
+      console.error("Error adding penalty:", error);
+      res.status(500).json({ message: "Erro ao aplicar penalidade" });
+    }
+  });
+
   // Get user's penalty status
   app.get('/api/mix/penalties/:userId', isAuthenticated, async (req: any, res) => {
     try {

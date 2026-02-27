@@ -52,6 +52,7 @@ import {
   Box,
   Megaphone,
   LayoutDashboard,
+  ShieldAlert,
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -674,6 +675,18 @@ export function AppSidebar() {
                             <Link href="/admin/historico-rankings">
                               <History className="h-4 w-4" />
                               <span>Histórico Rankings</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/admin/punicoes"}
+                            data-testid="nav-admin-punicoes"
+                          >
+                            <Link href="/admin/punicoes">
+                              <ShieldAlert className="h-4 w-4" />
+                              <span>Punições do Mix</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
