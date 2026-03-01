@@ -100,11 +100,17 @@ export default function Mural() {
 
   const currentMonth = new Date().toLocaleString('pt-BR', { month: 'long' });
 
-  const now = new Date();
-  const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
-  const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+  const latestTrophyMonth = allTrophies.length > 0
+    ? allTrophies.reduce((latest, t) => {
+        const tDate = t.year * 100 + t.month;
+        const lDate = latest.year * 100 + latest.month;
+        return tDate > lDate ? t : latest;
+      }, allTrophies[0])
+    : null;
+  const prevMonth = latestTrophyMonth?.month || 0;
+  const prevYear = latestTrophyMonth?.year || 0;
   const prevMonthTrophies = allTrophies.filter(t => t.month === prevMonth && t.year === prevYear);
-  const prevMonthName = new Date(prevYear, prevMonth - 1).toLocaleString('pt-BR', { month: 'long' });
+  const prevMonthName = prevMonth > 0 ? new Date(prevYear, prevMonth - 1).toLocaleString('pt-BR', { month: 'long' }) : "";
   const userMap = new Map(users.map(u => [u.id, u]));
 
   const getTrophyDisplay = (type: string) => {
@@ -116,6 +122,7 @@ export default function Mural() {
       most_matches: { label: "Viciado Oficial", iconClass: "text-purple-500", bgClass: "bg-purple-500/10", borderClass: "border-purple-500/30" },
       worst_player: { label: "Troféu Abacaxi", iconClass: "text-gray-500", bgClass: "bg-gray-500/10", borderClass: "border-gray-500/30" },
       worst_kd: { label: "Ímã de Bala", iconClass: "text-gray-400", bgClass: "bg-gray-400/10", borderClass: "border-gray-400/30" },
+      best_kills_avg: { label: "Ceifador", iconClass: "text-red-500", bgClass: "bg-red-500/10", borderClass: "border-red-500/30" },
     };
     return configs[type] || configs.best_player;
   };

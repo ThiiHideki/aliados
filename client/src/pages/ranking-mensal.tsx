@@ -136,6 +136,11 @@ export default function RankingMensal() {
         const avgB = b.matchesPlayed > 0 ? b.assists / b.matchesPlayed : 0;
         return avgB - avgA;
       }
+      case "killsAvg": {
+        const avgA = a.matchesPlayed > 0 ? a.kills / a.matchesPlayed : 0;
+        const avgB = b.matchesPlayed > 0 ? b.kills / b.matchesPlayed : 0;
+        return avgB - avgA;
+      }
       case "alphabetical":
         return getPlayerName(a).localeCompare(getPlayerName(b), 'pt-BR');
       default:
@@ -144,12 +149,14 @@ export default function RankingMensal() {
   });
 
   const getAvgAssists = (p: MonthlyPlayerStats) => p.matchesPlayed > 0 ? p.assists / p.matchesPlayed : 0;
+  const getAvgKills = (p: MonthlyPlayerStats) => p.matchesPlayed > 0 ? p.kills / p.matchesPlayed : 0;
 
   const topBySkillRating = [...players].sort((a, b) => getSkillRating(b) - getSkillRating(a)).slice(0, 3);
   const topByKd = [...players].sort((a, b) => getKd(b) - getKd(a)).slice(0, 3);
   const topByKills = [...players].sort((a, b) => b.kills - a.kills).slice(0, 3);
   const topByWinRate = [...players].sort((a, b) => getWinRate(b) - getWinRate(a)).slice(0, 3);
   const topByAssists = [...players].sort((a, b) => getAvgAssists(b) - getAvgAssists(a)).slice(0, 3);
+  const topByKillsAvg = [...players].sort((a, b) => getAvgKills(b) - getAvgKills(a)).slice(0, 3);
   const topByAces = [...players].filter(p => p.total5ks > 0).sort((a, b) => b.total5ks - a.total5ks).slice(0, 3);
   const topBy4ks = [...players].filter(p => p.total4ks > 0).sort((a, b) => b.total4ks - a.total4ks).slice(0, 3);
 
@@ -299,6 +306,12 @@ export default function RankingMensal() {
           players={topByAssists}
           statFormatter={(p) => `${getAvgAssists(p).toFixed(1)}/jogo`}
         />
+        <TopCard
+          title="Média de Kills"
+          icon={<Flame className="h-4 w-4 text-red-500" />}
+          players={topByKillsAvg}
+          statFormatter={(p) => `${getAvgKills(p).toFixed(1)}/jogo`}
+        />
         {topByAces.length > 0 && (
           <TopCard
             title="Mais ACEs (5K)"
@@ -344,6 +357,7 @@ export default function RankingMensal() {
                 <SelectItem value="matches">Partidas</SelectItem>
                 <SelectItem value="mvps">MVPs</SelectItem>
                 <SelectItem value="assists">Assistências</SelectItem>
+                <SelectItem value="killsAvg">Média de Kills</SelectItem>
                 <SelectItem value="alphabetical">Alfabética</SelectItem>
               </SelectContent>
             </Select>

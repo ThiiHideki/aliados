@@ -111,6 +111,10 @@ export default function PerfilJogador() {
         icon: Shield, iconClass: "text-gray-400",
         iconBgClass: "bg-gray-400/10", borderClass: "border-gray-400/30", bgClass: "bg-gray-400/5",
       },
+      best_kills_avg: {
+        icon: Target, iconClass: "text-red-500",
+        iconBgClass: "bg-red-500/10", borderClass: "border-red-500/30", bgClass: "bg-red-500/5",
+      },
     };
     return configs[type] || configs.best_player;
   };

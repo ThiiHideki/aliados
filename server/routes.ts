@@ -1379,6 +1379,21 @@ export async function registerRoutes(
         return { ...sorted[0], value: `K/D: ${kd}` };
       }
     },
+    {
+      type: "best_kills_avg",
+      title: "Ceifador",
+      description: "Esse aí não veio pra brincar! Maior média de kills por partida. Linha de frente sempre.",
+      getWinner: (stats: any[]) => {
+        if (stats.length === 0) return null;
+        const sorted = [...stats].sort((a, b) => {
+          const avgA = a.matchesPlayed > 0 ? a.kills / a.matchesPlayed : 0;
+          const avgB = b.matchesPlayed > 0 ? b.kills / b.matchesPlayed : 0;
+          return avgB - avgA;
+        });
+        const avg = sorted[0].matchesPlayed > 0 ? (sorted[0].kills / sorted[0].matchesPlayed).toFixed(1) : "0";
+        return { ...sorted[0], value: `Média: ${avg} kills/partida` };
+      }
+    },
   ];
 
   function calculateSkillRating(stats: any): number {

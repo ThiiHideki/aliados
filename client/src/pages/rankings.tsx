@@ -46,6 +46,11 @@ export default function Rankings() {
     const avgB = b.totalMatches > 0 ? b.totalAssists / b.totalMatches : 0;
     return avgB - avgA;
   });
+  const sortedByKillsAvg = [...playersWithMatches].sort((a, b) => {
+    const avgA = a.totalMatches > 0 ? a.totalKills / a.totalMatches : 0;
+    const avgB = b.totalMatches > 0 ? b.totalKills / b.totalMatches : 0;
+    return avgB - avgA;
+  });
   const sortedByAces = [...playersWithMatches].filter(u => u.total5ks > 0).sort((a, b) => b.total5ks - a.total5ks);
   const sortedBy4ks = [...playersWithMatches].filter(u => u.total4ks > 0).sort((a, b) => b.total4ks - a.total4ks);
 
@@ -297,6 +302,30 @@ export default function Rankings() {
                   player={player}
                   index={index}
                   stat={`${winRate}%`}
+                />
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Flame className="h-5 w-5 text-red-500" />
+              Ranking por Média de Kills
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {sortedByKillsAvg.slice(0, 10).map((player, index) => {
+              const avg = player.totalMatches > 0
+                ? (player.totalKills / player.totalMatches).toFixed(1)
+                : "0.0";
+              return (
+                <PlayerRow
+                  key={player.id}
+                  player={player}
+                  index={index}
+                  stat={`${avg}/jogo`}
                 />
               );
             })}
