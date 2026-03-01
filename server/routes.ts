@@ -1524,6 +1524,119 @@ export async function registerRoutes(
     }
   });
 
+  // ============ AUTO TROPHY GENERATION ============
+
+  async function generateTrophiesForMonth(month: number, year: number): Promise<any[]> {
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0, 23, 59, 59);
+    
+    const allMatches = await storage.getAllMatches();
+    const monthlyMatches = allMatches.filter(m => {
+      const matchDate = new Date(m.date);
+      return matchDate >= firstDay && matchDate <= lastDay;
+    });
+
+    if (monthlyMatches.length === 0) return [];
+
+    const allUsers = await storage.getAllUsers();
+    const userMap = new Map(allUsers.map(u => [u.id, u]));
+
+    const playerStats: Record<string, any> = {};
+    
+    for (const match of monthlyMatches) {
+      const stats = await storage.getMatchStats(match.id);
+      
+      for (const stat of stats) {
+        if (!playerStats[stat.userId]) {
+          playerStats[stat.userId] = {
+            userId: stat.userId,
+            kills: 0, deaths: 0, assists: 0, headshots: 0,
+            damage: 0, mvps: 0, matchesPlayed: 0, matchesWon: 0,
+            total5ks: 0, total4ks: 0, total3ks: 0,
+            seenMatches: new Set(),
+          };
+        }
+        
+        const ps = playerStats[stat.userId];
+        ps.kills += stat.kills;
+        ps.deaths += stat.deaths;
+        ps.assists += stat.assists;
+        ps.headshots += stat.headshots;
+        ps.damage += stat.damage;
+        ps.mvps += stat.mvps;
+        ps.total5ks += stat.enemy5ks;
+        ps.total4ks += stat.enemy4ks;
+        ps.total3ks += stat.enemy3ks;
+        
+        if (!ps.seenMatches.has(match.id)) {
+          ps.seenMatches.add(match.id);
+          ps.matchesPlayed += 1;
+          if (match.winnerTeam && stat.team === match.winnerTeam) {
+            ps.matchesWon += 1;
+          }
+        }
+      }
+    }
+
+    const qualifiedStats = Object.values(playerStats).filter((s: any) => s.matchesPlayed >= 3);
+    if (qualifiedStats.length === 0) return [];
+
+    await storage.deleteTrophiesByMonthYear(month, year);
+
+    const createdTrophies = [];
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const monthName = monthNames[month - 1];
+
+    for (const def of TROPHY_DEFINITIONS) {
+      const winner = def.getWinner(qualifiedStats);
+      if (winner) {
+        const trophy = await storage.createTrophy({
+          userId: winner.userId,
+          type: def.type,
+          month,
+          year,
+          title: `${def.title} - ${monthName}/${year}`,
+          description: def.description,
+          value: winner.value,
+        });
+        createdTrophies.push(trophy);
+      }
+    }
+
+    return createdTrophies;
+  }
+
+  async function checkAndGenerateMonthlyTrophies() {
+    try {
+      const now = new Date();
+      const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+      const prevYear = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+
+      const existingTrophies = await storage.getAllTrophies();
+      const hasPrevMonthTrophies = existingTrophies.some(
+        (t: any) => t.month === prevMonth && t.year === prevYear
+      );
+
+      if (!hasPrevMonthTrophies) {
+        console.log(`[Auto Trophy] No trophies found for ${prevMonth}/${prevYear}, generating...`);
+        const trophies = await generateTrophiesForMonth(prevMonth, prevYear);
+        if (trophies.length > 0) {
+          console.log(`[Auto Trophy] Generated ${trophies.length} trophies for ${prevMonth}/${prevYear}`);
+        } else {
+          console.log(`[Auto Trophy] No qualified players for ${prevMonth}/${prevYear} (need 3+ matches)`);
+        }
+      } else {
+        console.log(`[Auto Trophy] Trophies already exist for ${prevMonth}/${prevYear}`);
+      }
+    } catch (error) {
+      console.error("[Auto Trophy] Error checking/generating trophies:", error);
+    }
+  }
+
+  setTimeout(() => checkAndGenerateMonthlyTrophies(), 5000);
+
+  setInterval(() => checkAndGenerateMonthlyTrophies(), 24 * 60 * 60 * 1000);
+
   // ============ CASINO ROUTES ============
 
   // Get user's casino balance

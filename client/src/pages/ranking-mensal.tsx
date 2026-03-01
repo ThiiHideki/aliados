@@ -387,6 +387,8 @@ export default function RankingMensal() {
                     <TableHead className="text-center">Avg Ast</TableHead>
                     <TableHead className="text-center">Win Rate</TableHead>
                     <TableHead className="text-center">MVPs</TableHead>
+                    <TableHead className="text-center">5K</TableHead>
+                    <TableHead className="text-center">4K</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -449,6 +451,24 @@ export default function RankingMensal() {
                             <Star className="h-3 w-3 mr-1 text-yellow-500" />
                             {player.mvps}
                           </Badge>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {player.total5ks > 0 ? (
+                            <Badge variant="default" className="font-mono bg-yellow-500/20 text-yellow-500 border-yellow-500/30">
+                              {player.total5ks}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground font-mono">0</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {player.total4ks > 0 ? (
+                            <Badge variant="default" className="font-mono bg-orange-500/20 text-orange-500 border-orange-500/30">
+                              {player.total4ks}
+                            </Badge>
+                          ) : (
+                            <span className="text-muted-foreground font-mono">0</span>
+                          )}
                         </TableCell>
                       </TableRow>
                     );
