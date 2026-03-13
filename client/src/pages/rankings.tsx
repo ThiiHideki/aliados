@@ -2,16 +2,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Medal, Award, Target, Crosshair, Star, Info, ChevronDown, Handshake, Zap, Flame } from "lucide-react";
+import { Trophy, Medal, Award, Target, Crosshair, Star, Info, ChevronDown, Handshake, Zap, Flame, Shield, AlertCircle, Calendar } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
-import type { User } from "@shared/schema";
+import type { User, Trophy as TrophySchema } from "@shared/schema";
 
 export default function Rankings() {
   const [isLegendOpen, setIsLegendOpen] = useState(false);
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
+  });
+  const { data: allTrophies = [], isLoading: trophiesLoading } = useQuery<TrophySchema[]>({
+    queryKey: ["/api/trophies"],
   });
 
   if (isLoading) {
@@ -21,6 +25,35 @@ export default function Rankings() {
       </div>
     );
   }
+
+  const userMap = new Map(users.map(u => [u.id, u]));
+
+  const MONTH_NAMES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+
+  const getTrophyConfig = (type: string) => {
+    const configs: Record<string, { icon: typeof Trophy; iconClass: string; iconBgClass: string; borderClass: string; bgClass: string; label: string }> = {
+      best_player:  { icon: Trophy,       iconClass: "text-yellow-500", iconBgClass: "bg-yellow-500/10", borderClass: "border-yellow-500/30", bgClass: "bg-yellow-500/5",  label: "Craque do Mês" },
+      best_kd:      { icon: Crosshair,    iconClass: "text-red-500",    iconBgClass: "bg-red-500/10",    borderClass: "border-red-500/30",    bgClass: "bg-red-500/5",     label: "Matador Nato" },
+      best_assists: { icon: Handshake,    iconClass: "text-blue-500",   iconBgClass: "bg-blue-500/10",   borderClass: "border-blue-500/30",   bgClass: "bg-blue-500/5",    label: "Amigão do Server" },
+      best_hs:      { icon: Target,       iconClass: "text-orange-500", iconBgClass: "bg-orange-500/10", borderClass: "border-orange-500/30", bgClass: "bg-orange-500/5",  label: "Mira de Aimbot" },
+      most_matches: { icon: Star,         iconClass: "text-purple-500", iconBgClass: "bg-purple-500/10", borderClass: "border-purple-500/30", bgClass: "bg-purple-500/5",  label: "Viciado Oficial" },
+      worst_player: { icon: AlertCircle,  iconClass: "text-gray-500",   iconBgClass: "bg-gray-500/10",   borderClass: "border-gray-500/30",   bgClass: "bg-gray-500/5",    label: "Troféu Abacaxi" },
+      worst_kd:     { icon: Shield,       iconClass: "text-gray-400",   iconBgClass: "bg-gray-400/10",   borderClass: "border-gray-400/30",   bgClass: "bg-gray-400/5",    label: "Ímã de Bala" },
+      best_kills_avg: { icon: Flame,      iconClass: "text-red-500",    iconBgClass: "bg-red-500/10",    borderClass: "border-red-500/30",    bgClass: "bg-red-500/5",     label: "Ceifador" },
+    };
+    return configs[type] || configs.best_player;
+  };
+
+  const trophiesByMonth = allTrophies.reduce((acc, trophy) => {
+    const key = `${trophy.year}-${String(trophy.month).padStart(2, '0')}`;
+    if (!acc[key]) acc[key] = { year: trophy.year, month: trophy.month, trophies: [] };
+    acc[key].trophies.push(trophy);
+    return acc;
+  }, {} as Record<string, { year: number; month: number; trophies: TrophySchema[] }>);
+
+  const sortedMonths = Object.values(trophiesByMonth).sort((a, b) =>
+    b.year !== a.year ? b.year - a.year : b.month - a.month
+  );
 
   const playersWithMatches = users.filter(u => u.totalMatches >= 3);
   
@@ -112,6 +145,85 @@ export default function Rankings() {
         <Trophy className="h-8 w-8 text-primary" />
         <h1 className="text-3xl font-bold">Melhores Jogadores</h1>
       </div>
+
+      <Tabs defaultValue="rankings">
+        <TabsList className="mb-2">
+          <TabsTrigger value="rankings" data-testid="tab-rankings">Rankings</TabsTrigger>
+          <TabsTrigger value="trophies" data-testid="tab-trophies">
+            <Medal className="h-4 w-4 mr-2" />
+            Hall of Fame
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="trophies">
+          {trophiesLoading ? (
+            <div className="flex items-center justify-center h-40">
+              <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full" />
+            </div>
+          ) : sortedMonths.length === 0 ? (
+            <Card>
+              <CardContent className="pt-10 pb-10 text-center text-muted-foreground">
+                <Trophy className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                <p>Nenhum troféu gerado ainda.</p>
+                <p className="text-sm mt-1">Os troféus são gerados automaticamente no início de cada mês.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-8">
+              {sortedMonths.map(({ year, month, trophies }) => (
+                <div key={`${year}-${month}`}>
+                  <div className="flex items-center gap-2 mb-4">
+                    <Calendar className="h-5 w-5 text-primary" />
+                    <h2 className="text-xl font-bold capitalize">{MONTH_NAMES[month - 1]} {year}</h2>
+                    <Badge variant="outline" className="ml-1">{trophies.length} troféus</Badge>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
+                    {trophies.map((trophy) => {
+                      const config = getTrophyConfig(trophy.type);
+                      const winner = userMap.get(trophy.userId);
+                      const winnerName = winner?.nickname || winner?.firstName || "Jogador";
+                      const IconComp = config.icon;
+                      return (
+                        <div
+                          key={trophy.id}
+                          className={`p-4 rounded-md border ${config.borderClass} ${config.bgClass}`}
+                          data-testid={`trophy-hall-${trophy.type}-${month}-${year}`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={`flex-shrink-0 p-2 rounded-md ${config.iconBgClass}`}>
+                              <IconComp className={`h-5 w-5 ${config.iconClass}`} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm leading-tight">{config.label}</p>
+                              {trophy.value && (
+                                <p className="text-xs font-mono text-muted-foreground mt-0.5">{trophy.value}</p>
+                              )}
+                              {winner ? (
+                                <Link href={`/jogador/${winner.id}`} className="flex items-center gap-2 mt-2 hover:opacity-80 transition-opacity">
+                                  <Avatar className="h-6 w-6">
+                                    <AvatarImage src={winner.profileImageUrl || undefined} />
+                                    <AvatarFallback className="text-xs bg-primary/10 text-primary">
+                                      {winnerName.slice(0, 2).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-sm font-medium truncate">{winnerName}</span>
+                                </Link>
+                              ) : (
+                                <p className="text-sm text-muted-foreground mt-2">Jogador removido</p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="rankings">
 
       <Collapsible open={isLegendOpen} onOpenChange={setIsLegendOpen}>
         <Card>
@@ -473,6 +585,8 @@ export default function Rankings() {
           </Card>
         )}
       </div>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
