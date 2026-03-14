@@ -4,11 +4,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useQuery } from "@tanstack/react-query";
-import { Trophy, Medal, Award, Target, Crosshair, Star, Calendar, TrendingUp, ArrowUpDown, Skull, Handshake, Zap, Flame } from "lucide-react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Trophy, Medal, Award, Target, Crosshair, Star, Calendar, TrendingUp, ArrowUpDown, Skull, Handshake, Zap, Flame, RefreshCw } from "lucide-react";
 import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 interface MonthlyPlayerStats {
   userId: string;
@@ -60,8 +63,25 @@ export default function RankingMensal() {
   const monthOptions = useMemo(() => getMonthOptions(), []);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [sortField, setSortField] = useState<SortField>("skillRating");
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const isAdmin = (user as any)?.isAdmin;
   
   const selectedMonth = monthOptions[selectedIdx];
+
+  const regenerateTrophiesMutation = useMutation({
+    mutationFn: async ({ year, month }: { year: number; month: number }) => {
+      const res = await apiRequest("POST", `/api/trophies/generate/${year}/${month}`);
+      return res.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Troféus gerados!", description: data.message });
+      queryClient.invalidateQueries({ queryKey: ['/api/trophies'] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message || "Falha ao gerar troféus", variant: "destructive" });
+    },
+  });
 
   const { data, isLoading } = useQuery<MonthlyStatsResponse>({
     queryKey: ['/api/stats/monthly', selectedMonth.year, selectedMonth.month],
@@ -270,9 +290,23 @@ export default function RankingMensal() {
             </div>
           </div>
         </div>
-        <Badge variant="secondary" className="text-lg px-4 py-1 w-fit">
-          {players.length} jogadores ativos (min. 3 partidas)
-        </Badge>
+        <div className="flex items-center gap-3 flex-wrap">
+          <Badge variant="secondary" className="text-lg px-4 py-1 w-fit">
+            {players.length} jogadores ativos (min. 3 partidas)
+          </Badge>
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => regenerateTrophiesMutation.mutate({ year: selectedMonth.year, month: selectedMonth.month })}
+              disabled={regenerateTrophiesMutation.isPending}
+              data-testid="button-regenerate-trophies"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${regenerateTrophiesMutation.isPending ? "animate-spin" : ""}`} />
+              Regenerar Troféus
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">

@@ -1222,13 +1222,22 @@ export async function registerRoutes(
             await storage.deleteTrophiesByMonthYear(month, year);
             const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
             for (const def of TROPHY_DEFINITIONS) {
-              const winner = def.getWinner(qualified);
-              if (winner) {
-                await storage.createTrophy({
-                  userId: winner.userId, type: def.type, month, year,
-                  title: `${def.title} - ${monthNames[month - 1]}/${year}`,
-                  description: def.description, value: winner.value,
-                });
+              try {
+                const winner = def.getWinner(qualified);
+                if (winner) {
+                  const userExists = await storage.getUser(winner.userId);
+                  if (!userExists) {
+                    console.warn(`[Trophy] Skipping ${def.type}: userId ${winner.userId} not found in users table`);
+                    continue;
+                  }
+                  await storage.createTrophy({
+                    userId: winner.userId, type: def.type, month, year,
+                    title: `${def.title} - ${monthNames[month - 1]}/${year}`,
+                    description: def.description, value: winner.value,
+                  });
+                }
+              } catch (trophyDefError) {
+                console.error(`[Trophy] Error creating ${def.type} trophy:`, trophyDefError);
               }
             }
           }
@@ -1498,19 +1507,27 @@ export async function registerRoutes(
       const monthName = monthNames[month - 1];
 
       for (const def of TROPHY_DEFINITIONS) {
-        const winner = def.getWinner(qualifiedStats);
-        if (winner) {
-          const user = userMap.get(winner.userId);
-          const trophy = await storage.createTrophy({
-            userId: winner.userId,
-            type: def.type,
-            month,
-            year,
-            title: `${def.title} - ${monthName}/${year}`,
-            description: def.description,
-            value: winner.value,
-          });
-          createdTrophies.push(trophy);
+        try {
+          const winner = def.getWinner(qualifiedStats);
+          if (winner) {
+            const userExists = await storage.getUser(winner.userId);
+            if (!userExists) {
+              console.warn(`[Trophy Manual] Skipping ${def.type}: userId ${winner.userId} not found`);
+              continue;
+            }
+            const trophy = await storage.createTrophy({
+              userId: winner.userId,
+              type: def.type,
+              month,
+              year,
+              title: `${def.title} - ${monthName}/${year}`,
+              description: def.description,
+              value: winner.value,
+            });
+            createdTrophies.push(trophy);
+          }
+        } catch (defError) {
+          console.error(`[Trophy Manual] Error creating ${def.type}:`, defError);
         }
       }
 
@@ -1588,18 +1605,44 @@ export async function registerRoutes(
     const monthName = monthNames[month - 1];
 
     for (const def of TROPHY_DEFINITIONS) {
-      const winner = def.getWinner(qualifiedStats);
-      if (winner) {
-        const trophy = await storage.createTrophy({
-          userId: winner.userId,
-          type: def.type,
-          month,
-          year,
-          title: `${def.title} - ${monthName}/${year}`,
-          description: def.description,
-          value: winner.value,
-        });
-        createdTrophies.push(trophy);
+      try {
+        const winner = def.getWinner(qualifiedStats);
+        if (winner) {
+          const userExists = await storage.getUser(winner.userId);
+          if (!userExists) {
+            console.warn(`[Auto Trophy] Skipping ${def.type}: userId ${winner.userId} not found in users table, picking next qualified player...`);
+            // Try the next best player
+            const remaining = qualifiedStats.filter((s: any) => s.userId !== winner.userId);
+            const nextWinner = remaining.length > 0 ? def.getWinner(remaining) : null;
+            if (nextWinner) {
+              const nextUserExists = await storage.getUser(nextWinner.userId);
+              if (nextUserExists) {
+                const trophy = await storage.createTrophy({
+                  userId: nextWinner.userId, type: def.type, month, year,
+                  title: `${def.title} - ${monthName}/${year}`,
+                  description: def.description,
+                  value: nextWinner.value,
+                });
+                createdTrophies.push(trophy);
+                console.log(`[Auto Trophy] Created ${def.type} trophy for backup winner ${nextWinner.userId}`);
+              }
+            }
+            continue;
+          }
+          const trophy = await storage.createTrophy({
+            userId: winner.userId,
+            type: def.type,
+            month,
+            year,
+            title: `${def.title} - ${monthName}/${year}`,
+            description: def.description,
+            value: winner.value,
+          });
+          createdTrophies.push(trophy);
+          console.log(`[Auto Trophy] Created ${def.type} trophy for ${winner.userId}`);
+        }
+      } catch (defError) {
+        console.error(`[Auto Trophy] Error creating ${def.type} trophy:`, defError);
       }
     }
 
