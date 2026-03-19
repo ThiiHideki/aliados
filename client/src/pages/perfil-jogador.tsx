@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,87 @@ export default function PerfilJogador() {
     queryKey: ['/api/trophies/user', id],
     enabled: !!id,
   });
+
+  const { data: playerMatchHistory = [] } = useQuery<Array<{ stats: any; match: any }>>({
+    queryKey: ['/api/users', id, 'matches'],
+    queryFn: async () => {
+      if (!id) return [];
+      const res = await fetch(`/api/users/${id}/matches`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!id,
+    staleTime: Infinity,
+  });
+
+  const MONTH_NAMES_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+  const skillRatingEvolution = useMemo(() => {
+    if (!playerMatchHistory.length) return [];
+
+    const calcSR = (s: { kills: number; deaths: number; headshots: number; damage: number; matchesPlayed: number; matchesWon: number; mvps: number; total5ks: number; total4ks: number; total3ks: number }) => {
+      const kd = s.deaths > 0 ? s.kills / s.deaths : s.kills;
+      const hsPercent = s.kills > 0 ? (s.headshots / s.kills) * 100 : 0;
+      const winRate = s.matchesPlayed > 0 ? (s.matchesWon / s.matchesPlayed) * 100 : 0;
+      const adr = s.matchesPlayed > 0 ? s.damage / (s.matchesPlayed * 24) : 0;
+      let rating = 1000;
+      rating += (kd - 1) * 150;
+      rating += (hsPercent - 30) * 2;
+      rating += (adr - 70) * 1.5;
+      rating += (winRate - 50) * 3;
+      rating += s.mvps * 2;
+      rating += s.total5ks * 30;
+      rating += s.total4ks * 15;
+      rating += s.total3ks * 5;
+      return Math.max(100, Math.min(3000, Math.round(rating)));
+    };
+
+    const byMonth: Record<string, {
+      kills: number; deaths: number; headshots: number; damage: number;
+      mvps: number; matchesPlayed: number; matchesWon: number;
+      total5ks: number; total4ks: number; total3ks: number;
+      seenMatches: Set<string>;
+    }> = {};
+
+    for (const { stats, match } of playerMatchHistory) {
+      const date = new Date(match.date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!byMonth[key]) {
+        byMonth[key] = {
+          kills: 0, deaths: 0, headshots: 0, damage: 0, mvps: 0,
+          matchesPlayed: 0, matchesWon: 0, total5ks: 0, total4ks: 0, total3ks: 0,
+          seenMatches: new Set(),
+        };
+      }
+      const m = byMonth[key];
+      m.kills += stats.kills ?? 0;
+      m.deaths += stats.deaths ?? 0;
+      m.headshots += stats.headshots ?? 0;
+      m.damage += stats.damage ?? 0;
+      m.mvps += stats.mvps ?? 0;
+      m.total5ks += stats.enemy5ks ?? 0;
+      m.total4ks += stats.enemy4ks ?? 0;
+      m.total3ks += stats.enemy3ks ?? 0;
+      if (!m.seenMatches.has(match.id)) {
+        m.seenMatches.add(match.id);
+        m.matchesPlayed += 1;
+        if (match.winnerTeam && stats.team === match.winnerTeam) m.matchesWon += 1;
+      }
+    }
+
+    return Object.entries(byMonth)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, s]) => {
+        const [yearStr, monthStr] = key.split('-');
+        const monthIdx = parseInt(monthStr) - 1;
+        return {
+          month: `${MONTH_NAMES_SHORT[monthIdx]}/${yearStr}`,
+          skillRating: calcSR(s),
+          matchesPlayed: s.matchesPlayed,
+        };
+      })
+      .filter(d => d.matchesPlayed >= 3);
+  }, [playerMatchHistory]);
 
   const getTrophyConfig = (type: string) => {
     const configs: Record<string, {
@@ -282,6 +364,15 @@ export default function PerfilJogador() {
   const flashSuccessRate = player.totalFlashCount > 0
     ? ((player.totalFlashSuccesses / player.totalFlashCount) * 100).toFixed(0)
     : "0";
+
+  const killsPerMatch = player.totalMatches > 0 ? (player.totalKills / player.totalMatches).toFixed(1) : "0.0";
+  const deathsPerMatch = player.totalMatches > 0 ? (player.totalDeaths / player.totalMatches).toFixed(1) : "0.0";
+  const assistsPerMatch = player.totalMatches > 0 ? (player.totalAssists / player.totalMatches).toFixed(1) : "0.0";
+  const hsPerMatch = player.totalMatches > 0 ? (player.totalHeadshots / player.totalMatches).toFixed(1) : "0.0";
+  const adrPerRound = player.totalRoundsPlayed > 0
+    ? (player.totalDamage / player.totalRoundsPlayed).toFixed(1)
+    : player.totalMatches > 0 ? (player.totalDamage / (player.totalMatches * 24)).toFixed(1) : "0.0";
+  const mvpsPerMatch = player.totalMatches > 0 ? (player.totalMvps / player.totalMatches).toFixed(2) : "0.00";
 
   const isOwnProfile = currentUser?.id === player.id;
 
@@ -801,7 +892,120 @@ export default function PerfilJogador() {
             </div>
           </CardContent>
         </Card>
+
+        <Card data-testid="card-averages-jogador">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Médias por Partida
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Target className="h-4 w-4 text-green-500" />
+                Kills / Partida
+              </span>
+              <span className="font-mono font-bold text-green-500">{killsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Star className="h-4 w-4 text-red-500" />
+                Deaths / Partida
+              </span>
+              <span className="font-mono font-bold text-red-500">{deathsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Handshake className="h-4 w-4" />
+                Assists / Partida
+              </span>
+              <span className="font-mono font-bold">{assistsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Crosshair className="h-4 w-4 text-yellow-500" />
+                Headshots / Partida
+              </span>
+              <span className="font-mono font-bold text-yellow-500">{hsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                ADR (Dano / Round)
+              </span>
+              <span className="font-mono font-bold text-primary">{adrPerRound}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Award className="h-4 w-4 text-yellow-500" />
+                MVPs / Partida
+              </span>
+              <span className="font-mono font-bold">{mvpsPerMatch}</span>
+            </div>
+          </CardContent>
+        </Card>
       </div>
+
+      {skillRatingEvolution.length > 0 && (
+        <Card data-testid="card-skill-evolution-jogador">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Evolução do Skill Rating
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={skillRatingEvolution} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12 }} className="fill-muted-foreground" />
+                  <YAxis domain={['dataMin - 50', 'dataMax + 50']} tick={{ fontSize: 12 }} className="fill-muted-foreground" />
+                  <RechartsTooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '8px',
+                      fontSize: '13px',
+                    }}
+                    formatter={(value: number, _name: string, props: any) => {
+                      const matches = props.payload?.matchesPlayed;
+                      return [
+                        <span key="v" className="font-mono font-bold">{value} SR{matches ? ` (${matches} partidas)` : ''}</span>,
+                        'Skill Rating'
+                      ];
+                    }}
+                  />
+                  <ReferenceLine y={1000} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" />
+                  <Line
+                    type="monotone"
+                    dataKey="skillRating"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={3}
+                    dot={{ r: 6, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                    activeDot={{ r: 8, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+            <div className="flex items-center justify-center gap-4 mt-3 text-sm text-muted-foreground flex-wrap">
+              {skillRatingEvolution.length >= 2 && (() => {
+                const first = skillRatingEvolution[0].skillRating as number;
+                const last = skillRatingEvolution[skillRatingEvolution.length - 1].skillRating as number;
+                const diff = last - first;
+                return (
+                  <Badge variant={diff >= 0 ? "default" : "destructive"} className="font-mono">
+                    <TrendingUp className={`h-3 w-3 mr-1 ${diff < 0 ? "rotate-180" : ""}`} />
+                    {diff >= 0 ? "+" : ""}{diff} SR no período
+                  </Badge>
+                );
+              })()}
+              <span className="text-xs">{skillRatingEvolution.length} {skillRatingEvolution.length === 1 ? "mês" : "meses"} com dados</span>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

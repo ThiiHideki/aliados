@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Gamepad2, Calendar, MapPin, Trophy, Target, Skull, Crosshair, Star, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Link } from "wouter";
 import type { Match, MatchStats } from "@shared/schema";
 
 type MatchWithStats = {
@@ -251,7 +252,15 @@ export default function PartidasTodas() {
                             >
                               <div className="flex items-center gap-2 truncate">
                                 {isMvp && <Star className="h-3 w-3 text-amber-500 flex-shrink-0" />}
-                                <span className="truncate font-medium">{stat.playerName || 'Jogador'}</span>
+                                {stat.userId ? (
+                                  <Link href={`/jogador/${stat.userId}`}>
+                                    <span className="truncate font-medium text-primary hover:underline cursor-pointer" data-testid={`link-player-${stat.id}`}>
+                                      {stat.playerName || 'Jogador'}
+                                    </span>
+                                  </Link>
+                                ) : (
+                                  <span className="truncate font-medium">{stat.playerName || 'Jogador'}</span>
+                                )}
                               </div>
                               <div className="text-center font-mono text-green-500">{stat.kills}</div>
                               <div className="text-center font-mono text-red-500">{stat.deaths}</div>
