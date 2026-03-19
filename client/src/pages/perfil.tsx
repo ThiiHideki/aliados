@@ -12,7 +12,7 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   User, Trophy, Target, Crosshair, Shield, Star, TrendingUp, 
   Zap, Award, Eye, Link2, Check, AlertCircle, Edit2, Save, X,
-  Medal, CalendarDays, Handshake
+  Medal, CalendarDays, Handshake, Skull
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -78,34 +78,86 @@ export default function Perfil() {
     enabled: !!user?.id,
   });
 
+  const { data: userMatchHistory = [] } = useQuery<Array<{ stats: any; match: any }>>({
+    queryKey: ['/api/users', user?.id, 'matches'],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const res = await fetch(`/api/users/${user.id}/matches`, { credentials: 'include' });
+      if (!res.ok) return [];
+      return res.json();
+    },
+    enabled: !!user?.id,
+    staleTime: Infinity,
+  });
+
   const MONTH_NAMES_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
   const skillRatingEvolution = useMemo(() => {
-    if (!user || monthlyRankingsHistory.length === 0) return [];
+    if (!userMatchHistory.length || !user) return [];
 
-    const now = new Date();
-    const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    const calcSR = (s: { kills: number; deaths: number; headshots: number; damage: number; matchesPlayed: number; matchesWon: number; mvps: number; total5ks: number; total4ks: number; total3ks: number }) => {
+      const kd = s.deaths > 0 ? s.kills / s.deaths : s.kills;
+      const hsPercent = s.kills > 0 ? (s.headshots / s.kills) * 100 : 0;
+      const winRate = s.matchesPlayed > 0 ? (s.matchesWon / s.matchesPlayed) * 100 : 0;
+      const adr = s.matchesPlayed > 0 ? s.damage / (s.matchesPlayed * 24) : 0;
+      let rating = 1000;
+      rating += (kd - 1) * 150;
+      rating += (hsPercent - 30) * 2;
+      rating += (adr - 70) * 1.5;
+      rating += (winRate - 50) * 3;
+      rating += s.mvps * 2;
+      rating += s.total5ks * 30;
+      rating += s.total4ks * 15;
+      rating += s.total3ks * 5;
+      return Math.max(100, Math.min(3000, Math.round(rating)));
+    };
 
-    const relevant = monthlyRankingsHistory
-      .filter(r => {
-        const rDate = new Date(r.year, r.month - 1, 1);
-        return rDate >= threeMonthsAgo;
+    const byMonth: Record<string, {
+      kills: number; deaths: number; headshots: number; damage: number;
+      mvps: number; matchesPlayed: number; matchesWon: number;
+      total5ks: number; total4ks: number; total3ks: number;
+      seenMatches: Set<string>;
+    }> = {};
+
+    for (const { stats, match } of userMatchHistory) {
+      const date = new Date(match.date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!byMonth[key]) {
+        byMonth[key] = {
+          kills: 0, deaths: 0, headshots: 0, damage: 0, mvps: 0,
+          matchesPlayed: 0, matchesWon: 0, total5ks: 0, total4ks: 0, total3ks: 0,
+          seenMatches: new Set(),
+        };
+      }
+      const m = byMonth[key];
+      m.kills += stats.kills ?? 0;
+      m.deaths += stats.deaths ?? 0;
+      m.headshots += stats.headshots ?? 0;
+      m.damage += stats.damage ?? 0;
+      m.mvps += stats.mvps ?? 0;
+      m.total5ks += stats.enemy5ks ?? 0;
+      m.total4ks += stats.enemy4ks ?? 0;
+      m.total3ks += stats.enemy3ks ?? 0;
+      if (!m.seenMatches.has(match.id)) {
+        m.seenMatches.add(match.id);
+        m.matchesPlayed += 1;
+        if (match.winnerTeam && stats.team === match.winnerTeam) m.matchesWon += 1;
+      }
+    }
+
+    return Object.entries(byMonth)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, s]) => {
+        const [yearStr, monthStr] = key.split('-');
+        const monthIdx = parseInt(monthStr) - 1;
+        return {
+          month: `${MONTH_NAMES_SHORT[monthIdx]}/${yearStr}`,
+          skillRating: calcSR(s),
+          matchesPlayed: s.matchesPlayed,
+        };
       })
-      .sort((a, b) => {
-        if (a.year !== b.year) return a.year - b.year;
-        return a.month - b.month;
-      });
-
-    return relevant.map(r => {
-      const rankings = r.rankings as Array<{ id: string; skillRating: number; rank: number; name?: string }>;
-      const playerEntry = rankings.find(e => e.id === user.id);
-      return {
-        month: `${MONTH_NAMES_SHORT[r.month - 1]}/${r.year}`,
-        skillRating: playerEntry?.skillRating ?? null,
-        position: playerEntry?.rank ?? null,
-      };
-    }).filter(d => d.skillRating !== null);
-  }, [user, monthlyRankingsHistory]);
+      .filter(d => d.matchesPlayed >= 3);
+  }, [userMatchHistory, user]);
 
   const generalRanking = (() => {
     if (!user || allUsers.length === 0) return { position: 0, total: 0 };
@@ -237,6 +289,15 @@ export default function Perfil() {
   const flashSuccessRate = user.totalFlashCount > 0
     ? ((user.totalFlashSuccesses / user.totalFlashCount) * 100).toFixed(0)
     : "0";
+
+  const killsPerMatch = user.totalMatches > 0 ? (user.totalKills / user.totalMatches).toFixed(1) : "0.0";
+  const deathsPerMatch = user.totalMatches > 0 ? (user.totalDeaths / user.totalMatches).toFixed(1) : "0.0";
+  const assistsPerMatch = user.totalMatches > 0 ? (user.totalAssists / user.totalMatches).toFixed(1) : "0.0";
+  const hsPerMatch = user.totalMatches > 0 ? (user.totalHeadshots / user.totalMatches).toFixed(1) : "0.0";
+  const adrPerRound = user.totalRoundsPlayed > 0
+    ? (user.totalDamage / user.totalRoundsPlayed).toFixed(1)
+    : user.totalMatches > 0 ? (user.totalDamage / (user.totalMatches * 24)).toFixed(1) : "0.0";
+  const mvpsPerMatch = user.totalMatches > 0 ? (user.totalMvps / user.totalMatches).toFixed(2) : "0.00";
 
   const getTrophyConfig = (type: string) => {
     const configs: Record<string, {
@@ -562,7 +623,7 @@ export default function Perfil() {
               Evolução do Skill Rating
             </CardTitle>
             <CardDescription>
-              Seu desempenho no ranking geral nos últimos meses
+              SR calculado mês a mês com base nas suas partidas reais (mínimo 3 partidas por mês)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -588,9 +649,9 @@ export default function Perfil() {
                       fontSize: '13px',
                     }}
                     formatter={(value: number, _name: string, props: any) => {
-                      const pos = props.payload?.position;
+                      const matches = props.payload?.matchesPlayed;
                       return [
-                        <span key="v" className="font-mono font-bold">{value} SR {pos ? `(${pos}° lugar)` : ''}</span>,
+                        <span key="v" className="font-mono font-bold">{value} SR{matches ? ` (${matches} partidas)` : ''}</span>,
                         'Skill Rating'
                       ];
                     }}
@@ -619,7 +680,7 @@ export default function Perfil() {
                   </Badge>
                 );
               })()}
-              <span className="text-xs">Dados dos últimos 3 meses salvos pelo admin</span>
+              <span className="text-xs">{skillRatingEvolution.length} {skillRatingEvolution.length === 1 ? "mês" : "meses"} com dados</span>
             </div>
           </CardContent>
         </Card>
@@ -713,6 +774,59 @@ export default function Perfil() {
       )}
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <Card data-testid="card-averages">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" />
+              Médias por Partida
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Target className="h-4 w-4 text-green-500" />
+                Kills / Partida
+              </span>
+              <span className="font-mono font-bold text-green-500">{killsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Skull className="h-4 w-4 text-red-500" />
+                Deaths / Partida
+              </span>
+              <span className="font-mono font-bold text-red-500">{deathsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Handshake className="h-4 w-4" />
+                Assists / Partida
+              </span>
+              <span className="font-mono font-bold">{assistsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Crosshair className="h-4 w-4 text-yellow-500" />
+                Headshots / Partida
+              </span>
+              <span className="font-mono font-bold text-yellow-500">{hsPerMatch}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Zap className="h-4 w-4 text-primary" />
+                ADR (Dano / Round)
+              </span>
+              <span className="font-mono font-bold text-primary">{adrPerRound}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground flex items-center gap-2">
+                <Star className="h-4 w-4 text-yellow-500" />
+                MVPs / Partida
+              </span>
+              <span className="font-mono font-bold">{mvpsPerMatch}</span>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Estatísticas de Combate</CardTitle>
@@ -739,7 +853,7 @@ export default function Perfil() {
               <span className="font-mono font-bold">{user.totalDamage}</span>
             </div>
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">ADR (Média)</span>
+              <span className="text-muted-foreground">ADR (Estimado)</span>
               <span className="font-mono font-bold text-primary">{adr}</span>
             </div>
           </CardContent>
