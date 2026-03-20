@@ -133,10 +133,16 @@ The application uses the following main tables:
    - Displayed on user profile pages as medals/badges
 
 **Authentication & Authorization**
-- Replit OpenID Connect integration using openid-client and Passport.js
+- Dual login system: Replit OpenID Connect (via openid-client/Passport.js) AND Steam OpenID 2.0
+- Steam login: custom implementation using native `fetch`, no extra packages needed
+  - Route `/api/auth/steam` → redirects to Steam OpenID
+  - Route `/api/auth/steam/callback` → verifies assertion, extracts SteamID64, creates/links user
+  - If `STEAM_API_KEY` env var is set, fetches Steam nickname and avatar automatically
+  - Automatically links to existing user if SteamID64 is already in DB (e.g., from CSV import)
+  - New Steam users get ID format `steam_{steamId64}` with SteamID64 pre-filled
 - Role-based access control with `isAdmin` flag on user records
-- Protected API routes using `isAuthenticated` middleware
-- Session management with 7-day cookie lifetime
+- Protected API routes using `isAuthenticated` middleware (supports both Replit and Steam sessions)
+- Session management with 7-day cookie lifetime (Replit) or 1-year (Steam)
 
 **Admin Bootstrap Logic**
 - The FIRST user to log in is automatically granted admin privileges (`isAdmin = true`)

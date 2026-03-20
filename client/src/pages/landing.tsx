@@ -9,6 +9,7 @@ import {
   Shield,
   Swords,
 } from "lucide-react";
+import { SiSteam } from "react-icons/si";
 import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
 
 export default function Landing() {
@@ -42,11 +43,11 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
-            <img 
-              src={logoUrl} 
-              alt="Inimigos da Bala" 
+            <img
+              src={logoUrl}
+              alt="Inimigos da Bala"
               className="h-12 w-12 rounded-md object-contain"
             />
             <div className="flex flex-col">
@@ -54,10 +55,16 @@ export default function Landing() {
               <span className="text-xs text-muted-foreground">Counter-Strike 2</span>
             </div>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 flex-wrap">
             <ThemeToggle />
+            <Button variant="outline" asChild data-testid="button-login-steam-header">
+              <a href="/api/auth/steam" className="flex items-center gap-2">
+                <SiSteam className="h-4 w-4" />
+                Entrar com Steam
+              </a>
+            </Button>
             <Button asChild data-testid="button-login-replit">
-              <a href="/api/login">Entrar</a>
+              <a href="/api/login">Entrar com Replit</a>
             </Button>
           </div>
         </div>
@@ -67,9 +74,9 @@ export default function Landing() {
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-4xl text-center">
             <div className="flex justify-center mb-8">
-              <img 
-                src={logoUrl} 
-                alt="Inimigos da Bala" 
+              <img
+                src={logoUrl}
+                alt="Inimigos da Bala"
                 className="h-32 w-32 rounded-lg object-contain"
               />
             </div>
@@ -84,15 +91,24 @@ export default function Landing() {
               <span className="text-primary">Inimigos da Bala</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Acompanhe estatísticas, balance times para o mix, veja rankings 
+              Acompanhe estatísticas, balance times para o mix, veja rankings
               e muito mais. O sistema completo para gerenciar suas partidas
               de Counter-Strike 2 com os amigos.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <Button size="lg" asChild data-testid="button-get-started">
-                <a href="/api/login">Entrar na Comunidade</a>
+              <Button size="lg" asChild data-testid="button-get-started-steam">
+                <a href="/api/auth/steam" className="flex items-center gap-2">
+                  <SiSteam className="h-5 w-5" />
+                  Entrar com Steam
+                </a>
+              </Button>
+              <Button size="lg" variant="outline" asChild data-testid="button-get-started">
+                <a href="/api/login">Entrar com Replit</a>
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground mt-4">
+              O login via Steam captura seu SteamID64 automaticamente e vincula sua conta existente.
+            </p>
           </div>
         </section>
 
@@ -172,9 +188,9 @@ export default function Landing() {
 
       <footer className="border-t border-border py-8 px-4">
         <div className="container mx-auto text-center">
-          <img 
-            src={logoUrl} 
-            alt="Inimigos da Bala" 
+          <img
+            src={logoUrl}
+            alt="Inimigos da Bala"
             className="h-16 w-16 mx-auto mb-4 rounded-md object-contain"
           />
           <p className="text-sm text-muted-foreground">

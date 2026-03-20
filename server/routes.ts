@@ -2,6 +2,7 @@ import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import { setupSteamAuth } from "./steamAuth";
 import { updateUserStatsSchema, mixPenalties } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
@@ -87,6 +88,7 @@ export async function registerRoutes(
 ): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  setupSteamAuth(app);
 
   // Auth routes - Get current user (public endpoint - returns user if logged in, 401 if not)
   app.get('/api/auth/user', async (req: any, res) => {
