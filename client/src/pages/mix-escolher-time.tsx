@@ -479,6 +479,8 @@ export default function MixEscolherTime() {
     const selectedPlayers = users
       .filter(u => selectedPlayerIds.has(u.id))
       .map(u => getPlayerWithLevel(u));
+    const total = selectedPlayers.length;
+    const maxPerTeam = Math.ceil(total / 2);
     const sortedByLevel = [...selectedPlayers].sort((a, b) => b.mixLevel - a.mixLevel);
 
     const newTeam1: PlayerWithLevel[] = [];
@@ -487,7 +489,15 @@ export default function MixEscolherTime() {
     let team2Level = 0;
 
     sortedByLevel.forEach((player) => {
-      if (team1Level <= team2Level) {
+      const team1Full = newTeam1.length >= maxPerTeam;
+      const team2Full = newTeam2.length >= maxPerTeam;
+      if (team1Full) {
+        newTeam2.push(player);
+        team2Level += player.mixLevel;
+      } else if (team2Full) {
+        newTeam1.push(player);
+        team1Level += player.mixLevel;
+      } else if (team1Level <= team2Level) {
         newTeam1.push(player);
         team1Level += player.mixLevel;
       } else {
@@ -507,6 +517,8 @@ export default function MixEscolherTime() {
     const selectedPlayers = users
       .filter(u => selectedPlayerIds.has(u.id))
       .map(u => getPlayerWithLevel(u));
+    const total = selectedPlayers.length;
+    const maxPerTeam = Math.ceil(total / 2);
     const sortedByKd = [...selectedPlayers].sort((a, b) => getCachedKd(b) - getCachedKd(a));
 
     const newTeam1: PlayerWithLevel[] = [];
@@ -516,7 +528,15 @@ export default function MixEscolherTime() {
 
     sortedByKd.forEach((player) => {
       const playerKd = getCachedKd(player);
-      if (team1Kd <= team2Kd) {
+      const team1Full = newTeam1.length >= maxPerTeam;
+      const team2Full = newTeam2.length >= maxPerTeam;
+      if (team1Full) {
+        newTeam2.push(player);
+        team2Kd += playerKd;
+      } else if (team2Full) {
+        newTeam1.push(player);
+        team1Kd += playerKd;
+      } else if (team1Kd <= team2Kd) {
         newTeam1.push(player);
         team1Kd += playerKd;
       } else {
