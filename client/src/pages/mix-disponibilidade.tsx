@@ -171,6 +171,7 @@ export default function MixDisponibilidade() {
   });
 
   const isInList = mixList.some(e => e.userId === user?.id);
+  const isToday = currentDate === today;
   const mainPlayers = mixList.filter(e => !e.isSub).sort((a, b) => a.position - b.position);
   const subPlayers = mixList.filter(e => e.isSub).sort((a, b) => a.position - b.position);
 
@@ -263,7 +264,14 @@ export default function MixDisponibilidade() {
             </div>
           )}
 
-          {!isInList ? (
+          {!isToday ? (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/50 border border-muted-foreground/20" data-testid="notice-not-today">
+              <CalendarDays className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+              <p className="text-sm text-muted-foreground">
+                Você só pode entrar na lista do dia atual. Navegue até <strong>Hoje</strong> para se inscrever.
+              </p>
+            </div>
+          ) : !isInList ? (
             penaltyData?.suspended ? (
               <Button disabled className="w-full" variant="destructive" data-testid="button-suspended">
                 <Ban className="h-4 w-4 mr-2" />
