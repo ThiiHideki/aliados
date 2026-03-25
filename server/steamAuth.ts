@@ -79,34 +79,67 @@ export function setupSteamAuth(app: Express) {
         return res.redirect("/?auth_error=steam_failed");
       }
 
-      let user = await storage.getUserBySteamId(steamId64);
+      // Check for both possible accounts:
+      // - steam_ account: created automatically by CSV import (id = "steam_XXXX")
+      // - linked account: any user who manually linked their steamId64 (Replit account, etc.)
+      const steamAccountId = `steam_${steamId64}`;
+      const [steamAccount, linkedAccount] = await Promise.all([
+        storage.getUser(steamAccountId),
+        storage.getUserBySteamId(steamId64),
+      ]);
 
-      if (!user) {
+      let user: Awaited<ReturnType<typeof storage.getUser>>;
+
+      if (steamAccount && linkedAccount && steamAccount.id !== linkedAccount.id) {
+        // Two different accounts share the same SteamID64 — merge them.
+        // The non-steam_ account is the "primary" one (user deliberately linked it).
+        // Merge the steam_ (CSV) account INTO the linked (Replit) account.
+        console.log(`[SteamAuth] Merging ${steamAccount.id} (CSV) → ${linkedAccount.id} (linked). SteamID: ${steamId64}`);
+        const merged = await storage.mergeUsers(steamAccount.id, linkedAccount.id);
+        if (merged) {
+          await storage.recalculateUserStats(linkedAccount.id);
+          user = await storage.getUser(linkedAccount.id);
+        } else {
+          user = linkedAccount;
+        }
+      } else if (linkedAccount) {
+        // Single account found via steamId64 field (could be steam_ or linked Replit)
+        user = linkedAccount;
+      } else if (steamAccount) {
+        // Only the steam_ CSV account exists (linkedAccount was null or same)
+        user = steamAccount;
+      } else {
+        // No account found — create a new steam_ account
         const profile = await fetchSteamProfile(steamId64);
         const nickname = profile?.nickname || `Jogador_${steamId64.slice(-6)}`;
         const avatar = profile?.avatar || null;
-
         user = await storage.upsertUser({
-          id: `steam_${steamId64}`,
+          id: steamAccountId,
           email: null,
           firstName: nickname,
           lastName: null,
           profileImageUrl: avatar,
-          steamId64: steamId64,
+          steamId64,
         });
-      } else {
-        const profile = await fetchSteamProfile(steamId64);
-        if (profile) {
-          await storage.upsertUser({
-            id: user.id,
-            email: user.email,
-            firstName: profile.nickname,
-            lastName: user.lastName,
-            profileImageUrl: profile.avatar || user.profileImageUrl,
-            steamId64: steamId64,
-          });
-          user = (await storage.getUser(user.id)) || user;
-        }
+      }
+
+      if (!user) {
+        console.error("[SteamAuth] Failed to resolve user after Steam login");
+        return res.redirect("/?auth_error=steam_failed");
+      }
+
+      // Refresh profile from Steam (nickname / avatar)
+      const profile = await fetchSteamProfile(steamId64);
+      if (profile) {
+        await storage.upsertUser({
+          id: user.id,
+          email: user.email,
+          firstName: profile.nickname,
+          lastName: user.lastName,
+          profileImageUrl: profile.avatar || user.profileImageUrl,
+          steamId64,
+        });
+        user = (await storage.getUser(user.id)) || user;
       }
 
       const expiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;

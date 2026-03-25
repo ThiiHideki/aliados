@@ -506,19 +506,55 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
 
-    // Transfer match stats from source to target
-    await db
-      .update(matchStats)
-      .set({ userId: targetId })
-      .where(eq(matchStats.userId, sourceId));
+    // 1. Transfer match stats
+    await db.update(matchStats).set({ userId: targetId }).where(eq(matchStats.userId, sourceId));
 
-    // Transfer payments from source to target
-    await db
-      .update(payments)
-      .set({ userId: targetId })
-      .where(eq(payments.userId, sourceId));
+    // 2. Transfer payments
+    await db.update(payments).set({ userId: targetId }).where(eq(payments.userId, sourceId));
 
-    // Prepare merged stats - ALL statistics fields
+    // 3. Merge casino balances (unique constraint - can't just re-point userId)
+    const [sourceCasino] = await db.select().from(casinoBalances).where(eq(casinoBalances.userId, sourceId));
+    const [targetCasino] = await db.select().from(casinoBalances).where(eq(casinoBalances.userId, targetId));
+    if (sourceCasino) {
+      if (targetCasino) {
+        // Add source balances into target
+        await db.update(casinoBalances).set({
+          balance: (targetCasino.balance || 0) + (sourceCasino.balance || 0),
+          totalWon: (targetCasino.totalWon || 0) + (sourceCasino.totalWon || 0),
+          totalLost: (targetCasino.totalLost || 0) + (sourceCasino.totalLost || 0),
+          totalBets: (targetCasino.totalBets || 0) + (sourceCasino.totalBets || 0),
+          updatedAt: new Date(),
+        }).where(eq(casinoBalances.userId, targetId));
+        await db.delete(casinoBalances).where(eq(casinoBalances.userId, sourceId));
+      } else {
+        // Move source balance to target
+        await db.update(casinoBalances).set({ userId: targetId }).where(eq(casinoBalances.userId, sourceId));
+      }
+    }
+
+    // 4. Transfer bets (both as bettor and as target player)
+    await db.update(bets).set({ userId: targetId }).where(eq(bets.userId, sourceId));
+    await db.update(bets).set({ targetPlayerId: targetId }).where(eq(bets.targetPlayerId, sourceId));
+
+    // 5. Transfer casino transactions
+    await db.update(casinoTransactions).set({ userId: targetId }).where(eq(casinoTransactions.userId, sourceId));
+
+    // 6. Transfer mix availability
+    await db.update(mixAvailability).set({ userId: targetId }).where(eq(mixAvailability.userId, sourceId));
+
+    // 7. Transfer mix penalties
+    await db.update(mixPenalties).set({ userId: targetId }).where(eq(mixPenalties.userId, sourceId));
+
+    // 8. Transfer news authorId
+    await db.update(news).set({ authorId: targetId }).where(eq(news.authorId, sourceId));
+
+    // 9. Transfer trophies
+    await db.update(trophies).set({ userId: targetId }).where(eq(trophies.userId, sourceId));
+
+    // 10. Transfer championship registrations
+    await db.update(championshipRegistrations).set({ userId: targetId }).where(eq(championshipRegistrations.userId, sourceId));
+
+    // 11. Prepare merged stats - sum ALL statistical fields
     const totalKills = (targetUser.totalKills || 0) + (sourceUser.totalKills || 0);
     const totalDeaths = (targetUser.totalDeaths || 0) + (sourceUser.totalDeaths || 0);
     const totalAssists = (targetUser.totalAssists || 0) + (sourceUser.totalAssists || 0);
@@ -547,69 +583,36 @@ export class DatabaseStorage implements IStorage {
     const totalShotsFired = (targetUser.totalShotsFired || 0) + (sourceUser.totalShotsFired || 0);
     const totalShotsOnTarget = (targetUser.totalShotsOnTarget || 0) + (sourceUser.totalShotsOnTarget || 0);
 
-    // Calculate skill rating using weighted average based on matches played
-    const sourceMatches = sourceUser.totalMatches || 0;
-    const targetMatches = targetUser.totalMatches || 0;
-    const sourceRating = sourceUser.skillRating || 1000;
-    const targetRating = targetUser.skillRating || 1000;
-    
-    let skillRating: number;
-    if (sourceMatches + targetMatches > 0) {
-      // Weighted average based on matches played
-      skillRating = Math.round(
-        (sourceRating * sourceMatches + targetRating * targetMatches) / (sourceMatches + targetMatches)
-      );
-    } else {
-      // If both have 0 matches, just average the ratings
-      skillRating = Math.round((sourceRating + targetRating) / 2);
-    }
+    // Skill rating: weighted average by matches played
+    const srcM = sourceUser.totalMatches || 0;
+    const tgtM = targetUser.totalMatches || 0;
+    const srcR = sourceUser.skillRating || 1000;
+    const tgtR = targetUser.skillRating || 1000;
+    const skillRating = (srcM + tgtM) > 0
+      ? Math.round((srcR * srcM + tgtR * tgtM) / (srcM + tgtM))
+      : Math.round((srcR + tgtR) / 2);
 
     const mergedStats = {
-      totalKills,
-      totalDeaths,
-      totalAssists,
-      totalHeadshots,
-      totalDamage,
-      totalMatches,
-      matchesWon,
-      matchesLost,
-      totalRoundsPlayed,
-      roundsWon,
-      totalMvps,
-      total1v1Count,
-      total1v1Wins,
-      total1v2Count,
-      total1v2Wins,
-      totalEntryCount,
-      totalEntryWins,
-      total5ks,
-      total4ks,
-      total3ks,
-      total2ks,
-      totalFlashCount,
-      totalFlashSuccesses,
-      totalEnemiesFlashed,
-      totalUtilityDamage,
-      totalShotsFired,
-      totalShotsOnTarget,
-      skillRating: Math.max(100, Math.min(3000, skillRating)), // Clamp between 100-3000
+      totalKills, totalDeaths, totalAssists, totalHeadshots, totalDamage,
+      totalMatches, matchesWon, matchesLost, totalRoundsPlayed, roundsWon, totalMvps,
+      total1v1Count, total1v1Wins, total1v2Count, total1v2Wins,
+      totalEntryCount, totalEntryWins,
+      total5ks, total4ks, total3ks, total2ks,
+      totalFlashCount, totalFlashSuccesses, totalEnemiesFlashed, totalUtilityDamage,
+      totalShotsFired, totalShotsOnTarget,
+      skillRating: Math.max(100, Math.min(3000, skillRating)),
       nickname: targetUser.nickname || sourceUser.nickname,
     };
 
-    // Determine the SteamID64 to use (prefer source's if target doesn't have one)
     const newSteamId64 = targetUser.steamId64 || sourceUser.steamId64;
 
-    // Delete source user FIRST to avoid unique constraint violation on steamId64
+    // Delete source user — all remaining cascade-delete dependencies are already re-pointed
     await db.delete(users).where(eq(users.id, sourceId));
 
-    // Update target user with merged stats and SteamID64
+    // Update target with merged stats + steamId64
     const [updatedUser] = await db
       .update(users)
-      .set({
-        ...mergedStats,
-        steamId64: newSteamId64,
-        updatedAt: new Date(),
-      })
+      .set({ ...mergedStats, steamId64: newSteamId64, updatedAt: new Date() })
       .where(eq(users.id, targetId))
       .returning();
 
