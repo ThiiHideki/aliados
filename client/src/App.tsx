@@ -1,5 +1,7 @@
 import { useEffect, useRef } from "react";
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation, Redirect } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import type { Survey } from "@shared/schema";
 import { queryClient, RELOGIN_MESSAGE } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -43,7 +45,23 @@ import AdminPunicoes from "@/pages/admin-punicoes";
 import Apostas from "@/pages/apostas";
 import Cassino from "@/pages/cassino";
 import Mural from "@/pages/mural";
+import Pesquisa from "@/pages/pesquisa";
+import AdminPesquisa from "@/pages/admin-pesquisa";
 import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
+
+function SurveyGuard({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const { isAuthenticated } = useAuth();
+  const { data: survey, isLoading } = useQuery<Survey | null>({
+    queryKey: ["/api/survey"],
+    enabled: isAuthenticated,
+  });
+  if (!isAuthenticated || isLoading) return <>{children}</>;
+  if (survey === null && location !== "/pesquisa") {
+    return <Redirect to="/pesquisa" />;
+  }
+  return <>{children}</>;
+}
 
 function Router() {
   const { user, isAuthenticated, isLoading, isError } = useAuth();
@@ -71,40 +89,44 @@ function Router() {
   }
 
   return (
-    <Switch>
-      <Route path="/" component={Mural} />
-      <Route path="/dashboard" component={user?.isAdmin ? AdminDashboard : Dashboard} />
-      <Route path="/perfil" component={Perfil} />
-      <Route path="/mix/escolher-time" component={MixEscolherTime} />
-      <Route path="/mix/veto-mapas" component={MixVetoMapas} />
-      <Route path="/mix/disponibilidade" component={MixDisponibilidade} />
-      <Route path="/jogadores" component={Jogadores} />
-      <Route path="/rankings" component={Rankings} />
-      <Route path="/piores-jogadores" component={PioresJogadores} />
-      <Route path="/ranking-mensal" component={RankingMensal} />
-      <Route path="/jogador/:id" component={PerfilJogador} />
-      <Route path="/comparar-jogadores" component={CompararJogadores} />
-      <Route path="/servidor/comandos" component={ServidorComandos} />
-      <Route path="/servidor/mapas" component={ServidorMapas} />
-      <Route path="/servidor/skins" component={ServidorSkins} />
-      <Route path="/servidor/steamid" component={ServidorSteamId} />
-      <Route path="/patrocinadores" component={Patrocinadores} />
-      <Route path="/campeonato" component={Campeonato} />
-      <Route path="/denuncias" component={Denuncias} />
-      <Route path="/cassino/apostas" component={Apostas} />
-      <Route path="/cassino/jogos" component={Cassino} />
-      <Route path="/partidas/minhas" component={PartidasMinhas} />
-      <Route path="/partidas/todas" component={PartidasTodas} />
-      <Route path="/partidas/mapas" component={MapasMaisJogados} />
-      <Route path="/admin/users" component={AdminUsers} />
-      <Route path="/admin/import" component={AdminImport} />
-      <Route path="/admin/financeiro" component={AdminFinanceiro} />
-      <Route path="/admin/denuncias" component={AdminDenuncias} />
-      <Route path="/admin/campeonato" component={AdminCampeonato} />
-      <Route path="/admin/historico-rankings" component={AdminHistoricoRankings} />
-      <Route path="/admin/punicoes" component={AdminPunicoes} />
-      <Route component={NotFound} />
-    </Switch>
+    <SurveyGuard>
+      <Switch>
+        <Route path="/" component={Mural} />
+        <Route path="/dashboard" component={user?.isAdmin ? AdminDashboard : Dashboard} />
+        <Route path="/perfil" component={Perfil} />
+        <Route path="/pesquisa" component={Pesquisa} />
+        <Route path="/mix/escolher-time" component={MixEscolherTime} />
+        <Route path="/mix/veto-mapas" component={MixVetoMapas} />
+        <Route path="/mix/disponibilidade" component={MixDisponibilidade} />
+        <Route path="/jogadores" component={Jogadores} />
+        <Route path="/rankings" component={Rankings} />
+        <Route path="/piores-jogadores" component={PioresJogadores} />
+        <Route path="/ranking-mensal" component={RankingMensal} />
+        <Route path="/jogador/:id" component={PerfilJogador} />
+        <Route path="/comparar-jogadores" component={CompararJogadores} />
+        <Route path="/servidor/comandos" component={ServidorComandos} />
+        <Route path="/servidor/mapas" component={ServidorMapas} />
+        <Route path="/servidor/skins" component={ServidorSkins} />
+        <Route path="/servidor/steamid" component={ServidorSteamId} />
+        <Route path="/patrocinadores" component={Patrocinadores} />
+        <Route path="/campeonato" component={Campeonato} />
+        <Route path="/denuncias" component={Denuncias} />
+        <Route path="/cassino/apostas" component={Apostas} />
+        <Route path="/cassino/jogos" component={Cassino} />
+        <Route path="/partidas/minhas" component={PartidasMinhas} />
+        <Route path="/partidas/todas" component={PartidasTodas} />
+        <Route path="/partidas/mapas" component={MapasMaisJogados} />
+        <Route path="/admin/users" component={AdminUsers} />
+        <Route path="/admin/import" component={AdminImport} />
+        <Route path="/admin/financeiro" component={AdminFinanceiro} />
+        <Route path="/admin/denuncias" component={AdminDenuncias} />
+        <Route path="/admin/campeonato" component={AdminCampeonato} />
+        <Route path="/admin/historico-rankings" component={AdminHistoricoRankings} />
+        <Route path="/admin/punicoes" component={AdminPunicoes} />
+        <Route path="/admin/pesquisa" component={AdminPesquisa} />
+        <Route component={NotFound} />
+      </Switch>
+    </SurveyGuard>
   );
 }
 

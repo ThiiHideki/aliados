@@ -2466,6 +2466,73 @@ export async function registerRoutes(
     }
   });
 
+  // ── Survey routes ───────────────────────────────────────────────────────────
+
+  // Get current user's survey status
+  app.get('/api/survey', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const survey = await storage.getSurveyByUserId(userId);
+      res.json(survey || null);
+    } catch (error) {
+      console.error("Error fetching survey:", error);
+      res.status(500).json({ message: "Erro ao buscar pesquisa" });
+    }
+  });
+
+  // Submit / update survey
+  app.post('/api/survey', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const {
+        bestPlayTimes, faceitLevel, gcLevel, valveLevel,
+        improvementSuggestions, reasonNotPlaying, attractMorePlayers,
+        playMoreWays, generalOpinions, levelUpInfluenced, levelUpInfluencedComment,
+      } = req.body;
+
+      if (!levelUpInfluenced) {
+        return res.status(400).json({ message: "Responda se o nível ter subido influenciou você" });
+      }
+      if (levelUpInfluenced === 'yes' && !levelUpInfluencedComment?.trim()) {
+        return res.status(400).json({ message: "Explique como o nível influenciou você" });
+      }
+
+      const survey = await storage.upsertSurvey(userId, {
+        bestPlayTimes: bestPlayTimes || [],
+        faceitLevel: faceitLevel || null,
+        gcLevel: gcLevel || null,
+        valveLevel: valveLevel || null,
+        improvementSuggestions: improvementSuggestions || null,
+        reasonNotPlaying: reasonNotPlaying || null,
+        attractMorePlayers: attractMorePlayers || null,
+        playMoreWays: playMoreWays || null,
+        generalOpinions: generalOpinions || null,
+        levelUpInfluenced,
+        levelUpInfluencedComment: levelUpInfluencedComment || null,
+      });
+      res.json(survey);
+    } catch (error) {
+      console.error("Error saving survey:", error);
+      res.status(500).json({ message: "Erro ao salvar pesquisa" });
+    }
+  });
+
+  // Admin: get all surveys
+  app.get('/api/admin/surveys', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) {
+        return res.status(403).json({ message: "Apenas admins" });
+      }
+      const allSurveys = await storage.getAllSurveys();
+      res.json(allSurveys);
+    } catch (error) {
+      console.error("Error fetching surveys:", error);
+      res.status(500).json({ message: "Erro ao buscar pesquisas" });
+    }
+  });
+
   return httpServer;
 }
 

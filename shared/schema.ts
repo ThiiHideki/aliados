@@ -469,7 +469,39 @@ export const insertTrophySchema = createInsertSchema(trophies).omit({
   createdAt: true,
 });
 
+// Community survey table - required for all users
+export const surveys = pgTable("surveys", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }).unique(),
+  bestPlayTimes: text("best_play_times").array(), // selected hours e.g. ["19:00","20:00"]
+  faceitLevel: integer("faceit_level"), // 1-10
+  gcLevel: integer("gc_level"), // 1-21
+  valveLevel: varchar("valve_level"), // text
+  improvementSuggestions: text("improvement_suggestions"),
+  reasonNotPlaying: text("reason_not_playing"),
+  attractMorePlayers: text("attract_more_players"),
+  playMoreWays: text("play_more_ways"),
+  generalOpinions: text("general_opinions"),
+  levelUpInfluenced: varchar("level_up_influenced"), // "yes" | "no"
+  levelUpInfluencedComment: text("level_up_influenced_comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const surveyRelations = relations(surveys, ({ one }) => ({
+  user: one(users, { fields: [surveys.userId], references: [users.id] }),
+}));
+
+export const insertSurveySchema = createInsertSchema(surveys).omit({
+  id: true,
+  userId: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Types
+export type Survey = typeof surveys.$inferSelect;
+export type InsertSurvey = z.infer<typeof insertSurveySchema>;
 export type Trophy = typeof trophies.$inferSelect;
 export type InsertTrophy = z.infer<typeof insertTrophySchema>;
 export type News = typeof news.$inferSelect;

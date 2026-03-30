@@ -15,12 +15,12 @@ import {
   Heart, Copy, Check, Server, Globe, 
   Sparkles, Star, Trophy, Users, Calendar, 
   TrendingUp, ArrowRight, User, Gamepad2, 
-  CheckCircle, Link2, Megaphone, Award, Target,
+  CheckCircle, ClipboardList, Megaphone, Award, Target,
   DollarSign, ExternalLink, Handshake,
   Newspaper, ChevronDown, ChevronRight, Plus, Trash2, Send
 } from "lucide-react";
 import { SiInstagram } from "react-icons/si";
-import type { User as UserType, Match, MatchStats, News, Trophy as TrophyType } from "@shared/schema";
+import type { User as UserType, Match, MatchStats, News, Trophy as TrophyType, Survey } from "@shared/schema";
 import skinsLabLogo from "@assets/skins_lab_logo1_1771007653832.png";
 import thomaziniLogo from "@assets/thomazini_logo_1771007598394.jpeg";
 import dukinhaLogo from "@assets/WhatsApp_Image_2026-02-13_at_15.40.31_1771008050723.jpeg";
@@ -127,9 +127,10 @@ export default function Mural() {
     return configs[type] || configs.best_player;
   };
 
-  const hasSteamId = !!user?.steamId64;
-  const hasNickname = !!user?.nickname;
-  const needsProfileUpdate = !hasSteamId || !hasNickname;
+  const { data: mySurvey } = useQuery<Survey | null>({
+    queryKey: ["/api/survey"],
+  });
+  const surveyCompleted = !!mySurvey;
 
   const copyPixKey = async () => {
     try {
@@ -377,63 +378,61 @@ export default function Mural() {
         </CardContent>
       </Card>
 
-      <Card className="border-primary/30 bg-primary/5" data-testid="card-steamid-reminder">
+      <Card
+        className={`border-2 ${surveyCompleted ? "border-green-500/40 bg-green-500/5" : "border-primary/50 bg-primary/5"}`}
+        data-testid="card-survey-cta"
+      >
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Link2 className="h-5 w-5 text-primary" />
-            Atualize seu Perfil com o SteamID64
-          </CardTitle>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-primary" />
+              Pesquisa da Comunidade
+            </CardTitle>
+            {surveyCompleted ? (
+              <Badge variant="secondary" className="bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30">
+                <CheckCircle className="h-3 w-3 mr-1" />
+                Respondida
+              </Badge>
+            ) : (
+              <Badge variant="destructive">Obrigatória</Badge>
+            )}
+          </div>
           <CardDescription>
-            Todos os jogadores devem cadastrar o SteamID64 no perfil para que suas estatísticas sejam vinculadas automaticamente!
+            {surveyCompleted
+              ? "Obrigado por participar! Suas respostas foram registradas."
+              : "Participe da pesquisa e ajude a melhorar o servidor para toda a comunidade."}
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center p-3 rounded-lg bg-primary/10 border border-primary/20">
-            <p className="text-sm font-medium text-primary">
-              Sem o SteamID64, suas partidas não serão contabilizadas no sistema. 
-              Acesse seu perfil e cadastre agora!
-            </p>
-          </div>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div className={`flex items-center justify-between p-3 rounded-lg ${hasSteamId ? 'bg-green-500/10 border border-green-500/20' : 'bg-destructive/10 border border-destructive/20'}`}>
-              <div className="flex items-center gap-3">
-                <Link2 className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <span className="font-medium">SteamID64</span>
-                  <p className="text-xs text-muted-foreground">Vincula suas partidas</p>
-                </div>
-              </div>
-              {hasSteamId ? (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              ) : (
-                <Badge variant="destructive">Pendente</Badge>
-              )}
+        <CardContent className="space-y-3">
+          {!surveyCompleted && (
+            <div className="p-3 rounded-lg bg-primary/10 border border-primary/20">
+              <p className="text-sm font-medium text-primary text-center">
+                Todos os membros devem responder a pesquisa. São poucos minutos e fazem grande diferença!
+              </p>
             </div>
-
-            <div className={`flex items-center justify-between p-3 rounded-lg ${hasNickname ? 'bg-green-500/10 border border-green-500/20' : 'bg-destructive/10 border border-destructive/20'}`}>
-              <div className="flex items-center gap-3">
-                <Gamepad2 className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <span className="font-medium">Nickname do Jogo</span>
-                  <p className="text-xs text-muted-foreground">Nome no CS2</p>
-                </div>
-              </div>
-              {hasNickname ? (
-                <CheckCircle className="h-5 w-5 text-green-500" />
-              ) : (
-                <Badge variant="destructive">Pendente</Badge>
-              )}
+          )}
+          <div className="grid grid-cols-3 gap-2">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Gamepad2 className="h-5 w-5 text-primary mb-1" />
+              <span className="text-xs font-medium">Horários</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Star className="h-5 w-5 text-primary mb-1" />
+              <span className="text-xs font-medium">Níveis</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <TrendingUp className="h-5 w-5 text-primary mb-1" />
+              <span className="text-xs font-medium">Sugestões</span>
             </div>
           </div>
-
-          <p className="text-xs text-muted-foreground text-center">
-            Não sabe como encontrar seu SteamID64? Acesse a página "Como encontrar o SteamID64" no menu Servidor.
-          </p>
-
-          <Button onClick={() => setLocation("/perfil")} className="w-full" data-testid="button-update-profile">
-            <User className="h-4 w-4 mr-2" />
-            {needsProfileUpdate ? "Atualizar Perfil Agora" : "Ir para Meu Perfil"}
+          <Button
+            onClick={() => setLocation("/pesquisa")}
+            className="w-full"
+            variant={surveyCompleted ? "outline" : "default"}
+            data-testid="button-go-survey"
+          >
+            <ClipboardList className="h-4 w-4 mr-2" />
+            {surveyCompleted ? "Ver minha resposta" : "Responder Pesquisa Agora"}
             <ArrowRight className="h-4 w-4 ml-2" />
           </Button>
         </CardContent>

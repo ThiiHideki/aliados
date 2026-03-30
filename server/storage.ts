@@ -15,6 +15,9 @@ import {
   mixPenalties,
   news,
   trophies,
+  surveys,
+  type Survey,
+  type InsertSurvey,
   type User,
   type UpsertUser,
   type Match,
@@ -1131,6 +1134,31 @@ export class DatabaseStorage implements IStorage {
       .where(sql`${trophies.month} = ${month} AND ${trophies.year} = ${year}`)
       .returning();
     return result.length > 0;
+  }
+
+  // Survey operations
+  async getSurveyByUserId(userId: string): Promise<Survey | undefined> {
+    const [survey] = await db.select().from(surveys).where(eq(surveys.userId, userId));
+    return survey;
+  }
+
+  async getAllSurveys(): Promise<(Survey & { user: User | undefined })[]> {
+    const all = await db.select().from(surveys).orderBy(desc(surveys.createdAt));
+    const allUsers = await db.select().from(users);
+    const userMap = new Map(allUsers.map(u => [u.id, u]));
+    return all.map(s => ({ ...s, user: userMap.get(s.userId) }));
+  }
+
+  async upsertSurvey(userId: string, data: InsertSurvey): Promise<Survey> {
+    const [survey] = await db
+      .insert(surveys)
+      .values({ ...data, userId, updatedAt: new Date() })
+      .onConflictDoUpdate({
+        target: surveys.userId,
+        set: { ...data, updatedAt: new Date() },
+      })
+      .returning();
+    return survey;
   }
 }
 

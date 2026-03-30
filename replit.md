@@ -128,6 +128,7 @@ The application uses the following main tables:
 7. **betItems** - Individual bet conditions (kills over/under, K/D, headshots, etc.)
 8. **casinoTransactions** - Transaction history for balance changes (bets, wins, games)
 9. **trophies** - Monthly award medals tied to player profiles (type, month, year, title, description, value)
+10. **surveys** - Community survey responses (one per user, UNIQUE userId): bestPlayTimes[], faceitLevel, gcLevel, valveLevel, improvementSuggestions, reasonNotPlaying, attractMorePlayers, playMoreWays, generalOpinions, levelUpInfluenced (yes/no, required), levelUpInfluencedComment (required if yes)
    - Types: best_player, best_kd, best_assists, best_hs, most_matches, worst_player, worst_kd, best_kills_avg
    - Auto-generated when admin saves monthly rankings, or manually via admin API
    - Displayed on user profile pages as medals/badges
