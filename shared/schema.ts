@@ -9,6 +9,7 @@ import {
   integer,
   boolean,
   real,
+  serial,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -498,6 +499,98 @@ export const insertSurveySchema = createInsertSchema(surveys).omit({
   createdAt: true,
   updatedAt: true,
 });
+
+// ── Copa Inimigos da Bala ────────────────────────────────────────────────────
+
+export const copaTeams = pgTable("copa_teams", {
+  id: serial("id").primaryKey(),
+  teamName: varchar("team_name", { length: 100 }).notNull(),
+  leaderName: varchar("leader_name", { length: 100 }).notNull(),
+  leaderContact: varchar("leader_contact", { length: 200 }).notNull(), // email or phone
+  paymentProof: text("payment_proof"), // base64 image or URL
+  status: varchar("status", { length: 20 }).default("pending").notNull(), // pending|confirmed|rejected
+  adminNotes: text("admin_notes"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const copaPlayers = pgTable("copa_players", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull().references(() => copaTeams.id, { onDelete: "cascade" }),
+  playerName: varchar("player_name", { length: 100 }).notNull(),
+  steamProfile: varchar("steam_profile", { length: 200 }).notNull(),
+  age: integer("age").notNull(),
+  position: varchar("position", { length: 50 }).notNull(), // AWPer/Rifler/IGL/Support/Entry/Lurker
+  gcLevel: integer("gc_level"), // 0 = sem conta, 1-21
+  faceitLevel: integer("faceit_level"), // 0 = sem conta, 1-10
+  isLeader: boolean("is_leader").default(false).notNull(),
+  playerOrder: integer("player_order").default(0).notNull(),
+});
+
+export const copaMatches = pgTable("copa_matches", {
+  id: serial("id").primaryKey(),
+  round: varchar("round", { length: 50 }).notNull(), // "Fase de Grupos", "Oitavas", "Quartas", "Semi", "Final"
+  roundNumber: integer("round_number").notNull(), // 1, 2, 3...
+  team1Id: integer("team1_id").references(() => copaTeams.id),
+  team2Id: integer("team2_id").references(() => copaTeams.id),
+  team1Score: integer("team1_score"),
+  team2Score: integer("team2_score"),
+  winnerId: integer("winner_id").references(() => copaTeams.id),
+  mapName: varchar("map_name", { length: 50 }),
+  scheduledAt: timestamp("scheduled_at"),
+  streamUrl: varchar("stream_url", { length: 500 }),
+  notes: text("notes"),
+  isFinished: boolean("is_finished").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const copaMatchStats = pgTable("copa_match_stats", {
+  id: serial("id").primaryKey(),
+  matchId: integer("match_id").notNull().references(() => copaMatches.id, { onDelete: "cascade" }),
+  teamId: integer("team_id").references(() => copaTeams.id),
+  playerName: varchar("player_name", { length: 100 }).notNull(),
+  steamProfile: varchar("steam_profile", { length: 200 }),
+  kills: integer("kills").default(0).notNull(),
+  deaths: integer("deaths").default(0).notNull(),
+  assists: integer("assists").default(0).notNull(),
+  headshots: integer("headshots").default(0).notNull(),
+  damage: integer("damage").default(0).notNull(),
+  adr: real("adr").default(0).notNull(), // average damage per round
+  firstKills: integer("first_kills").default(0).notNull(),
+  flashAssists: integer("flash_assists").default(0).notNull(),
+  twoK: integer("two_k").default(0).notNull(),
+  threeK: integer("three_k").default(0).notNull(),
+  fourK: integer("four_k").default(0).notNull(),
+  fiveK: integer("five_k").default(0).notNull(),
+  clutch1v1Wins: integer("clutch_1v1_wins").default(0).notNull(),
+  clutch1v2Wins: integer("clutch_1v2_wins").default(0).notNull(),
+  rating: real("rating").default(0), // custom rating
+});
+
+export const copaTeamRelations = relations(copaTeams, ({ many }) => ({
+  players: many(copaPlayers),
+}));
+
+export const copaPlayerRelations = relations(copaPlayers, ({ one }) => ({
+  team: one(copaTeams, { fields: [copaPlayers.teamId], references: [copaTeams.id] }),
+}));
+
+export const copaMatchRelations = relations(copaMatches, ({ one, many }) => ({
+  team1: one(copaTeams, { fields: [copaMatches.team1Id], references: [copaTeams.id], relationName: "team1" }),
+  team2: one(copaTeams, { fields: [copaMatches.team2Id], references: [copaTeams.id], relationName: "team2" }),
+  winner: one(copaTeams, { fields: [copaMatches.winnerId], references: [copaTeams.id], relationName: "winner" }),
+  stats: many(copaMatchStats),
+}));
+
+export const copaMatchStatsRelations = relations(copaMatchStats, ({ one }) => ({
+  match: one(copaMatches, { fields: [copaMatchStats.matchId], references: [copaMatches.id] }),
+  team: one(copaTeams, { fields: [copaMatchStats.teamId], references: [copaTeams.id] }),
+}));
+
+export type CopaTeam = typeof copaTeams.$inferSelect;
+export type CopaPlayer = typeof copaPlayers.$inferSelect;
+export type CopaMatch = typeof copaMatches.$inferSelect;
+export type CopaMatchStats = typeof copaMatchStats.$inferSelect;
 
 // Types
 export type Survey = typeof surveys.$inferSelect;

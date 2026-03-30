@@ -2466,6 +2466,118 @@ export async function registerRoutes(
     }
   });
 
+  // ── Copa Inimigos da Bala routes ────────────────────────────────────────────
+
+  // Public: get confirmed teams + matches + prizes info
+  app.get('/api/copa/teams', isAuthenticated, async (req, res) => {
+    try {
+      const teams = await storage.getAllCopaTeams();
+      res.json(teams);
+    } catch (e) { res.status(500).json({ message: "Erro ao buscar times" }); }
+  });
+
+  app.get('/api/copa/matches', isAuthenticated, async (req, res) => {
+    try {
+      const matches = await storage.getCopaMatches();
+      res.json(matches);
+    } catch (e) { res.status(500).json({ message: "Erro ao buscar partidas" }); }
+  });
+
+  app.get('/api/copa/stats', isAuthenticated, async (req, res) => {
+    try {
+      const stats = await storage.getAllCopaStats();
+      const teams = await storage.getAllCopaTeams();
+      res.json({ stats, teams });
+    } catch (e) { res.status(500).json({ message: "Erro ao buscar estatísticas" }); }
+  });
+
+  // Register a team (any authenticated user)
+  app.post('/api/copa/teams', isAuthenticated, async (req: any, res) => {
+    try {
+      const { teamName, leaderName, leaderContact, paymentProof, players } = req.body;
+      if (!teamName?.trim() || !leaderName?.trim() || !leaderContact?.trim()) {
+        return res.status(400).json({ message: "Nome do time, líder e contato são obrigatórios" });
+      }
+      if (!players || players.length < 1 || players.length > 6) {
+        return res.status(400).json({ message: "O time deve ter entre 1 e 6 jogadores" });
+      }
+      const team = await storage.createCopaTeam({ teamName, leaderName, leaderContact, paymentProof });
+      await storage.addCopaPlayers(team.id, players);
+      const fullTeam = await storage.getCopaTeam(team.id);
+      res.json(fullTeam);
+    } catch (e) {
+      console.error("Error creating copa team:", e);
+      res.status(500).json({ message: "Erro ao cadastrar time" });
+    }
+  });
+
+  // Admin: update team status
+  app.patch('/api/copa/teams/:id/status', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
+      const { status, adminNotes } = req.body;
+      const team = await storage.updateCopaTeamStatus(Number(req.params.id), status, adminNotes);
+      res.json(team);
+    } catch (e) { res.status(500).json({ message: "Erro ao atualizar status" }); }
+  });
+
+  // Admin: create match
+  app.post('/api/copa/matches', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
+      const { round, roundNumber, team1Id, team2Id, scheduledAt, streamUrl, notes } = req.body;
+      const match = await storage.createCopaMatch({
+        round, roundNumber,
+        team1Id: team1Id || undefined,
+        team2Id: team2Id || undefined,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+        streamUrl, notes,
+      });
+      res.json(match);
+    } catch (e) { res.status(500).json({ message: "Erro ao criar partida" }); }
+  });
+
+  // Admin: update match result + stats
+  app.patch('/api/copa/matches/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
+      const { team1Score, team2Score, winnerId, mapName, streamUrl, notes, isFinished, scheduledAt, stats } = req.body;
+      const match = await storage.updateCopaMatch(Number(req.params.id), {
+        team1Score, team2Score, winnerId, mapName, streamUrl, notes, isFinished,
+        scheduledAt: scheduledAt ? new Date(scheduledAt) : undefined,
+      });
+      if (stats && Array.isArray(stats)) {
+        await storage.setCopaMatchStats(match.id, stats);
+      }
+      res.json(match);
+    } catch (e) { res.status(500).json({ message: "Erro ao atualizar partida" }); }
+  });
+
+  // Get match stats
+  app.get('/api/copa/matches/:id/stats', isAuthenticated, async (req, res) => {
+    try {
+      const stats = await storage.getCopaMatchStats(Number(req.params.id));
+      res.json(stats);
+    } catch (e) { res.status(500).json({ message: "Erro ao buscar stats" }); }
+  });
+
+  // Admin: delete team
+  app.delete('/api/copa/teams/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
+      await storage.updateCopaTeamStatus(Number(req.params.id), "rejected", "Removido pelo admin");
+      res.json({ success: true });
+    } catch (e) { res.status(500).json({ message: "Erro ao remover time" }); }
+  });
+
   // ── Survey routes ───────────────────────────────────────────────────────────
 
   // Get current user's survey status

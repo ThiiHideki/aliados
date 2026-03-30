@@ -69,6 +69,11 @@ The sidebar navigation includes the following sections:
 - `/partidas/todas` - All matches
 - `/admin/users` - Admin user management
 - `/admin/import` - CSV match data import (admin only)
+- `/copa/inscricao` - Team registration for Copa Inimigos da Bala (PIX payment + proof upload)
+- `/copa/tabela` - Tournament bracket and match results
+- `/copa/estatisticas` - Copa player leaderboards (kills, K/D, HS%, ADR, ACEs)
+- `/copa/premiacoes` - Prize pool calculator and tournament info
+- `/admin/copa` - Admin panel for team approval and match management
 
 ## System Architecture
 

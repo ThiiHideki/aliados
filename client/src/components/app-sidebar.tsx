@@ -462,10 +462,62 @@ export function AppSidebar() {
                 >
                   <Link href="/campeonato">
                     <Trophy className="h-4 w-4" />
-                    <span>Campeonato</span>
+                    <span>Campeonato Interno Inimigos da Bala</span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+
+              {/* Copa Inimigos da Bala */}
+              <Collapsible className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton
+                      data-testid="nav-copa"
+                      isActive={location.startsWith("/copa")}
+                    >
+                      <Swords className="h-4 w-4" />
+                      <span>Copa Inimigos da Bala</span>
+                      <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location === "/copa/inscricao"} data-testid="nav-copa-inscricao">
+                          <Link href="/copa/inscricao">
+                            <UserCheck className="h-4 w-4" />
+                            <span>Inscrição</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location === "/copa/tabela"} data-testid="nav-copa-tabela">
+                          <Link href="/copa/tabela">
+                            <Target className="h-4 w-4" />
+                            <span>Tabela / Chaveamento</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location === "/copa/estatisticas"} data-testid="nav-copa-estatisticas">
+                          <Link href="/copa/estatisticas">
+                            <BarChart3 className="h-4 w-4" />
+                            <span>Estatísticas</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location === "/copa/premiacoes"} data-testid="nav-copa-premiacoes">
+                          <Link href="/copa/premiacoes">
+                            <DollarSign className="h-4 w-4" />
+                            <span>Premiações</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
 
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -663,7 +715,19 @@ export function AppSidebar() {
                           >
                             <Link href="/admin/campeonato">
                               <Trophy className="h-4 w-4" />
-                              <span>Campeonato</span>
+                              <span>Campeonato Interno</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/admin/copa"}
+                            data-testid="nav-admin-copa"
+                          >
+                            <Link href="/admin/copa">
+                              <Swords className="h-4 w-4" />
+                              <span>Gestão da Copa</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

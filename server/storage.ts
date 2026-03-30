@@ -16,6 +16,14 @@ import {
   news,
   trophies,
   surveys,
+  copaTeams,
+  copaPlayers,
+  copaMatches,
+  copaMatchStats,
+  type CopaTeam,
+  type CopaPlayer,
+  type CopaMatch,
+  type CopaMatchStats,
   type Survey,
   type InsertSurvey,
   type User,
@@ -1159,6 +1167,89 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return survey;
+  }
+
+  // ── Copa Inimigos da Bala ─────────────────────────────────────────────────
+
+  async createCopaTeam(data: {
+    teamName: string; leaderName: string; leaderContact: string; paymentProof?: string;
+  }): Promise<CopaTeam> {
+    const [team] = await db.insert(copaTeams).values(data).returning();
+    return team;
+  }
+
+  async getCopaTeam(id: number): Promise<(CopaTeam & { players: CopaPlayer[] }) | undefined> {
+    const [team] = await db.select().from(copaTeams).where(eq(copaTeams.id, id));
+    if (!team) return undefined;
+    const players = await db.select().from(copaPlayers)
+      .where(eq(copaPlayers.teamId, id))
+      .orderBy(copaPlayers.playerOrder);
+    return { ...team, players };
+  }
+
+  async getAllCopaTeams(): Promise<(CopaTeam & { players: CopaPlayer[] })[]> {
+    const teams = await db.select().from(copaTeams).orderBy(desc(copaTeams.createdAt));
+    const allPlayers = await db.select().from(copaPlayers).orderBy(copaPlayers.playerOrder);
+    return teams.map(t => ({
+      ...t,
+      players: allPlayers.filter(p => p.teamId === t.id),
+    }));
+  }
+
+  async updateCopaTeamStatus(id: number, status: string, adminNotes?: string): Promise<CopaTeam> {
+    const [team] = await db.update(copaTeams)
+      .set({ status, adminNotes: adminNotes ?? undefined, updatedAt: new Date() })
+      .where(eq(copaTeams.id, id))
+      .returning();
+    return team;
+  }
+
+  async addCopaPlayers(teamId: number, players: Omit<CopaPlayer, 'id' | 'teamId'>[]): Promise<CopaPlayer[]> {
+    const values = players.map((p, i) => ({ ...p, teamId, playerOrder: i }));
+    return await db.insert(copaPlayers).values(values).returning();
+  }
+
+  async getCopaMatches(): Promise<(CopaMatch & { team1: CopaTeam | null; team2: CopaTeam | null; winner: CopaTeam | null })[]> {
+    const matches = await db.select().from(copaMatches).orderBy(copaMatches.roundNumber, copaMatches.id);
+    const teams = await db.select().from(copaTeams);
+    const teamMap = new Map(teams.map(t => [t.id, t]));
+    return matches.map(m => ({
+      ...m,
+      team1: m.team1Id ? teamMap.get(m.team1Id) ?? null : null,
+      team2: m.team2Id ? teamMap.get(m.team2Id) ?? null : null,
+      winner: m.winnerId ? teamMap.get(m.winnerId) ?? null : null,
+    }));
+  }
+
+  async createCopaMatch(data: {
+    round: string; roundNumber: number; team1Id?: number; team2Id?: number;
+    scheduledAt?: Date; streamUrl?: string; notes?: string;
+  }): Promise<CopaMatch> {
+    const [match] = await db.insert(copaMatches).values(data).returning();
+    return match;
+  }
+
+  async updateCopaMatch(id: number, data: {
+    team1Score?: number; team2Score?: number; winnerId?: number;
+    mapName?: string; streamUrl?: string; notes?: string; isFinished?: boolean;
+    scheduledAt?: Date;
+  }): Promise<CopaMatch> {
+    const [match] = await db.update(copaMatches).set(data).where(eq(copaMatches.id, id)).returning();
+    return match;
+  }
+
+  async getCopaMatchStats(matchId: number): Promise<CopaMatchStats[]> {
+    return db.select().from(copaMatchStats).where(eq(copaMatchStats.matchId, matchId));
+  }
+
+  async setCopaMatchStats(matchId: number, stats: Omit<CopaMatchStats, 'id'>[]): Promise<CopaMatchStats[]> {
+    await db.delete(copaMatchStats).where(eq(copaMatchStats.matchId, matchId));
+    if (stats.length === 0) return [];
+    return db.insert(copaMatchStats).values(stats).returning();
+  }
+
+  async getAllCopaStats(): Promise<CopaMatchStats[]> {
+    return db.select().from(copaMatchStats);
   }
 }
 
