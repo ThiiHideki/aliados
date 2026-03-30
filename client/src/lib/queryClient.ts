@@ -1,4 +1,4 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { QueryClient, QueryFunction, QueryCache, MutationCache } from "@tanstack/react-query";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -48,9 +48,27 @@ export function isUnauthorizedError(error: unknown): boolean {
   return false;
 }
 
+function dispatchSessionExpired() {
+  window.dispatchEvent(new CustomEvent("auth:session-expired"));
+}
+
 export const RELOGIN_MESSAGE = "Sua sessão expirou. Faça login novamente para continuar.";
 
 export const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        dispatchSessionExpired();
+      }
+    },
+  }),
+  mutationCache: new MutationCache({
+    onError: (error) => {
+      if (isUnauthorizedError(error)) {
+        dispatchSessionExpired();
+      }
+    },
+  }),
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
@@ -62,11 +80,6 @@ export const queryClient = new QueryClient({
     },
     mutations: {
       retry: false,
-      onError: (error: Error) => {
-        if (isUnauthorizedError(error)) {
-          window.dispatchEvent(new CustomEvent("auth:session-expired"));
-        }
-      },
     },
   },
 });

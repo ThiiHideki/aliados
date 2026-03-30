@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Survey } from "@shared/schema";
@@ -186,6 +186,7 @@ function SessionExpiredListener() {
     const handler = () => {
       if (shownRef.current) return;
       shownRef.current = true;
+      queryClient.clear();
       toast({
         title: "Sessão expirada",
         description: RELOGIN_MESSAGE,
@@ -202,10 +203,47 @@ function SessionExpiredListener() {
   return null;
 }
 
+function ChunkLoadErrorHandler() {
+  const reloadedRef = useRef(false);
+
+  const handleChunkError = useCallback((error: Error | PromiseRejectionEvent) => {
+    const err = error instanceof Error ? error : (error as PromiseRejectionEvent).reason;
+    if (!err) return;
+    const msg = err.message || String(err);
+    const isChunkError =
+      err.name === "ChunkLoadError" ||
+      /Loading chunk \d+ failed/.test(msg) ||
+      /Failed to fetch dynamically imported module/.test(msg) ||
+      /error loading dynamically imported module/i.test(msg) ||
+      /Importing a module script failed/.test(msg);
+
+    if (isChunkError && !reloadedRef.current) {
+      reloadedRef.current = true;
+      window.location.reload();
+    }
+  }, []);
+
+  useEffect(() => {
+    const onUnhandledRejection = (e: PromiseRejectionEvent) => handleChunkError(e);
+    const onError = (e: ErrorEvent) => {
+      if (e.error) handleChunkError(e.error);
+    };
+    window.addEventListener("unhandledrejection", onUnhandledRejection);
+    window.addEventListener("error", onError);
+    return () => {
+      window.removeEventListener("unhandledrejection", onUnhandledRejection);
+      window.removeEventListener("error", onError);
+    };
+  }, [handleChunkError]);
+
+  return null;
+}
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
+        <ChunkLoadErrorHandler />
         <AppContent />
         <SessionExpiredListener />
         <Toaster />
