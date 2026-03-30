@@ -17,9 +17,12 @@ import {
 import type { CopaTeam, CopaPlayer } from "@shared/schema";
 import copaImg from "@assets/Gemini_Generated_Image_cwonr5cwonr5cwon_1774910925811.png";
 
-const PIX_KEY = "inimigos@bala.gg";
+const PIX_PHONE = "12982690148";
+const PIX_OWNER = "Adilson";
 const REGISTRATION_FEE = 50;
 const TOURNAMENT_DATE = "18 de Abril de 2026";
+const TOURNAMENT_START_TIME = "14:00";
+const REGISTRATION_DEADLINE = "18/04/2026 às 12:00";
 const POSITIONS = ["IGL","AWPer","Rifler","Entry Fragger","Lurker","Support"];
 
 type PlayerForm = {
@@ -191,7 +194,7 @@ export default function CopaInscricao() {
   };
 
   const copyPix = () => {
-    navigator.clipboard.writeText(PIX_KEY);
+    navigator.clipboard.writeText(PIX_PHONE);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
@@ -243,10 +246,22 @@ export default function CopaInscricao() {
         </div>
       </div>
 
+      {/* Deadline warning */}
+      <Card className="border-red-500/40 bg-red-500/5">
+        <CardContent className="pt-3 pb-3 flex items-center gap-3 flex-wrap">
+          <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
+          <div className="text-sm">
+            <span className="font-bold text-red-400">Prazo de inscrição:</span>{" "}
+            <span>{REGISTRATION_DEADLINE}</span>
+            <span className="text-muted-foreground"> · Jogos iniciam às {TOURNAMENT_START_TIME} do mesmo dia</span>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Info cards */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {[
-          { icon: Calendar, label: "Data", value: "18/04/2026" },
+          { icon: Calendar, label: "Data dos Jogos", value: "18/04 às 14:00" },
           { icon: Trophy, label: "Taxa", value: "R$ 50,00" },
           { icon: Swords, label: "Formato", value: "Mata-Mata" },
           { icon: Users, label: "Time", value: "Até 6 jogadores" },
@@ -287,8 +302,9 @@ export default function CopaInscricao() {
         <CardContent className="space-y-3">
           <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/40 border">
             <div className="flex-1 min-w-0">
-              <p className="text-xs text-muted-foreground">Chave PIX</p>
-              <p className="font-mono font-bold text-sm truncate">{PIX_KEY}</p>
+              <p className="text-xs text-muted-foreground">PIX · Celular</p>
+              <p className="font-mono font-bold text-sm">{PIX_PHONE}</p>
+              <p className="text-xs text-muted-foreground">Titular: {PIX_OWNER}</p>
             </div>
             <Button size="icon" variant="outline" onClick={copyPix} data-testid="button-copy-pix">
               {copied ? <CheckCircle className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
