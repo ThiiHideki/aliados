@@ -9,13 +9,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import {
   Trophy, Users, Swords, CheckCircle, XCircle, Clock, ChevronDown, ChevronRight,
-  Plus, Edit2, BarChart3, Eye, Shield, Star, Trash2
+  Plus, Edit2, BarChart3, Eye, Shield, Star, Trash2, Lock, Unlock, Shuffle, AlertTriangle
 } from "lucide-react";
 import type { CopaTeam, CopaPlayer, CopaMatch, CopaMatchStats } from "@shared/schema";
 
@@ -449,6 +450,8 @@ function MatchDialog({
 export default function AdminCopa() {
   const { toast } = useToast();
   const [matchDialog, setMatchDialog] = useState<{ open: boolean; match?: MatchWithTeams }>({ open: false });
+  const [closeDialog, setCloseDialog] = useState(false);
+  const [drawDialog, setDrawDialog] = useState(false);
 
   const { data: teams = [], isLoading: loadingTeams } = useQuery<TeamWithPlayers[]>({
     queryKey: ["/api/copa/teams"],
@@ -456,6 +459,12 @@ export default function AdminCopa() {
   const { data: matches = [], isLoading: loadingMatches } = useQuery<MatchWithTeams[]>({
     queryKey: ["/api/copa/matches"],
   });
+  const { data: regStatus } = useQuery<{ closed: boolean }>({
+    queryKey: ["/api/copa/registration-status"],
+    refetchInterval: false,
+  });
+
+  const registrationClosed = regStatus?.closed ?? false;
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status, notes }: { id: number; status: string; notes?: string }) =>
@@ -467,25 +476,190 @@ export default function AdminCopa() {
     onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
   });
 
+  const closeMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/copa/close-registration"),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/copa/registration-status"] });
+      toast({ title: data.closed ? "Inscrições encerradas!" : "Inscrições reabertas!" });
+      setCloseDialog(false);
+    },
+    onError: (e: any) => toast({ title: "Erro", description: e.message, variant: "destructive" }),
+  });
+
+  const drawMutation = useMutation({
+    mutationFn: () => apiRequest("POST", "/api/copa/draw"),
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/copa/matches"] });
+      toast({ title: `Sorteio realizado! ${data.matches?.length ?? 0} partidas criadas — ${data.round}` });
+      setDrawDialog(false);
+    },
+    onError: (e: any) => toast({ title: "Erro no sorteio", description: e.message, variant: "destructive" }),
+  });
+
   const pending = teams.filter(t => t.status === "pending");
   const confirmed = teams.filter(t => t.status === "confirmed");
   const rejected = teams.filter(t => t.status === "rejected");
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <Trophy className="h-8 w-8 text-primary" />
-          <div>
-            <h1 className="text-2xl font-bold">Admin — Copa Inimigos da Bala</h1>
-            <p className="text-muted-foreground text-sm">Gerenciar inscrições e partidas</p>
+      {/* Header */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex items-center gap-3">
+            <Trophy className="h-8 w-8 text-primary" />
+            <div>
+              <h1 className="text-2xl font-bold">Admin — Copa Inimigos da Bala</h1>
+              <p className="text-muted-foreground text-sm">Gerenciar inscrições e partidas</p>
+            </div>
           </div>
+          <Button onClick={() => setMatchDialog({ open: true })} data-testid="button-new-match">
+            <Plus className="h-4 w-4 mr-2" />
+            Nova Partida
+          </Button>
         </div>
-        <Button onClick={() => setMatchDialog({ open: true })} data-testid="button-new-match">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Partida
-        </Button>
+
+        {/* Action buttons row */}
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            className={registrationClosed
+              ? "border-green-500/50 text-green-400"
+              : "border-red-500/50 text-red-400"}
+            onClick={() => setCloseDialog(true)}
+            data-testid="button-close-registration"
+          >
+            {registrationClosed
+              ? <><Unlock className="h-4 w-4 mr-2" />Reabrir Inscrições</>
+              : <><Lock className="h-4 w-4 mr-2" />Finalizar Inscrições</>}
+          </Button>
+          <Button
+            variant="outline"
+            className="border-primary/50 text-primary"
+            onClick={() => setDrawDialog(true)}
+            disabled={confirmed.length < 2}
+            data-testid="button-draw"
+          >
+            <Shuffle className="h-4 w-4 mr-2" />
+            Realizar Sorteio
+            {confirmed.length >= 2 && (
+              <Badge variant="secondary" className="ml-2 text-xs">{confirmed.length} times</Badge>
+            )}
+          </Button>
+        </div>
+
+        {registrationClosed && (
+          <Card className="border-red-500/30 bg-red-500/5">
+            <CardContent className="pt-3 pb-3 flex items-center gap-2">
+              <Lock className="h-4 w-4 text-red-400 flex-shrink-0" />
+              <p className="text-sm text-red-400 font-medium">Inscrições encerradas — novos times não podem se inscrever.</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
+
+      {/* Close registration dialog */}
+      <Dialog open={closeDialog} onOpenChange={setCloseDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {registrationClosed
+                ? <><Unlock className="h-5 w-5 text-green-400" />Reabrir Inscrições</>
+                : <><Lock className="h-5 w-5 text-red-400" />Finalizar Inscrições</>}
+            </DialogTitle>
+            <DialogDescription>
+              {registrationClosed
+                ? "Times voltarão a poder se inscrever na Copa."
+                : "Novos times não poderão mais se inscrever na Copa após confirmar."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            {!registrationClosed && (
+              <Card className="bg-muted/30">
+                <CardContent className="pt-3 pb-3 text-sm space-y-1">
+                  <p><span className="font-semibold">{pending.length}</span> time(s) pendente(s) de confirmação</p>
+                  <p><span className="font-semibold">{confirmed.length}</span> time(s) confirmado(s)</p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setCloseDialog(false)}>Cancelar</Button>
+            <Button
+              variant={registrationClosed ? "default" : "destructive"}
+              onClick={() => closeMutation.mutate()}
+              disabled={closeMutation.isPending}
+              data-testid="confirm-close-registration"
+            >
+              {closeMutation.isPending
+                ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                : registrationClosed
+                  ? <Unlock className="h-4 w-4 mr-2" />
+                  : <Lock className="h-4 w-4 mr-2" />}
+              {registrationClosed ? "Reabrir" : "Encerrar Inscrições"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Draw dialog */}
+      <Dialog open={drawDialog} onOpenChange={setDrawDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Shuffle className="h-5 w-5 text-primary" />
+              Realizar Sorteio
+            </DialogTitle>
+            <DialogDescription>
+              Os times confirmados serão sorteados aleatoriamente e as partidas criadas automaticamente.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Card className="bg-muted/30">
+              <CardContent className="pt-3 pb-3">
+                <p className="text-sm font-semibold mb-2 text-primary">{confirmed.length} time(s) no sorteio:</p>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {confirmed.map((t, i) => (
+                    <div key={t.id} className="flex items-center gap-2 text-sm">
+                      <span className="text-muted-foreground w-4 text-right">{i + 1}.</span>
+                      <Trophy className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                      <span className="font-medium">{t.teamName}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+            {confirmed.length % 2 !== 0 && (
+              <Card className="border-yellow-500/30 bg-yellow-500/5">
+                <CardContent className="pt-3 pb-3 flex items-center gap-2 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                  <span className="text-yellow-400">Número ímpar de times — o último ficará sem adversário nesta fase.</span>
+                </CardContent>
+              </Card>
+            )}
+            {matches.length > 0 && (
+              <Card className="border-red-500/30 bg-red-500/5">
+                <CardContent className="pt-3 pb-3 flex items-center gap-2 text-sm">
+                  <AlertTriangle className="h-4 w-4 text-red-400 flex-shrink-0" />
+                  <span className="text-red-400">Já existem {matches.length} partida(s) cadastrada(s). O sorteio adicionará novas partidas.</span>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setDrawDialog(false)}>Cancelar</Button>
+            <Button
+              onClick={() => drawMutation.mutate()}
+              disabled={drawMutation.isPending || confirmed.length < 2}
+              data-testid="confirm-draw"
+            >
+              {drawMutation.isPending
+                ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+                : <Shuffle className="h-4 w-4 mr-2" />}
+              Sortear Agora
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

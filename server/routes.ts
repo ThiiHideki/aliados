@@ -2468,6 +2468,69 @@ export async function registerRoutes(
 
   // ── Copa Inimigos da Bala routes ────────────────────────────────────────────
 
+  let registrationClosed = false;
+
+  app.get('/api/copa/registration-status', isAuthenticated, (_req, res) => {
+    res.json({ closed: registrationClosed });
+  });
+
+  app.post('/api/copa/close-registration', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
+      registrationClosed = !registrationClosed;
+      res.json({ closed: registrationClosed });
+    } catch (e) { res.status(500).json({ message: "Erro ao atualizar status" }); }
+  });
+
+  app.post('/api/copa/draw', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
+
+      const teams = await storage.getAllCopaTeams();
+      const confirmed = (teams as any[]).filter((t: any) => t.status === "confirmed");
+      if (confirmed.length < 2) {
+        return res.status(400).json({ message: "Necessário ao menos 2 times confirmados para o sorteio" });
+      }
+
+      // Determine round name based on team count
+      const count = confirmed.length;
+      let roundName = "Round 1";
+      if (count >= 16) roundName = "Oitavas de Final";
+      else if (count >= 8) roundName = "Quartas de Final";
+      else if (count >= 4) roundName = "Semifinal";
+      else roundName = "Final";
+
+      // Shuffle teams (Fisher-Yates)
+      const shuffled = [...confirmed];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      // Create pairs
+      const scheduledAt = req.body.scheduledAt ? new Date(req.body.scheduledAt) : new Date("2026-04-18T14:00:00-03:00");
+      const created = [];
+      for (let i = 0; i < shuffled.length - 1; i += 2) {
+        const match = await storage.createCopaMatch({
+          round: roundName,
+          roundNumber: Math.floor(i / 2) + 1,
+          team1Id: shuffled[i].id,
+          team2Id: shuffled[i + 1].id,
+          scheduledAt,
+        });
+        created.push(match);
+      }
+      res.json({ matches: created, round: roundName });
+    } catch (e) {
+      console.error("Draw error:", e);
+      res.status(500).json({ message: "Erro ao realizar sorteio" });
+    }
+  });
+
   // Public: get confirmed teams + matches + prizes info
   app.get('/api/copa/teams', isAuthenticated, async (req, res) => {
     try {
