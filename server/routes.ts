@@ -2490,11 +2490,38 @@ export async function registerRoutes(
         playMoreWays, generalOpinions, levelUpInfluenced, levelUpInfluencedComment,
       } = req.body;
 
+      if (!bestPlayTimes || bestPlayTimes.length === 0) {
+        return res.status(400).json({ message: "Selecione pelo menos um horário disponível" });
+      }
+      if (faceitLevel === undefined || faceitLevel === null) {
+        return res.status(400).json({ message: "Informe seu nível FACEIT" });
+      }
+      if (gcLevel === undefined || gcLevel === null) {
+        return res.status(400).json({ message: "Informe seu nível Gamers Club" });
+      }
+      if (!valveLevel?.trim()) {
+        return res.status(400).json({ message: "Informe seu nível Valve" });
+      }
+      if (!improvementSuggestions?.trim()) {
+        return res.status(400).json({ message: "Responda sobre melhorias no servidor" });
+      }
+      if (!reasonNotPlaying?.trim()) {
+        return res.status(400).json({ message: "Responda sobre os motivos para jogar menos" });
+      }
+      if (!attractMorePlayers?.trim()) {
+        return res.status(400).json({ message: "Responda sobre como atrair mais jogadores" });
+      }
+      if (!playMoreWays?.trim()) {
+        return res.status(400).json({ message: "Responda sobre o que te faria jogar mais" });
+      }
+      if (!generalOpinions?.trim()) {
+        return res.status(400).json({ message: "Responda sobre suas opiniões gerais" });
+      }
       if (!levelUpInfluenced) {
-        return res.status(400).json({ message: "Responda se o nível ter subido influenciou você" });
+        return res.status(400).json({ message: "Responda se a subida de nível dos jogadores influenciou a galera a parar de jogar" });
       }
       if (levelUpInfluenced === 'yes' && !levelUpInfluencedComment?.trim()) {
-        return res.status(400).json({ message: "Explique como o nível influenciou você" });
+        return res.status(400).json({ message: "Explique como a subida de nível influenciou" });
       }
 
       const survey = await storage.upsertSurvey(userId, {
