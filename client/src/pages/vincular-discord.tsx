@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link2, CheckCircle2, ExternalLink, HelpCircle, Unlink, Wifi, WifiOff } from "lucide-react";
+import { Link2, CheckCircle2, ExternalLink, HelpCircle, Unlink, Wifi, WifiOff, AlertCircle, Smartphone, Monitor } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useLocation } from "wouter";
 
@@ -51,8 +51,12 @@ export default function VincularDiscord() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = discordId.trim();
-    if (!trimmed || trimmed.length < 15) {
-      toast({ title: "ID inválido", description: "O ID do Discord deve ter pelo menos 15 dígitos.", variant: "destructive" });
+    if (!trimmed) {
+      toast({ title: "Campo vazio", description: "Insira o ID numérico do Discord.", variant: "destructive" });
+      return;
+    }
+    if (!/^\d{15,20}$/.test(trimmed)) {
+      toast({ title: "ID inválido", description: "O ID do Discord é um número com 17 a 19 dígitos. Não é o seu nome de usuário.", variant: "destructive" });
       return;
     }
     linkMutation.mutate(trimmed);
@@ -90,12 +94,12 @@ export default function VincularDiscord() {
                 <CheckCircle2 className="w-5 h-5" /> Discord vinculado!
               </CardTitle>
               <CardDescription>
-                Seu ID do Discord está vinculado: <span className="font-mono font-semibold">{(user as any)?.discordUserId}</span>
+                ID vinculado: <span className="font-mono font-semibold">{(user as any)?.discordUserId}</span>
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <p className="text-sm text-muted-foreground">
-                Agora quando o bot enviar a notificação de mix no Discord, clique no botão <strong>"Entrar no Mix"</strong> e sua vaga será reservada automaticamente.
+                Quando o bot enviar a notificação de mix no Discord, clique em <strong>"Entrar no Mix"</strong> e sua vaga será reservada automaticamente.
               </p>
               <div className="flex gap-2">
                 <Button
@@ -119,25 +123,30 @@ export default function VincularDiscord() {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <Link2 className="w-5 h-5" /> Insira seu ID do Discord
+                <Link2 className="w-5 h-5" /> Insira seu ID numérico do Discord
               </CardTitle>
               <CardDescription>
-                O ID do Discord é um número único (ex: 123456789012345678)
+                O ID é um número de 17 a 19 dígitos — diferente do seu nome de usuário
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="flex items-start gap-2 bg-muted/50 rounded-md p-3 mb-4">
+                <AlertCircle className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                <p className="text-xs text-muted-foreground">
+                  <strong className="text-foreground">Nome de usuário</strong> (ex: <span className="font-mono">dil2250</span>) é diferente do <strong className="text-foreground">ID numérico</strong> (ex: <span className="font-mono">123456789012345678</span>). Você precisa do ID numérico abaixo.
+                </p>
+              </div>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <Input
-                    type="text"
-                    placeholder="Ex: 123456789012345678"
-                    value={discordId}
-                    onChange={(e) => setDiscordId(e.target.value.replace(/\D/g, ""))}
-                    data-testid="input-discord-id"
-                    className="font-mono"
-                    maxLength={20}
-                  />
-                </div>
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="Ex: 123456789012345678"
+                  value={discordId}
+                  onChange={(e) => setDiscordId(e.target.value.trim())}
+                  data-testid="input-discord-id"
+                  className="font-mono"
+                  maxLength={20}
+                />
                 <Button
                   type="submit"
                   className="w-full gap-2"
@@ -155,29 +164,48 @@ export default function VincularDiscord() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-sm">
-              <HelpCircle className="w-4 h-4" /> Como encontrar meu ID do Discord?
+              <HelpCircle className="w-4 h-4" /> Como encontrar meu ID numérico?
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-3 text-sm text-muted-foreground">
-            <ol className="list-decimal list-inside space-y-2">
-              <li>Abra o Discord no computador ou celular</li>
-              <li>
-                Vá em <strong>Configurações</strong> (ícone de engrenagem)
-              </li>
-              <li>
-                Clique em <strong>Avançado</strong> e ative o <strong>Modo Desenvolvedor</strong>
-              </li>
-              <li>
-                Volte ao servidor, clique com o botão direito no seu nome e selecione <strong>"Copiar ID do Usuário"</strong>
-              </li>
-            </ol>
+          <CardContent className="space-y-4 text-sm">
+            <div className="space-y-3">
+              <div className="flex items-start gap-2">
+                <Monitor className="w-4 h-4 mt-0.5 shrink-0 text-[#5865F2]" />
+                <div>
+                  <p className="font-semibold mb-1">No computador:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                    <li>Abra o Discord</li>
+                    <li>Clique em <strong className="text-foreground">Configurações</strong> (engrenagem no canto inferior esquerdo)</li>
+                    <li>Vá em <strong className="text-foreground">Avançado</strong> e ative o <strong className="text-foreground">Modo Desenvolvedor</strong></li>
+                    <li>Feche as configurações e clique na <strong className="text-foreground">sua foto de perfil</strong> no canto inferior esquerdo</li>
+                    <li>Clique com o botão direito no seu nome/avatar e selecione <strong className="text-foreground">"Copiar ID do Usuário"</strong></li>
+                    <li>Cole o número aqui</li>
+                  </ol>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-2">
+                <Smartphone className="w-4 h-4 mt-0.5 shrink-0 text-[#5865F2]" />
+                <div>
+                  <p className="font-semibold mb-1">No celular:</p>
+                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
+                    <li>Abra o Discord</li>
+                    <li>Toque na <strong className="text-foreground">sua foto de perfil</strong> (canto inferior direito)</li>
+                    <li>Toque nos três pontinhos <strong className="text-foreground">(...)</strong> no canto superior direito</li>
+                    <li>Selecione <strong className="text-foreground">"Copiar ID do usuário"</strong></li>
+                    <li>Cole o número aqui</li>
+                  </ol>
+                </div>
+              </div>
+            </div>
+
             <a
               href="https://support.discord.com/hc/pt-br/articles/206346498"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1 text-primary hover:underline"
+              className="flex items-center gap-1 text-primary hover:underline text-xs"
             >
-              <ExternalLink className="w-3 h-3" /> Guia oficial do Discord
+              <ExternalLink className="w-3 h-3" /> Guia oficial do Discord (em inglês)
             </a>
           </CardContent>
         </Card>
