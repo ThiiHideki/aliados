@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Link2, CheckCircle2, ExternalLink, HelpCircle, Unlink, Wifi, WifiOff, AlertCircle, Smartphone, Monitor } from "lucide-react";
+import { Link2, CheckCircle2, ExternalLink, HelpCircle, Unlink, Wifi, WifiOff, AlertCircle, Smartphone, Monitor, AlertTriangle } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { useLocation } from "wouter";
 
@@ -17,7 +17,7 @@ export default function VincularDiscord() {
   const [, setLocation] = useLocation();
   const [discordId, setDiscordId] = useState("");
 
-  const { data: status } = useQuery<{ connected: boolean }>({
+  const { data: status } = useQuery<{ connected: boolean; error?: string | null; inviteUrl?: string }>({
     queryKey: ["/api/discord/status"],
   });
 
@@ -74,7 +74,7 @@ export default function VincularDiscord() {
           <p className="text-muted-foreground text-center text-sm">
             Vincule sua conta do Discord para entrar no mix diretamente pelo servidor, receber notificações de vagas e muito mais.
           </p>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col items-center gap-2">
             {status?.connected ? (
               <Badge variant="secondary" className="gap-1 text-green-500">
                 <Wifi className="w-3 h-3" /> Bot online
@@ -83,6 +83,27 @@ export default function VincularDiscord() {
               <Badge variant="secondary" className="gap-1 text-muted-foreground">
                 <WifiOff className="w-3 h-3" /> Bot offline
               </Badge>
+            )}
+            {/* Show channel access error */}
+            {status?.error && (
+              <div className="flex flex-col items-center gap-2 mt-1 p-3 rounded-md border border-orange-500/30 bg-orange-500/10 text-sm max-w-sm text-center">
+                <div className="flex items-center gap-1 text-orange-400 font-semibold">
+                  <AlertTriangle className="w-4 h-4" />
+                  Bot sem acesso ao canal
+                </div>
+                <p className="text-muted-foreground text-xs">{status.error}</p>
+                {status.inviteUrl ? (
+                  <Button asChild size="sm" variant="outline" className="gap-2 mt-1">
+                    <a href={status.inviteUrl} target="_blank" rel="noreferrer">
+                      <SiDiscord className="w-4 h-4 text-[#5865F2]" />
+                      Adicionar bot ao servidor
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  </Button>
+                ) : (
+                  <p className="text-xs text-muted-foreground">Peça ao admin para adicionar o bot ao servidor Discord.</p>
+                )}
+              </div>
             )}
           </div>
         </div>

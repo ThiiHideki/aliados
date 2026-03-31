@@ -7,7 +7,7 @@ import { updateUserStatsSchema, mixPenalties, users } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { sendMixNotification, sendNewsNotification, isDiscordReady } from "./discord";
+import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl } from "./discord";
 
 // CSV row schema for validation
 const csvRowSchema = z.object({
@@ -2444,9 +2444,11 @@ export async function registerRoutes(
 
       const item = await storage.createNews(userId, parsed.data.title, parsed.data.content);
 
-      // Auto-notify Discord if enabled
+      // Auto-notify Discord if enabled (fire and forget)
       if (parsed.data.notifyDiscord) {
-        sendNewsNotification(parsed.data.title, parsed.data.content, parsed.data.mentionEveryone).catch(() => {});
+        sendNewsNotification(parsed.data.title, parsed.data.content, parsed.data.mentionEveryone)
+          .then((r) => { if (!r.ok) console.warn("[Discord] Notificação automática falhou:", r.error); })
+          .catch(() => {});
       }
 
       res.json(item);
@@ -2746,9 +2748,13 @@ export async function registerRoutes(
 
   // ==================== DISCORD ROUTES ====================
 
-  // Get Discord bot status
+  // Get Discord bot status + diagnostics
   app.get('/api/discord/status', isAuthenticated, async (req: any, res) => {
-    res.json({ connected: isDiscordReady() });
+    res.json({
+      connected: isDiscordReady(),
+      error: getLastError(),
+      inviteUrl: getBotInviteUrl(),
+    });
   });
 
   // Link Discord user ID to profile
@@ -2794,11 +2800,11 @@ export async function registerRoutes(
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
 
-    const sent = await sendMixNotification(parsed.data.date, parsed.data.message);
-    if (sent) {
+    const result = await sendMixNotification(parsed.data.date, parsed.data.message);
+    if (result.ok) {
       res.json({ success: true, message: "Notificação enviada ao Discord!" });
     } else {
-      res.status(503).json({ message: "Bot Discord não está conectado" });
+      res.status(503).json({ message: result.error || "Falha ao enviar notificação" });
     }
   });
 
@@ -2816,11 +2822,11 @@ export async function registerRoutes(
     const parsed = schema.safeParse(req.body);
     if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
 
-    const sent = await sendNewsNotification(parsed.data.title, parsed.data.description, parsed.data.mentionEveryone);
-    if (sent) {
+    const result = await sendNewsNotification(parsed.data.title, parsed.data.description, parsed.data.mentionEveryone);
+    if (result.ok) {
       res.json({ success: true, message: "Notificação enviada ao Discord!" });
     } else {
-      res.status(503).json({ message: "Bot Discord não está conectado" });
+      res.status(503).json({ message: result.error || "Falha ao enviar notificação" });
     }
   });
 

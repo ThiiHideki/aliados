@@ -178,7 +178,15 @@ export default function MixDisponibilidade() {
       toast({ title: "Notificação enviada!", description: "Mensagem enviada no canal do Discord com o botão de entrar no mix." });
     },
     onError: (error: any) => {
-      toast({ title: "Erro", description: error.message || "Bot Discord não está conectado", variant: "destructive" });
+      const msg = error.message || "Bot Discord não está conectado";
+      const isMissingAccess = msg.toLowerCase().includes("missing access") || msg.toLowerCase().includes("sem acesso");
+      toast({
+        title: "Falha ao notificar Discord",
+        description: isMissingAccess
+          ? "O bot não tem acesso ao canal. Adicione o bot ao servidor Discord primeiro (ver página Vincular Discord)."
+          : msg,
+        variant: "destructive",
+      });
     },
   });
 

@@ -3,6 +3,8 @@ import { storage } from "./storage";
 
 let client: Client | null = null;
 let ready = false;
+let lastError: string | null = null;
+let botApplicationId: string | null = null;
 
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";
 
@@ -12,6 +14,10 @@ export function getDiscordClient(): Client | null {
 
 export function isDiscordReady(): boolean {
   return ready;
+}
+
+export function getLastError(): string | null {
+  return lastError;
 }
 
 async function handleMixJoin(interaction: ButtonInteraction, date: string) {
@@ -61,6 +67,7 @@ function formatDate(dateStr: string): string {
 export async function initDiscordBot(): Promise<void> {
   const token = process.env.DISCORD_BOT_TOKEN;
   if (!token) {
+    lastError = "Token não configurado";
     console.log("[Discord] Token não configurado. Bot não iniciado.");
     return;
   }
@@ -71,7 +78,27 @@ export async function initDiscordBot(): Promise<void> {
 
   client.once(Events.ClientReady, (c) => {
     ready = true;
-    console.log(`[Discord] Bot conectado como ${c.user.tag}`);
+    lastError = null;
+    botApplicationId = c.application?.id || c.user.id;
+    console.log(`[Discord] Bot conectado como ${c.user.tag} (ID: ${botApplicationId})`);
+    console.log(`[Discord] Canal ID configurado: ${CHANNEL_ID}`);
+
+    // Test channel access on startup
+    if (CHANNEL_ID) {
+      c.channels.fetch(CHANNEL_ID)
+        .then((ch) => {
+          if (ch) {
+            console.log(`[Discord] Canal encontrado: #${(ch as any).name || CHANNEL_ID}`);
+          } else {
+            console.warn(`[Discord] Canal ${CHANNEL_ID} não encontrado.`);
+            lastError = `Canal ${CHANNEL_ID} não encontrado. Verifique se o bot está no servidor.`;
+          }
+        })
+        .catch((err) => {
+          console.error(`[Discord] Erro ao acessar canal ${CHANNEL_ID}:`, err.message);
+          lastError = `Sem acesso ao canal: ${err.message}`;
+        });
+    }
   });
 
   client.on(Events.InteractionCreate, async (interaction: Interaction) => {
@@ -88,22 +115,35 @@ export async function initDiscordBot(): Promise<void> {
 
   client.on(Events.Error, (err) => {
     console.error("[Discord] Erro do cliente:", err);
+    lastError = err.message;
   });
 
   try {
     await client.login(token);
-  } catch (err) {
-    console.error("[Discord] Falha ao conectar:", err);
+  } catch (err: any) {
+    console.error("[Discord] Falha ao conectar:", err.message);
+    lastError = err.message;
     client = null;
   }
 }
 
-export async function sendMixNotification(date: string, extraMessage?: string): Promise<boolean> {
-  if (!client || !ready) return false;
+export async function sendMixNotification(date: string, extraMessage?: string): Promise<{ ok: boolean; error?: string }> {
+  if (!client || !ready) {
+    return { ok: false, error: lastError || "Bot não conectado" };
+  }
+
+  if (!CHANNEL_ID) {
+    return { ok: false, error: "ID do canal não configurado (DISCORD_CHANNEL_ID)" };
+  }
 
   try {
     const channel = await client.channels.fetch(CHANNEL_ID);
-    if (!channel || !channel.isTextBased()) return false;
+    if (!channel) {
+      return { ok: false, error: `Canal ${CHANNEL_ID} não encontrado. Adicione o bot ao servidor Discord.` };
+    }
+    if (!channel.isTextBased()) {
+      return { ok: false, error: `Canal ${CHANNEL_ID} não é um canal de texto.` };
+    }
 
     const displayDate = formatDate(date);
 
@@ -127,19 +167,31 @@ export async function sendMixNotification(date: string, extraMessage?: string): 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
     await (channel as any).send({ embeds: [embed], components: [row] });
-    return true;
-  } catch (err) {
-    console.error("[Discord] Erro ao enviar notificação do mix:", err);
-    return false;
+    return { ok: true };
+  } catch (err: any) {
+    const msg = err.message || "Erro desconhecido";
+    console.error("[Discord] Erro ao enviar notificação do mix:", msg);
+    return { ok: false, error: msg };
   }
 }
 
-export async function sendNewsNotification(title: string, description: string, mentionEveryone = false): Promise<boolean> {
-  if (!client || !ready) return false;
+export async function sendNewsNotification(title: string, description: string, mentionEveryone = false): Promise<{ ok: boolean; error?: string }> {
+  if (!client || !ready) {
+    return { ok: false, error: lastError || "Bot não conectado" };
+  }
+
+  if (!CHANNEL_ID) {
+    return { ok: false, error: "ID do canal não configurado (DISCORD_CHANNEL_ID)" };
+  }
 
   try {
     const channel = await client.channels.fetch(CHANNEL_ID);
-    if (!channel || !channel.isTextBased()) return false;
+    if (!channel) {
+      return { ok: false, error: `Canal ${CHANNEL_ID} não encontrado. Adicione o bot ao servidor Discord.` };
+    }
+    if (!channel.isTextBased()) {
+      return { ok: false, error: `Canal ${CHANNEL_ID} não é um canal de texto.` };
+    }
 
     const embed = new EmbedBuilder()
       .setColor(0xff6b00)
@@ -151,9 +203,18 @@ export async function sendNewsNotification(title: string, description: string, m
     const content = mentionEveryone ? "@everyone" : undefined;
 
     await (channel as any).send({ content, embeds: [embed] });
-    return true;
-  } catch (err) {
-    console.error("[Discord] Erro ao enviar notificação:", err);
-    return false;
+    return { ok: true };
+  } catch (err: any) {
+    const msg = err.message || "Erro desconhecido";
+    console.error("[Discord] Erro ao enviar notificação:", msg);
+    return { ok: false, error: msg };
   }
+}
+
+export function getBotInviteUrl(): string {
+  const appId = botApplicationId || client?.application?.id || client?.user?.id;
+  if (!appId) return "";
+  // 277025392640 = Read Messages + Send Messages + Embed Links + Read Message History + Use Slash Commands
+  const perms = "277025392640";
+  return `https://discord.com/api/oauth2/authorize?client_id=${appId}&permissions=${perms}&scope=bot+applications.commands`;
 }
