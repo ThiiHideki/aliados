@@ -63,6 +63,7 @@ export interface IStorage {
   // Extended user operations
   getAllUsers(): Promise<User[]>;
   getUserBySteamId(steamId64: string): Promise<User | undefined>;
+  getUserByDiscordId(discordUserId: string): Promise<User | undefined>;
   updateUserStats(id: string, stats: UpdateUserStats): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
   createPlayerFromSteam(steamId64: string, nickname: string): Promise<User>;
@@ -187,6 +188,11 @@ export class DatabaseStorage implements IStorage {
 
   async getUserBySteamId(steamId64: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.steamId64, steamId64));
+    return user;
+  }
+
+  async getUserByDiscordId(discordUserId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.discordUserId, discordUserId));
     return user;
   }
 

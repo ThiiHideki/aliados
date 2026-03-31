@@ -3,10 +3,11 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupSteamAuth } from "./steamAuth";
-import { updateUserStatsSchema, mixPenalties } from "@shared/schema";
+import { updateUserStatsSchema, mixPenalties, users } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import { sendMixNotification, sendNewsNotification, isDiscordReady } from "./discord";
 
 // CSV row schema for validation
 const csvRowSchema = z.object({
@@ -2732,6 +2733,86 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching surveys:", error);
       res.status(500).json({ message: "Erro ao buscar pesquisas" });
+    }
+  });
+
+  // ==================== DISCORD ROUTES ====================
+
+  // Get Discord bot status
+  app.get('/api/discord/status', isAuthenticated, async (req: any, res) => {
+    res.json({ connected: isDiscordReady() });
+  });
+
+  // Link Discord user ID to profile
+  app.post('/api/discord/link', isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    if (!userId) return res.status(401).json({ message: "Não autenticado" });
+
+    const schema = z.object({ discordUserId: z.string().min(15).max(32) });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "ID do Discord inválido" });
+
+    const { discordUserId } = parsed.data;
+
+    // Check if already taken
+    const existing = await storage.getUserByDiscordId(discordUserId);
+    if (existing && existing.id !== userId) {
+      return res.status(409).json({ message: "Este ID do Discord já está vinculado a outra conta" });
+    }
+
+    await db.update(users).set({ discordUserId }).where(eq(users.id, userId));
+    const updated = await storage.getUser(userId);
+    res.json(updated);
+  });
+
+  // Unlink Discord
+  app.delete('/api/discord/link', isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    if (!userId) return res.status(401).json({ message: "Não autenticado" });
+    await db.update(users).set({ discordUserId: null }).where(eq(users.id, userId));
+    res.json({ success: true });
+  });
+
+  // Send mix notification to Discord (admin only)
+  app.post('/api/discord/mix-notify', isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const currentUser = await storage.getUser(userId);
+    if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
+
+    const schema = z.object({
+      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+      message: z.string().optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+
+    const sent = await sendMixNotification(parsed.data.date, parsed.data.message);
+    if (sent) {
+      res.json({ success: true, message: "Notificação enviada ao Discord!" });
+    } else {
+      res.status(503).json({ message: "Bot Discord não está conectado" });
+    }
+  });
+
+  // Send custom news notification to Discord (admin only)
+  app.post('/api/discord/notify', isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub;
+    const currentUser = await storage.getUser(userId);
+    if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
+
+    const schema = z.object({
+      title: z.string().min(1).max(200),
+      description: z.string().min(1).max(2000),
+      mentionEveryone: z.boolean().optional().default(false),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+
+    const sent = await sendNewsNotification(parsed.data.title, parsed.data.description, parsed.data.mentionEveryone);
+    if (sent) {
+      res.json({ success: true, message: "Notificação enviada ao Discord!" });
+    } else {
+      res.status(503).json({ message: "Bot Discord não está conectado" });
     }
   });
 

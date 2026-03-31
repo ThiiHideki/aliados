@@ -52,6 +52,7 @@ import CopaTabela from "@/pages/copa-tabela";
 import CopaEstatisticas from "@/pages/copa-estatisticas";
 import CopaPremiacoes from "@/pages/copa-premiacoes";
 import AdminCopa from "@/pages/admin-copa";
+import VincularDiscord from "@/pages/vincular-discord";
 import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
 
 function SurveyGuard({ children }: { children: React.ReactNode }) {
@@ -64,6 +65,18 @@ function SurveyGuard({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated || isLoading) return <>{children}</>;
   if (survey === null && location !== "/pesquisa") {
     return <Redirect to="/pesquisa" />;
+  }
+  return <>{children}</>;
+}
+
+function DiscordGuard({ children }: { children: React.ReactNode }) {
+  const [location] = useLocation();
+  const { user, isAuthenticated, isLoading } = useAuth();
+  if (!isAuthenticated || isLoading) return <>{children}</>;
+  if (location === "/pesquisa" || location === "/vincular-discord") return <>{children}</>;
+  const discordUserId = (user as any)?.discordUserId;
+  if (!discordUserId) {
+    return <Redirect to="/vincular-discord" />;
   }
   return <>{children}</>;
 }
@@ -95,7 +108,9 @@ function Router() {
 
   return (
     <SurveyGuard>
+      <DiscordGuard>
       <Switch>
+        <Route path="/vincular-discord" component={VincularDiscord} />
         <Route path="/" component={Mural} />
         <Route path="/dashboard" component={user?.isAdmin ? AdminDashboard : Dashboard} />
         <Route path="/perfil" component={Perfil} />
@@ -136,6 +151,7 @@ function Router() {
         <Route path="/admin/copa" component={AdminCopa} />
         <Route component={NotFound} />
       </Switch>
+      </DiscordGuard>
     </SurveyGuard>
   );
 }

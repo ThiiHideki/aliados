@@ -26,6 +26,8 @@ The sidebar navigation includes the following sections:
 
 4. **Perfil de Usuário** - User profile with personal stats
 
+4.5 **Vincular Discord** - Mandatory screen to link Discord user ID (required for all authenticated users after survey)
+
 5. **Melhores Jogadores** - Player rankings with multiple categories (Skill Rating, K/D, HS%, Win Rate, MVPs, Assists)
 
 6. **Piores Jogadores** - Worst player rankings (Skill Rating, K/D, HS%, Win Rate)

@@ -58,6 +58,7 @@ import {
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { SiDiscord } from "react-icons/si";
 import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
 
 export function AppSidebar() {
@@ -237,6 +238,22 @@ export function AppSidebar() {
                   <Link href="/perfil">
                     <User className="h-4 w-4" />
                     <span>Perfil de Usuário</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={location === "/vincular-discord"}
+                  data-testid="nav-vincular-discord"
+                >
+                  <Link href="/vincular-discord">
+                    <SiDiscord className="h-4 w-4 text-[#5865F2]" />
+                    <span>Vincular Discord</span>
+                    {!(user as any)?.discordUserId && (
+                      <Badge variant="secondary" className="ml-auto text-xs px-1 py-0 text-orange-500 no-default-active-elevate">!</Badge>
+                    )}
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>

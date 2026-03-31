@@ -13,8 +13,9 @@ import { useLocation, Link } from "wouter";
 import {
   Users, Clock, UserPlus, UserMinus, AlertTriangle,
   ChevronLeft, ChevronRight, CalendarDays, Shield, Swords,
-  ShieldAlert, CheckCircle, Ban, X
+  ShieldAlert, CheckCircle, Ban, X, Bell
 } from "lucide-react";
+import { SiDiscord } from "react-icons/si";
 import type { User as UserType, MixAvailability } from "@shared/schema";
 
 type MixEntry = MixAvailability & { user: UserType };
@@ -167,6 +168,17 @@ export default function MixDisponibilidade() {
     },
     onError: (error: any) => {
       toast({ title: "Erro", description: error.message || "Não foi possível adicionar o jogador", variant: "destructive" });
+    },
+  });
+
+  const discordNotifyMutation = useMutation({
+    mutationFn: async () =>
+      apiRequest('POST', '/api/discord/mix-notify', { date: currentDate }),
+    onSuccess: () => {
+      toast({ title: "Notificação enviada!", description: "Mensagem enviada no canal do Discord com o botão de entrar no mix." });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message || "Bot Discord não está conectado", variant: "destructive" });
     },
   });
 
@@ -328,7 +340,18 @@ export default function MixDisponibilidade() {
 
           {user?.isAdmin && (
             <div className="border-t pt-3 space-y-2">
-              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Adicionar jogador (Admin)</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ações Admin</p>
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                onClick={() => discordNotifyMutation.mutate()}
+                disabled={discordNotifyMutation.isPending}
+                data-testid="button-discord-mix-notify"
+              >
+                <SiDiscord className="h-4 w-4 text-[#5865F2]" />
+                {discordNotifyMutation.isPending ? "Enviando..." : "Notificar Mix no Discord"}
+              </Button>
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide mt-2">Adicionar jogador</p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <Select value={adminAddUserId} onValueChange={setAdminAddUserId}>
                   <SelectTrigger className="flex-1" data-testid="select-admin-add-player">
