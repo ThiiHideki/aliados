@@ -58,7 +58,7 @@ function PlayerCard({
           </div>
           <div className="flex items-center gap-2">
             {index === 0 && <Badge variant="secondary" className="text-xs"><Shield className="h-3 w-3 mr-1" />Líder</Badge>}
-            {total > 1 && index > 0 && (
+            {total > 5 && index > 0 && (
               <Button size="icon" variant="ghost" onClick={() => onRemove(index)} data-testid={`remove-player-${index}`}>
                 <Trash2 className="h-4 w-4 text-destructive" />
               </Button>
@@ -149,7 +149,7 @@ export default function CopaInscricao() {
   const [leaderContact, setLeaderContact] = useState("");
   const [paymentProof, setPaymentProof] = useState<string>("");
   const [paymentProofName, setPaymentProofName] = useState("");
-  const [players, setPlayers] = useState<PlayerForm[]>([emptyPlayer()]);
+  const [players, setPlayers] = useState<PlayerForm[]>([emptyPlayer(), emptyPlayer(), emptyPlayer(), emptyPlayer(), emptyPlayer()]);
   const [submitted, setSubmitted] = useState(false);
 
   const submitMutation = useMutation({
@@ -205,6 +205,7 @@ export default function CopaInscricao() {
   };
 
   const removePlayer = (idx: number) => {
+    if (players.length <= 5) return;
     setPlayers(prev => prev.filter((_, i) => i !== idx));
   };
 
@@ -213,6 +214,7 @@ export default function CopaInscricao() {
   };
 
   const canSubmit = teamName.trim() && leaderName.trim() && leaderContact.trim() &&
+    players.length >= 5 &&
     players.every(p => p.playerName.trim() && p.steamProfile.trim() && p.age && p.position);
 
   if (submitted) {
@@ -264,7 +266,7 @@ export default function CopaInscricao() {
           { icon: Calendar, label: "Data dos Jogos", value: "18/04 às 14:00" },
           { icon: Trophy, label: "Taxa", value: "R$ 50,00" },
           { icon: Swords, label: "Formato", value: "Mata-Mata" },
-          { icon: Users, label: "Time", value: "Até 6 jogadores" },
+          { icon: Users, label: "Time", value: "5 a 6 jogadores" },
         ].map(({ icon: Icon, label, value }) => (
           <Card key={label} className="bg-muted/30">
             <CardContent className="pt-3 pb-3 text-center">
@@ -365,9 +367,10 @@ export default function CopaInscricao() {
               />
             </div>
             <div className="space-y-1.5">
-              <Label>Contato (WhatsApp / Email) *</Label>
+              <Label>WhatsApp do Capitão *</Label>
               <Input
-                placeholder="(11) 99999-9999 ou email"
+                placeholder="(12) 99999-9999"
+                inputMode="tel"
                 value={leaderContact}
                 onChange={e => setLeaderContact(e.target.value)}
                 data-testid="input-leader-contact"
@@ -382,7 +385,7 @@ export default function CopaInscricao() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div>
             <h2 className="font-bold">Jogadores do Time</h2>
-            <p className="text-sm text-muted-foreground">Mínimo 1, máximo 6 jogadores. O primeiro é o líder.</p>
+            <p className="text-sm text-muted-foreground">Mínimo 5, máximo 6 jogadores. O primeiro é o líder.</p>
           </div>
           <Badge variant="secondary">{players.length}/6</Badge>
         </div>
