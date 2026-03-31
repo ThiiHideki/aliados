@@ -472,18 +472,20 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               </Collapsible>
 
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  isActive={location === "/campeonato"}
-                  data-testid="nav-campeonato"
-                >
-                  <Link href="/campeonato">
-                    <Trophy className="h-4 w-4" />
-                    <span>Campeonato Interno Inimigos da Bala</span>
-                  </Link>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {user?.isAdmin && (
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    isActive={location === "/campeonato"}
+                    data-testid="nav-campeonato"
+                  >
+                    <Link href="/campeonato">
+                      <Trophy className="h-4 w-4" />
+                      <span>Campeonato Interno Inimigos da Bala</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              )}
 
               {/* Copa Inimigos da Bala */}
               <Collapsible className="group/collapsible">

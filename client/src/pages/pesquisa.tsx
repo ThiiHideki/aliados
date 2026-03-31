@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { ClipboardList, CheckCircle, Clock, Gamepad2, Star, TrendingUp, Users, MessageSquare, Send, AlertCircle } from "lucide-react";
+import { ClipboardList, CheckCircle, Clock, Gamepad2, Star, TrendingUp, Users, MessageSquare, Send, AlertCircle, AlertTriangle } from "lucide-react";
 import type { Survey } from "@shared/schema";
 
 const HOURS = [
@@ -164,11 +164,24 @@ export default function Pesquisa() {
         </div>
       </div>
 
-      <Card className="border-primary/20 bg-primary/5">
+      {/* Mandatory disclaimer */}
+      <Card className="border-orange-500/50 bg-orange-500/10">
         <CardContent className="pt-4 pb-4">
-          <p className="text-sm text-center">
-            Todos os campos são <span className="font-bold text-primary">obrigatórios</span>. Seja honesto, suas respostas são confidenciais!
-          </p>
+          <div className="flex gap-3 items-start">
+            <AlertTriangle className="h-5 w-5 text-orange-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold text-sm text-orange-300">
+                Resposta obrigatória antes de continuar
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Esta pesquisa precisa ser respondida <span className="font-semibold text-foreground">uma única vez</span> antes de acessar as demais áreas do site.
+                Enquanto não for concluída, você será redirecionado de volta aqui ao tentar navegar para outras páginas.
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Todos os campos são obrigatórios. Suas respostas são confidenciais e ajudam a melhorar a comunidade para todos.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
 
