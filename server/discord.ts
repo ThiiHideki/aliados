@@ -6,7 +6,8 @@ let ready = false;
 let lastError: string | null = null;
 let botApplicationId: string | null = null;
 
-const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";
+const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";       // #🔫-lista-mix🔫
+const NEWS_CHANNEL_ID = process.env.DISCORD_NEWS_CHANNEL_ID || ""; // #novidades-do-site
 
 export function getDiscordClient(): Client | null {
   return client;
@@ -81,22 +82,28 @@ export async function initDiscordBot(): Promise<void> {
     lastError = null;
     botApplicationId = c.application?.id || c.user.id;
     console.log(`[Discord] Bot conectado como ${c.user.tag} (ID: ${botApplicationId})`);
-    console.log(`[Discord] Canal ID configurado: ${CHANNEL_ID}`);
+    console.log(`[Discord] Canal mix: ${CHANNEL_ID || "(não configurado)"}`);
+    console.log(`[Discord] Canal novidades: ${NEWS_CHANNEL_ID || "(não configurado)"}`);
 
-    // Test channel access on startup
-    if (CHANNEL_ID) {
-      c.channels.fetch(CHANNEL_ID)
-        .then((ch) => {
-          if (ch) {
-            console.log(`[Discord] Canal encontrado: #${(ch as any).name || CHANNEL_ID}`);
+    // Test access for both channels on startup
+    const channelsToTest = [
+      { id: CHANNEL_ID, label: "mix" },
+      { id: NEWS_CHANNEL_ID, label: "novidades" },
+    ].filter((ch) => ch.id);
+
+    for (const ch of channelsToTest) {
+      c.channels.fetch(ch.id)
+        .then((channel) => {
+          if (channel) {
+            console.log(`[Discord] Canal ${ch.label} encontrado: #${(channel as any).name || ch.id}`);
           } else {
-            console.warn(`[Discord] Canal ${CHANNEL_ID} não encontrado.`);
-            lastError = `Canal ${CHANNEL_ID} não encontrado. Verifique se o bot está no servidor.`;
+            console.warn(`[Discord] Canal ${ch.label} (${ch.id}) não encontrado.`);
+            if (ch.label === "mix") lastError = `Canal mix não encontrado.`;
           }
         })
         .catch((err) => {
-          console.error(`[Discord] Erro ao acessar canal ${CHANNEL_ID}:`, err.message);
-          lastError = `Sem acesso ao canal: ${err.message}`;
+          console.error(`[Discord] Erro ao acessar canal ${ch.label} (${ch.id}):`, err.message);
+          if (ch.label === "mix") lastError = `Sem acesso ao canal mix: ${err.message}`;
         });
     }
   });
@@ -175,22 +182,33 @@ export async function sendMixNotification(date: string, extraMessage?: string): 
   }
 }
 
-export async function sendNewsNotification(title: string, description: string, mentionEveryone = false): Promise<{ ok: boolean; error?: string }> {
+export function getNewsChannelId(): string {
+  return NEWS_CHANNEL_ID;
+}
+
+export async function sendNewsNotification(
+  title: string,
+  description: string,
+  mentionEveryone = false,
+  targetChannelId?: string,
+): Promise<{ ok: boolean; error?: string }> {
   if (!client || !ready) {
     return { ok: false, error: lastError || "Bot não conectado" };
   }
 
-  if (!CHANNEL_ID) {
-    return { ok: false, error: "ID do canal não configurado (DISCORD_CHANNEL_ID)" };
+  const resolvedChannelId = targetChannelId || CHANNEL_ID;
+
+  if (!resolvedChannelId) {
+    return { ok: false, error: "ID do canal não configurado" };
   }
 
   try {
-    const channel = await client.channels.fetch(CHANNEL_ID);
+    const channel = await client.channels.fetch(resolvedChannelId);
     if (!channel) {
-      return { ok: false, error: `Canal ${CHANNEL_ID} não encontrado. Adicione o bot ao servidor Discord.` };
+      return { ok: false, error: `Canal ${resolvedChannelId} não encontrado. Adicione o bot ao servidor Discord.` };
     }
     if (!channel.isTextBased()) {
-      return { ok: false, error: `Canal ${CHANNEL_ID} não é um canal de texto.` };
+      return { ok: false, error: `Canal ${resolvedChannelId} não é um canal de texto.` };
     }
 
     const embed = new EmbedBuilder()

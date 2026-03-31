@@ -45,3 +45,4 @@ integrations = ["javascript_log_in_with_replit:1.0.0", "javascript_database:1.0.
 
 [userenv.shared]
 DISCORD_CHANNEL_ID = "1488416576146378773"
+DISCORD_NEWS_CHANNEL_ID = "1488428534228713532"

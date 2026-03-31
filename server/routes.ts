@@ -7,7 +7,7 @@ import { updateUserStatsSchema, mixPenalties, users } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl } from "./discord";
+import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
 
 // CSV row schema for validation
 const csvRowSchema = z.object({
@@ -2444,9 +2444,10 @@ export async function registerRoutes(
 
       const item = await storage.createNews(userId, parsed.data.title, parsed.data.content);
 
-      // Auto-notify Discord if enabled (fire and forget)
+      // Auto-notify Discord news channel (fire and forget)
       if (parsed.data.notifyDiscord) {
-        sendNewsNotification(parsed.data.title, parsed.data.content, parsed.data.mentionEveryone)
+        const newsChannelId = getNewsChannelId();
+        sendNewsNotification(parsed.data.title, parsed.data.content, parsed.data.mentionEveryone, newsChannelId || undefined)
           .then((r) => { if (!r.ok) console.warn("[Discord] Notificação automática falhou:", r.error); })
           .catch(() => {});
       }
