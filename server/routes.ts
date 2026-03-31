@@ -2433,6 +2433,8 @@ export async function registerRoutes(
       const newsSchema = z.object({
         title: z.string().min(1, "Título obrigatório").max(200),
         content: z.string().min(1, "Conteúdo obrigatório").max(2000),
+        notifyDiscord: z.boolean().optional().default(true),
+        mentionEveryone: z.boolean().optional().default(false),
       });
 
       const parsed = newsSchema.safeParse(req.body);
@@ -2441,6 +2443,12 @@ export async function registerRoutes(
       }
 
       const item = await storage.createNews(userId, parsed.data.title, parsed.data.content);
+
+      // Auto-notify Discord if enabled
+      if (parsed.data.notifyDiscord) {
+        sendNewsNotification(parsed.data.title, parsed.data.content, parsed.data.mentionEveryone).catch(() => {});
+      }
+
       res.json(item);
     } catch (error) {
       console.error("Error creating news:", error);

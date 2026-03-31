@@ -19,7 +19,9 @@ import {
   DollarSign, ExternalLink, Handshake,
   Newspaper, ChevronDown, ChevronRight, Plus, Trash2, Send
 } from "lucide-react";
-import { SiInstagram } from "react-icons/si";
+import { SiInstagram, SiDiscord } from "react-icons/si";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Label } from "@/components/ui/label";
 import type { User as UserType, Match, MatchStats, News, Trophy as TrophyType, Survey } from "@shared/schema";
 import skinsLabLogo from "@assets/skins_lab_logo1_1771007653832.png";
 import thomaziniLogo from "@assets/thomazini_logo_1771007598394.jpeg";
@@ -37,6 +39,8 @@ export default function Mural() {
   const [showNewsForm, setShowNewsForm] = useState(false);
   const [newsTitle, setNewsTitle] = useState("");
   const [newsContent, setNewsContent] = useState("");
+  const [notifyDiscord, setNotifyDiscord] = useState(true);
+  const [mentionEveryone, setMentionEveryone] = useState(false);
   const pixKey = "12982690148";
 
   const { data: users = [] } = useQuery<UserType[]>({
@@ -49,14 +53,16 @@ export default function Mural() {
 
   const createNewsMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest('POST', '/api/news', { title: newsTitle, content: newsContent });
+      return apiRequest('POST', '/api/news', { title: newsTitle, content: newsContent, notifyDiscord, mentionEveryone });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/news"] });
       setNewsTitle("");
       setNewsContent("");
       setShowNewsForm(false);
-      toast({ title: "Notícia publicada!" });
+      setNotifyDiscord(true);
+      setMentionEveryone(false);
+      toast({ title: "Notícia publicada!", description: notifyDiscord ? "Notificação enviada no Discord." : undefined });
     },
     onError: (error: any) => {
       toast({ title: "Erro", description: error.message || "Erro ao publicar", variant: "destructive" });
@@ -225,6 +231,35 @@ export default function Mural() {
                           rows={4}
                           data-testid="input-news-content"
                         />
+                        <div className="space-y-2 border rounded-md p-3">
+                          <p className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+                            <SiDiscord className="w-3 h-3 text-[#5865F2]" /> Notificações Discord
+                          </p>
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              id="notify-discord"
+                              checked={notifyDiscord}
+                              onCheckedChange={(v) => setNotifyDiscord(!!v)}
+                              data-testid="checkbox-notify-discord"
+                            />
+                            <Label htmlFor="notify-discord" className="text-sm cursor-pointer">
+                              Enviar notificação no Discord
+                            </Label>
+                          </div>
+                          {notifyDiscord && (
+                            <div className="flex items-center gap-2 pl-1">
+                              <Checkbox
+                                id="mention-everyone"
+                                checked={mentionEveryone}
+                                onCheckedChange={(v) => setMentionEveryone(!!v)}
+                                data-testid="checkbox-mention-everyone"
+                              />
+                              <Label htmlFor="mention-everyone" className="text-sm cursor-pointer">
+                                Mencionar @everyone
+                              </Label>
+                            </div>
+                          )}
+                        </div>
                         <div className="flex gap-2 flex-wrap">
                           <Button
                             onClick={() => createNewsMutation.mutate()}
@@ -232,11 +267,11 @@ export default function Mural() {
                             data-testid="button-publish-news"
                           >
                             <Send className="h-4 w-4 mr-2" />
-                            Publicar
+                            {createNewsMutation.isPending ? "Publicando..." : "Publicar"}
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={() => { setShowNewsForm(false); setNewsTitle(""); setNewsContent(""); }}
+                            onClick={() => { setShowNewsForm(false); setNewsTitle(""); setNewsContent(""); setNotifyDiscord(true); setMentionEveryone(false); }}
                             data-testid="button-cancel-news"
                           >
                             Cancelar
