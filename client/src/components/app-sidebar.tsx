@@ -54,6 +54,7 @@ import {
   LayoutDashboard,
   ShieldAlert,
   ClipboardList,
+  ScrollText,
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -528,6 +529,14 @@ export function AppSidebar() {
                           <Link href="/copa/premiacoes">
                             <DollarSign className="h-4 w-4" />
                             <span>Premiações</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton asChild isActive={location === "/copa/regras"} data-testid="nav-copa-regras">
+                          <Link href="/copa/regras">
+                            <ScrollText className="h-4 w-4" />
+                            <span>Regras</span>
                           </Link>
                         </SidebarMenuSubButton>
                       </SidebarMenuSubItem>

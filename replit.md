@@ -75,6 +75,7 @@ The sidebar navigation includes the following sections:
 - `/copa/tabela` - Tournament bracket and match results
 - `/copa/estatisticas` - Copa player leaderboards (kills, K/D, HS%, ADR, ACEs)
 - `/copa/premiacoes` - Prize pool calculator and tournament info
+- `/copa/regras` - Tournament rules (WO, disqualification, payment, prizes)
 - `/admin/copa` - Admin panel for team approval and match management
 
 ## System Architecture

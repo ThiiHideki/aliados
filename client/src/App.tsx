@@ -51,6 +51,7 @@ import CopaInscricao from "@/pages/copa-inscricao";
 import CopaTabela from "@/pages/copa-tabela";
 import CopaEstatisticas from "@/pages/copa-estatisticas";
 import CopaPremiacoes from "@/pages/copa-premiacoes";
+import CopaRegras from "@/pages/copa-regras";
 import AdminCopa from "@/pages/admin-copa";
 import VincularDiscord from "@/pages/vincular-discord";
 import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
@@ -148,6 +149,7 @@ function Router() {
         <Route path="/copa/tabela" component={CopaTabela} />
         <Route path="/copa/estatisticas" component={CopaEstatisticas} />
         <Route path="/copa/premiacoes" component={CopaPremiacoes} />
+        <Route path="/copa/regras" component={CopaRegras} />
         <Route path="/admin/copa" component={AdminCopa} />
         <Route component={NotFound} />
       </Switch>
