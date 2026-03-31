@@ -173,7 +173,8 @@ export async function sendMixNotification(date: string, extraMessage?: string): 
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
 
-    await (channel as any).send({ embeds: [embed], components: [row] });
+    // Always mention everyone for mix notifications
+    await (channel as any).send({ content: "@everyone", embeds: [embed], components: [row] });
     return { ok: true };
   } catch (err: any) {
     const msg = err.message || "Erro desconhecido";

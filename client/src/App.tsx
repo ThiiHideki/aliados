@@ -71,14 +71,6 @@ function SurveyGuard({ children }: { children: React.ReactNode }) {
 }
 
 function DiscordGuard({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  const { user, isAuthenticated, isLoading } = useAuth();
-  if (!isAuthenticated || isLoading) return <>{children}</>;
-  if (location === "/pesquisa" || location === "/vincular-discord") return <>{children}</>;
-  const discordUserId = (user as any)?.discordUserId;
-  if (!discordUserId) {
-    return <Redirect to="/vincular-discord" />;
-  }
   return <>{children}</>;
 }
 
