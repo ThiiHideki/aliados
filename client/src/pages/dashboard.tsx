@@ -107,7 +107,7 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline" className="text-xs">
-                  Rating: {user.skillRating}
+                  Nível {Math.max(1, Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1))}
                 </Badge>
               </div>
             </div>
@@ -234,10 +234,10 @@ export default function Dashboard() {
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm text-muted-foreground">
-                  Skill Rating
+                  Nível
                 </span>
                 <Badge variant="default" className="font-mono">
-                  {user.skillRating}
+                  {Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1)}
                 </Badge>
               </div>
             </div>

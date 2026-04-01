@@ -261,7 +261,7 @@ export default function AdminDashboard() {
                         </TableCell>
                         <TableCell className="text-right">
                           <Badge variant="secondary" className="font-mono">
-                            {player.skillRating}
+                            Nível {Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
                           </Badge>
                         </TableCell>
                       </TableRow>

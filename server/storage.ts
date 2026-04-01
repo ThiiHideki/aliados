@@ -354,29 +354,82 @@ export class DatabaseStorage implements IStorage {
       totalShotsOnTarget: 0,
     });
 
-    // Calculate skill rating based on performance with proper ADR
+    // ── Skill Rating (internal, used for team balancing) ─────────────────────
     const kd = aggregated.totalDeaths > 0 ? aggregated.totalKills / aggregated.totalDeaths : aggregated.totalKills;
     const hsPercent = aggregated.totalKills > 0 ? (aggregated.totalHeadshots / aggregated.totalKills) * 100 : 0;
     const adr = totalRoundsPlayed > 0 ? aggregated.totalDamage / totalRoundsPlayed : 0;
     const winRate = aggregated.totalMatches > 0 ? (matchesWon / aggregated.totalMatches) * 100 : 50;
-    
-    // MVP rate: percentage of matches where player was MVP (10% is average with 10 players)
-    // Each MVP above average adds significant skill points
     const mvpRate = aggregated.totalMatches > 0 ? (aggregated.totalMvps / aggregated.totalMatches) * 100 : 0;
-    const mvpBonus = (mvpRate - 10) * 5; // 5 points per % above average MVP rate
-    
+    const mvpBonus = (mvpRate - 10) * 5;
     const skillRating = Math.round(
       1000 +
-      (kd - 1) * 150 +           // K/D impact
-      (hsPercent - 30) * 2 +     // HS% impact (30% is average)
-      (adr - 70) * 1.5 +         // ADR impact (70 is average)
-      (winRate - 50) * 3 +       // Win rate impact
-      mvpBonus +                 // MVP rate bonus (based on % of matches as MVP)
-      aggregated.totalMvps * 3 + // Flat MVP bonus (3 pts per MVP)
-      aggregated.total5ks * 30 + // ACE bonus
-      aggregated.total4ks * 15 + // 4K bonus
-      aggregated.total3ks * 5    // 3K bonus
+      (kd - 1) * 150 +
+      (hsPercent - 30) * 2 +
+      (adr - 70) * 1.5 +
+      (winRate - 50) * 3 +
+      mvpBonus +
+      aggregated.totalMvps * 3 +
+      aggregated.total5ks * 30 +
+      aggregated.total4ks * 15 +
+      aggregated.total3ks * 5
     );
+
+    // ── Level Points (user-facing, accumulates per match ±LP) ────────────────
+    // Start at 500 (Level 6 base). Each match adds/subtracts LP based on performance.
+    // Level = floor(levelPoints / 100) + 1, capped at 21.
+    let levelPoints = 500;
+    for (const { stats: stat, match } of userMatchStatsWithMatch) {
+      const matchRounds = (match.team1Score || 0) + (match.team2Score || 0);
+      const playerTeam = stat.team;
+      const team1Name = match.team1Name;
+      let wonMatch = false;
+      if (match.winnerTeam) {
+        wonMatch = match.winnerTeam === playerTeam;
+      } else {
+        const isTeam1 = playerTeam === team1Name;
+        const t1 = match.team1Score || 0;
+        const t2 = match.team2Score || 0;
+        wonMatch = isTeam1 ? t1 > t2 : t2 > t1;
+      }
+
+      const kills  = Number(stat.kills)   || 0;
+      const deaths = Number(stat.deaths)  || 0;
+      const damage = Number(stat.damage)  || 0;
+      const hs     = Number(stat.headshots) || 0;
+      const rounds = matchRounds || 24;
+
+      const matchKd  = kills / Math.max(deaths, 1);
+      const matchAdr = damage / Math.max(rounds, 1);
+      const matchHs  = kills > 0 ? hs / kills : 0;
+
+      let lp = wonMatch ? 10 : -5;
+
+      // K/D contribution (deviation from 1.0)
+      const kdContrib = Math.round((matchKd - 1.0) * 12);
+      lp += Math.max(-15, Math.min(18, kdContrib));
+
+      // ADR bonus/penalty
+      if (matchAdr >= 95)      lp += 4;
+      else if (matchAdr >= 80) lp += 3;
+      else if (matchAdr >= 70) lp += 2;
+      else if (matchAdr >= 60) lp += 1;
+      else if (matchAdr < 45)  lp -= 3;
+      else if (matchAdr < 55)  lp -= 1;
+
+      // HS% minor bonus
+      if (matchHs >= 0.45) lp += 1;
+
+      // Multi-kill bonuses
+      lp += (Number(stat.enemy5ks) || 0) * 4;
+      lp += (Number(stat.enemy4ks) || 0) * 1;
+
+      // Clutch wins
+      lp += (Number(stat.v1Wins) || 0) * 1;
+      lp += (Number(stat.v2Wins) || 0) * 2;
+
+      const clampedLP = Math.max(-18, Math.min(25, Math.round(lp)));
+      levelPoints = Math.max(0, Math.min(2100, levelPoints + clampedLP));
+    }
 
     const [user] = await db
       .update(users)
@@ -387,6 +440,7 @@ export class DatabaseStorage implements IStorage {
         matchesWon,
         matchesLost,
         skillRating: Math.max(100, Math.min(3000, skillRating)),
+        levelPoints,
         updatedAt: new Date(),
       })
       .where(eq(users.id, userId))
@@ -609,6 +663,13 @@ export class DatabaseStorage implements IStorage {
       ? Math.round((srcR * srcM + tgtR * tgtM) / (srcM + tgtM))
       : Math.round((srcR + tgtR) / 2);
 
+    // Level points: weighted average
+    const srcLP = sourceUser.levelPoints ?? 500;
+    const tgtLP = targetUser.levelPoints ?? 500;
+    const levelPoints = (srcM + tgtM) > 0
+      ? Math.round((srcLP * srcM + tgtLP * tgtM) / (srcM + tgtM))
+      : Math.round((srcLP + tgtLP) / 2);
+
     const mergedStats = {
       totalKills, totalDeaths, totalAssists, totalHeadshots, totalDamage,
       totalMatches, matchesWon, matchesLost, totalRoundsPlayed, roundsWon, totalMvps,
@@ -618,6 +679,7 @@ export class DatabaseStorage implements IStorage {
       totalFlashCount, totalFlashSuccesses, totalEnemiesFlashed, totalUtilityDamage,
       totalShotsFired, totalShotsOnTarget,
       skillRating: Math.max(100, Math.min(3000, skillRating)),
+      levelPoints: Math.max(0, Math.min(2100, levelPoints)),
       nickname: targetUser.nickname || sourceUser.nickname,
     };
 

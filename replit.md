@@ -130,6 +130,12 @@ The application uses the following main tables:
    - Entry frag stats (wins/count)
    - Utility stats (flash count/success, enemies flashed, utility damage)
    - Accuracy stats (shots fired, shots on target)
+   - `levelPoints` (integer, default 500) - Level progression points (0–2100 → Level 1–21)
+     - Level = floor(levelPoints/100) + 1, capped at 21
+     - Tiers: Bronze 1–5, Prata 6–10, Ouro 11–15, Diamante 16–20, Lendário 21
+     - Starting LP = 500 (Level 6); per match: win+10/loss-5 ± K/D bonus (clamped ±18) ± ADR ± ACE ± clutch
+     - `skillRating` kept in DB for mix team balancing (not displayed as "SR" anymore)
+   - Fantasy pricing: `price = max(5, min(40, round(5 + (level-1)/20 * 35)))`, budget = R$100
 3. **matches** - Individual match records (map, scores, date, external match ID)
 4. **matchStats** - Per-player statistics for each match including all 30+ detailed stat fields from CS2 server CSV
 5. **casinoBalances** - Virtual currency balances for casino system (starts at R$10M)

@@ -2835,13 +2835,12 @@ export async function registerRoutes(
   // ─── Fantasy Routes ─────────────────────────────────────────────────────────
 
   // Point calculation per match stat for fantasy
-  // Calcula o preço de um jogador baseado no SR (escala de R$5 a R$40)
-  // Com budget de R$100, é impossível escalar os 5 melhores (cada um ~R$35+)
-  function calcPlayerPrice(skillRating: number): number {
-    const sr = Math.max(0, skillRating);
-    const MAX_SR = 3000;
-    const price = Math.max(5, Math.min(40, Math.round(5 + (sr / MAX_SR) * 35)));
-    return price;
+  // Calcula o preço de um jogador baseado no Level (escala de R$5 a R$40)
+  // Level = floor(levelPoints / 100) + 1, capped at 21
+  // Com budget de R$100, é impossível escalar os 5 melhores
+  function calcPlayerPrice(levelPoints: number): number {
+    const level = Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints) / 100) + 1));
+    return Math.max(5, Math.min(40, Math.round(5 + (level - 1) / 20 * 35)));
   }
 
   function calcFantasyPoints(stat: any): number {
@@ -2867,19 +2866,22 @@ export async function registerRoutes(
     try {
       const result = await db.execute(
         sql`SELECT id, nickname, first_name, last_name, profile_image_url, steam_id_64,
-                   skill_rating, total_kills, total_deaths, total_assists, total_headshots,
-                   total_matches, total_damage
+                   skill_rating, level_points, total_kills, total_deaths, total_assists,
+                   total_headshots, total_matches, total_damage
             FROM users
-            WHERE skill_rating > 0
-            ORDER BY skill_rating DESC`
+            ORDER BY level_points DESC`
       );
       const players = (result.rows as any[]).map(u => {
         const matches = u.total_matches || 1;
         const kills = u.total_kills || 0;
         const deaths = u.total_deaths || 0;
+        const lp = u.level_points ?? 500;
+        const level = Math.max(1, Math.min(21, Math.floor(lp / 100) + 1));
         return {
           ...u,
-          price: calcPlayerPrice(u.skill_rating || 0),
+          level_points: lp,
+          skill_rating: level,
+          price: calcPlayerPrice(lp),
           avg_kills: Math.round((kills / matches) * 10) / 10,
           avg_deaths: Math.round((deaths / matches) * 10) / 10,
           avg_assists: Math.round(((u.total_assists || 0) / matches) * 10) / 10,
@@ -2955,18 +2957,18 @@ export async function registerRoutes(
       );
       if (!round.rows[0]) return res.status(400).json({ message: "Rodada não está aberta para escalações." });
 
-      // Fetch SR for each selected player to calculate prices
+      // Fetch level_points for each selected player to calculate prices
       const playerRows = await db.execute(
-        sql`SELECT id, skill_rating FROM users WHERE id = ANY(${playerIds}::varchar[])`
+        sql`SELECT id, level_points FROM users WHERE id = ANY(${playerIds}::varchar[])`
       );
-      const srMap: Record<string, number> = {};
+      const lpMap: Record<string, number> = {};
       for (const row of playerRows.rows as any[]) {
-        srMap[row.id] = row.skill_rating || 0;
+        lpMap[row.id] = row.level_points ?? 500;
       }
       const prices: Record<string, number> = {};
       let totalCost = 0;
       for (const pid of playerIds) {
-        const price = calcPlayerPrice(srMap[pid] ?? 0);
+        const price = calcPlayerPrice(lpMap[pid] ?? 500);
         prices[pid] = price;
         totalCost += price;
       }

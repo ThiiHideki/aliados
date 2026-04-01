@@ -705,7 +705,7 @@ export default function Mural() {
             </div>
             <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
               <Star className="h-6 w-6 text-primary mb-1" />
-              <span className="text-sm font-bold">Skill Rating</span>
+              <span className="text-sm font-bold">Nível</span>
               <span className="text-xs text-muted-foreground">Critério</span>
             </div>
           </div>

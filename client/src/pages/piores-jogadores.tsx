@@ -21,7 +21,7 @@ export default function PioresJogadores() {
 
   const usersWithMatches = users.filter(u => u.totalMatches >= 3);
 
-  const sortedByRating = [...usersWithMatches].sort((a, b) => a.skillRating - b.skillRating);
+  const sortedByRating = [...usersWithMatches].sort((a, b) => (a.levelPoints ?? 500) - (b.levelPoints ?? 500));
   
   const sortedByKD = [...usersWithMatches].sort((a, b) => {
     const kdA = a.totalDeaths > 0 ? a.totalKills / a.totalDeaths : a.totalKills;
@@ -116,7 +116,7 @@ export default function PioresJogadores() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingDown className="h-5 w-5 text-red-500" />
-              Pior Skill Rating
+              Pior Nível
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -125,7 +125,7 @@ export default function PioresJogadores() {
                 key={player.id}
                 player={player}
                 index={index}
-                stat={player.skillRating.toString()}
+                stat={`Nível ${Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}`}
               />
             ))}
             {sortedByRating.length === 0 && (

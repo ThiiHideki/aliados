@@ -55,8 +55,8 @@ export default function Jogadores() {
         valueB = (b.nickname || b.firstName || "").toLowerCase();
         break;
       case "skillRating":
-        valueA = a.skillRating;
-        valueB = b.skillRating;
+        valueA = a.levelPoints ?? 500;
+        valueB = b.levelPoints ?? 500;
         break;
       case "kd":
         valueA = getKD(a);
@@ -79,8 +79,8 @@ export default function Jogadores() {
         valueB = b.totalMatches;
         break;
       default:
-        valueA = a.skillRating;
-        valueB = b.skillRating;
+        valueA = a.levelPoints ?? 500;
+        valueB = b.levelPoints ?? 500;
     }
 
     if (typeof valueA === "string" && typeof valueB === "string") {
@@ -151,7 +151,7 @@ export default function Jogadores() {
                       <SortButton field="nickname" label="Jogador" />
                     </th>
                     <th className="text-center p-2">
-                      <SortButton field="skillRating" label="Rating" />
+                      <SortButton field="skillRating" label="Nível" />
                     </th>
                     <th className="text-center p-2">
                       <SortButton field="kd" label="K/D" />
@@ -206,7 +206,7 @@ export default function Jogadores() {
                           </Link>
                         </td>
                         <td className="p-3 text-center">
-                          <span className="font-mono font-bold">{player.skillRating}</span>
+                          <span className="font-mono font-bold">{Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}</span>
                         </td>
                         <td className="p-3 text-center">
                           <span className={`font-mono font-bold ${kd >= 1 ? 'text-green-500' : 'text-red-500'}`}>

@@ -57,7 +57,7 @@ export default function Rankings() {
 
   const playersWithMatches = users.filter(u => u.totalMatches >= 3);
   
-  const sortedByRating = [...playersWithMatches].sort((a, b) => b.skillRating - a.skillRating);
+  const sortedByRating = [...playersWithMatches].sort((a, b) => (b.levelPoints ?? 500) - (a.levelPoints ?? 500));
   const sortedByKD = [...playersWithMatches].sort((a, b) => {
     const kdA = a.totalDeaths > 0 ? a.totalKills / a.totalDeaths : a.totalKills;
     const kdB = b.totalDeaths > 0 ? b.totalKills / b.totalDeaths : b.totalKills;
@@ -232,7 +232,7 @@ export default function Rankings() {
               <CardTitle className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Info className="h-5 w-5 text-primary" />
-                  Como o Skill Rating é Calculado
+                  Como o Sistema de Níveis Funciona
                 </div>
                 <ChevronDown className={`h-5 w-5 transition-transform ${isLegendOpen ? 'rotate-180' : ''}`} />
               </CardTitle>
@@ -241,86 +241,87 @@ export default function Rankings() {
           <CollapsibleContent>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                O Skill Rating começa em <strong>1000</strong> (valor médio) e é ajustado baseado no desempenho do jogador. O rating final fica entre 100 e 3000.
+                Sistema de progressão estilo GC — do <strong>Nível 1</strong> ao <strong>Nível 21</strong>. Cada partida ganha ou perde LP baseado no desempenho individual. Nível 21 é reservado para jogadores excepcionais.
               </p>
+
+              <div className="grid grid-cols-5 gap-2 text-center">
+                {[{ label: "Bronze", sub: "1–5", color: "text-amber-700 bg-amber-700/10 border-amber-700/30" },
+                  { label: "Prata",   sub: "6–10", color: "text-slate-400 bg-slate-400/10 border-slate-400/30" },
+                  { label: "Ouro",    sub: "11–15", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
+                  { label: "Diamante",sub: "16–20", color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/30" },
+                  { label: "Lendário",sub: "21", color: "text-orange-400 bg-orange-400/10 border-orange-400/30" },
+                ].map(t => (
+                  <div key={t.label} className={`rounded-md border p-2 ${t.color}`}>
+                    <div className="text-xs font-bold">{t.label}</div>
+                    <div className="text-[11px] opacity-75">{t.sub}</div>
+                  </div>
+                ))}
+              </div>
               
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b">
                       <th className="text-left py-2 font-medium">Fator</th>
-                      <th className="text-left py-2 font-medium">Fórmula</th>
+                      <th className="text-left py-2 font-medium">LP</th>
                       <th className="text-left py-2 font-medium">Explicação</th>
                     </tr>
                   </thead>
                   <tbody className="text-muted-foreground">
                     <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">K/D Ratio</td>
-                      <td className="py-2 font-mono text-xs">(K/D - 1) × 150</td>
-                      <td className="py-2">K/D acima de 1.0 aumenta, abaixo diminui</td>
+                      <td className="py-2 font-medium text-foreground">Vitória</td>
+                      <td className="py-2 font-mono text-xs text-green-500">+10</td>
+                      <td className="py-2">Ganhar a partida</td>
                     </tr>
                     <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">Headshot %</td>
-                      <td className="py-2 font-mono text-xs">(HS% - 30) × 2</td>
-                      <td className="py-2">30% é a média esperada</td>
+                      <td className="py-2 font-medium text-foreground">Derrota</td>
+                      <td className="py-2 font-mono text-xs text-red-500">-5</td>
+                      <td className="py-2">Perder a partida</td>
                     </tr>
                     <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">ADR</td>
-                      <td className="py-2 font-mono text-xs">(ADR - 70) × 1.5</td>
-                      <td className="py-2">Dano por round - 70 é a média</td>
+                      <td className="py-2 font-medium text-foreground">K/D alto (ex: 2.0)</td>
+                      <td className="py-2 font-mono text-xs text-green-500">+12</td>
+                      <td className="py-2">(K/D − 1.0) × 12, máx ±18</td>
                     </tr>
                     <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">Win Rate</td>
-                      <td className="py-2 font-mono text-xs">(WinRate - 50) × 3</td>
-                      <td className="py-2">50% é neutro, vitórias dão bônus</td>
+                      <td className="py-2 font-medium text-foreground">K/D baixo (ex: 0.5)</td>
+                      <td className="py-2 font-mono text-xs text-red-500">-6</td>
+                      <td className="py-2">K/D abaixo de 1.0 perde LP</td>
                     </tr>
                     <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">MVP Rate</td>
-                      <td className="py-2 font-mono text-xs">(MVP% - 10) × 5</td>
-                      <td className="py-2">% de partidas como MVP (10% é média)</td>
+                      <td className="py-2 font-medium text-foreground">ADR ≥ 95</td>
+                      <td className="py-2 font-mono text-xs text-green-500">+4</td>
+                      <td className="py-2">Dano por round acima da média</td>
                     </tr>
                     <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">MVPs</td>
-                      <td className="py-2 font-mono text-xs">MVPs × 3</td>
-                      <td className="py-2">Cada MVP dá +3 pontos</td>
+                      <td className="py-2 font-medium text-foreground">ADR &lt; 45</td>
+                      <td className="py-2 font-mono text-xs text-red-500">-3</td>
+                      <td className="py-2">Dano por round muito baixo</td>
                     </tr>
                     <tr className="border-b border-border/50">
                       <td className="py-2 font-medium text-foreground">ACE (5K)</td>
-                      <td className="py-2 font-mono text-xs">5Ks × 30</td>
-                      <td className="py-2">Cada ACE dá +30 pontos</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">4K</td>
-                      <td className="py-2 font-mono text-xs">4Ks × 15</td>
-                      <td className="py-2">Cada 4K dá +15 pontos</td>
+                      <td className="py-2 font-mono text-xs text-green-500">+4</td>
+                      <td className="py-2">Cada ACE na partida</td>
                     </tr>
                     <tr>
-                      <td className="py-2 font-medium text-foreground">3K</td>
-                      <td className="py-2 font-mono text-xs">3Ks × 5</td>
-                      <td className="py-2">Cada 3K dá +5 pontos</td>
+                      <td className="py-2 font-medium text-foreground">Clutch 1v2</td>
+                      <td className="py-2 font-mono text-xs text-green-500">+2</td>
+                      <td className="py-2">Cada clutch 1v2 vencido</td>
                     </tr>
                   </tbody>
                 </table>
               </div>
 
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-4">
+              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-2">
                 <h4 className="font-medium mb-2 flex items-center gap-2">
                   <Star className="h-4 w-4 text-yellow-500" />
-                  Exemplo Prático
+                  Como funciona
                 </h4>
-                <p className="text-sm text-muted-foreground mb-2">
-                  Um jogador com K/D 1.5, 40% HS, 90 ADR, 70% Win Rate e 2 ACEs:
-                </p>
-                <div className="font-mono text-sm space-y-1">
-                  <div>Base: <span className="text-primary">1000</span></div>
-                  <div>K/D 1.5: <span className="text-green-500">+75</span> pontos</div>
-                  <div>40% HS: <span className="text-green-500">+20</span> pontos</div>
-                  <div>90 ADR: <span className="text-green-500">+30</span> pontos</div>
-                  <div>70% Win Rate: <span className="text-green-500">+60</span> pontos</div>
-                  <div>2 ACEs: <span className="text-green-500">+60</span> pontos</div>
-                  <div className="border-t border-border/50 pt-1 mt-2">
-                    <strong>Total: <span className="text-primary">1245</span> Skill Rating</strong>
-                  </div>
+                <div className="text-sm text-muted-foreground space-y-1">
+                  <p>Todo jogador começa no <strong className="text-foreground">Nível 6</strong> (base de 500 LP).</p>
+                  <p>Cada nível requer <strong className="text-foreground">100 LP</strong> para avançar.</p>
+                  <p>Uma boa partida (K/D 2, ADR 90, vitória): <span className="text-green-500 font-mono">+20 a +25 LP</span></p>
+                  <p>Uma partida ruim (K/D 0.5, ADR 40, derrota): <span className="text-red-500 font-mono">-15 a -18 LP</span></p>
                 </div>
               </div>
             </CardContent>
@@ -333,7 +334,7 @@ export default function Rankings() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Star className="h-5 w-5 text-yellow-500" />
-              Ranking por Skill Rating
+              Ranking por Nível
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -342,7 +343,7 @@ export default function Rankings() {
                 key={player.id}
                 player={player}
                 index={index}
-                stat={player.skillRating.toString()}
+                stat={`Nível ${Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}`}
               />
             ))}
           </CardContent>

@@ -205,7 +205,7 @@ export default function PerfilJogador() {
     if (!player || allUsers.length === 0) return { position: 0, total: 0 };
     const sorted = [...allUsers]
       .filter(u => u.totalMatches > 0)
-      .sort((a, b) => b.skillRating - a.skillRating);
+      .sort((a, b) => (b.levelPoints ?? 500) - (a.levelPoints ?? 500));
     const pos = sorted.findIndex(u => u.id === player.id);
     return { position: pos >= 0 ? pos + 1 : 0, total: sorted.length };
   })();
@@ -509,7 +509,7 @@ export default function PerfilJogador() {
                       {player.isAdmin ? "Admin" : "Jogador"}
                     </Badge>
                     <Badge variant="outline" className="font-mono">
-                      Rating: {player.skillRating}
+                      Nível {Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
                     </Badge>
                   </div>
                   {player.steamId64 && (
@@ -523,10 +523,10 @@ export default function PerfilJogador() {
                 <div className="mt-6 space-y-4">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
-                      <span>Skill Rating</span>
-                      <span className="font-mono">{player.skillRating} / 3000</span>
+                      <span>Nível</span>
+                      <span className="font-mono">{Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)} / 21</span>
                     </div>
-                    <Progress value={(player.skillRating / 3000) * 100} />
+                    <Progress value={((player.levelPoints ?? 500) / 2100) * 100} />
                   </div>
                 </div>
 
@@ -579,8 +579,10 @@ export default function PerfilJogador() {
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg" data-testid="card-skill-rating">
                 <TrendingUp className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <div className="text-2xl font-bold font-mono">{player.skillRating}</div>
-                <div className="text-sm text-muted-foreground">Skill Rating</div>
+                <div className="text-2xl font-bold font-mono">
+                  {Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
+                </div>
+                <div className="text-sm text-muted-foreground">Nível</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg" data-testid="card-mvps-total">
                 <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />
@@ -952,7 +954,7 @@ export default function PerfilJogador() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-primary" />
-              Evolução do Skill Rating
+              Evolução de Desempenho
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -972,8 +974,8 @@ export default function PerfilJogador() {
                     formatter={(value: number, _name: string, props: any) => {
                       const matches = props.payload?.matchesPlayed;
                       return [
-                        <span key="v" className="font-mono font-bold">{value} SR{matches ? ` (${matches} partidas)` : ''}</span>,
-                        'Skill Rating'
+                        <span key="v" className="font-mono font-bold">{value}{matches ? ` (${matches} partidas)` : ''}</span>,
+                        'Score'
                       ];
                     }}
                   />
@@ -997,7 +999,7 @@ export default function PerfilJogador() {
                 return (
                   <Badge variant={diff >= 0 ? "default" : "destructive"} className="font-mono">
                     <TrendingUp className={`h-3 w-3 mr-1 ${diff < 0 ? "rotate-180" : ""}`} />
-                    {diff >= 0 ? "+" : ""}{diff} SR no período
+                    {diff >= 0 ? "+" : ""}{diff} pts no período
                   </Badge>
                 );
               })()}

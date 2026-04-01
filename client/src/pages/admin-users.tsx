@@ -322,7 +322,7 @@ export default function AdminUsers() {
                   <TableHead className="text-right">K/D</TableHead>
                   <TableHead className="text-right">Partidas</TableHead>
                   <TableHead className="text-right">HS %</TableHead>
-                  <TableHead className="text-right">Rating</TableHead>
+                  <TableHead className="text-right">Nível</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -376,7 +376,7 @@ export default function AdminUsers() {
                       <TableCell className="text-right font-mono">{hs}%</TableCell>
                       <TableCell className="text-right">
                         <Badge variant="outline" className="font-mono">
-                          {player.skillRating}
+                          Nv.{Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">

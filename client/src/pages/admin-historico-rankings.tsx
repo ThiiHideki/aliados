@@ -52,23 +52,8 @@ const MONTH_NAMES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
 
-function calculateSkillRating(user: User): number {
-  const kd = user.totalDeaths > 0 ? user.totalKills / user.totalDeaths : user.totalKills;
-  const hsPercent = user.totalKills > 0 ? (user.totalHeadshots / user.totalKills) * 100 : 0;
-  const adr = user.totalRoundsPlayed > 0 ? user.totalDamage / user.totalRoundsPlayed : 0;
-  const winRate = user.totalMatches > 0 ? (user.matchesWon / user.totalMatches) * 100 : 50;
-  
-  return Math.round(
-    1000 +
-    (kd - 1) * 150 +
-    (hsPercent - 30) * 2 +
-    (adr - 70) * 1.5 +
-    (winRate - 50) * 3 +
-    (user.totalMvps || 0) * 2 +
-    (user.total5ks || 0) * 30 +
-    (user.total4ks || 0) * 15 +
-    (user.total3ks || 0) * 5
-  );
+function getUserLevel(user: User): number {
+  return Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1);
 }
 
 function getPlayerDisplayName(user: User): string {
@@ -99,7 +84,6 @@ export default function AdminHistoricoRankings() {
       const activeUsers = users.filter(u => u.totalMatches > 0);
       const rankings: RankingEntry[] = activeUsers
         .map(user => {
-          const skillRating = calculateSkillRating(user);
           const kd = user.totalDeaths > 0 ? user.totalKills / user.totalDeaths : user.totalKills;
           const hsPercent = user.totalKills > 0 ? (user.totalHeadshots / user.totalKills) * 100 : 0;
           const adr = user.totalRoundsPlayed > 0 ? user.totalDamage / user.totalRoundsPlayed : 0;
@@ -111,7 +95,7 @@ export default function AdminHistoricoRankings() {
             name: getPlayerDisplayName(user),
             nickname: user.nickname || undefined,
             profileImageUrl: user.profileImageUrl || undefined,
-            skillRating: Math.max(100, Math.min(3000, skillRating)),
+            skillRating: getUserLevel(user),
             kd,
             hsPercent,
             adr,
@@ -355,7 +339,7 @@ export default function AdminHistoricoRankings() {
                             </div>
                             <div className="grid grid-cols-4 gap-4 text-center text-sm">
                               <div>
-                                <p className="text-muted-foreground text-xs">SR</p>
+                                <p className="text-muted-foreground text-xs">Nível</p>
                                 <p className="font-mono font-semibold text-primary">{entry.skillRating}</p>
                               </div>
                               <div>

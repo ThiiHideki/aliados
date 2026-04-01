@@ -22,9 +22,9 @@ import type { User } from "@shared/schema";
 
 const FANTASY_BUDGET = 100;
 
-function calcPlayerPrice(skillRating: number): number {
-  const sr = Math.max(0, skillRating || 0);
-  return Math.max(5, Math.min(40, Math.round(5 + (sr / 3000) * 35)));
+function calcPlayerPrice(levelPoints: number): number {
+  const level = Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints || 0) / 100) + 1));
+  return Math.max(5, Math.min(40, Math.round(5 + (level - 1) / 20 * 35)));
 }
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -40,7 +40,10 @@ type Pick = {
 type TeamData = { team: { id: number; total_points: number; budget_used: number }; picks: Pick[] };
 type FantasyPlayer = {
   id: string; nickname?: string; first_name?: string; last_name?: string;
-  profile_image_url?: string; skill_rating: number; price: number;
+  profile_image_url?: string;
+  skill_rating: number;
+  level_points: number;
+  price: number;
   total_matches: number;
   avg_kills: number; avg_deaths: number; avg_assists: number;
   avg_damage: number; kd_ratio: number; hs_pct: number;
@@ -328,7 +331,7 @@ function PlayerPickerDialog({
                     {hasMatches ? (
                       <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
                         <span className="text-[11px] text-muted-foreground tabular-nums">
-                          <span className="text-foreground/70 font-medium">SR</span> {p.skill_rating}
+                          <span className="text-foreground/70 font-medium">Nível</span> {p.skill_rating}
                         </span>
                         <span className="text-[11px] text-muted-foreground tabular-nums">
                           <span className="text-foreground/70 font-medium">K/D</span> {p.kd_ratio.toFixed(2)}
@@ -344,7 +347,7 @@ function PlayerPickerDialog({
                         </span>
                       </div>
                     ) : (
-                      <p className="text-[11px] text-muted-foreground mt-0.5">SR {p.skill_rating} · sem partidas</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">Nível {p.skill_rating} · sem partidas</p>
                     )}
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
@@ -667,7 +670,7 @@ export default function JogatinaFantasy() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Preço calculado pelo Skill Rating (SR) de cada jogador. Quanto melhor o SR, mais caro.
+                  Preço calculado pelo Nível de cada jogador. Quanto maior o Nível, mais caro.
                   Com R${FANTASY_BUDGET}, é impossível escalar os 5 melhores do servidor.
                 </p>
               </CardContent>
