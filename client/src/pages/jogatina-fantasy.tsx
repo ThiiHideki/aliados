@@ -87,19 +87,18 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 
 // ─── Scoring rules ────────────────────────────────────────────────────────────
 const RULES = [
-  { icon: Swords, label: "Kill", pts: "+1.0", color: "text-green-400" },
-  { icon: Target, label: "Assistência", pts: "+0.3", color: "text-green-400" },
-  { icon: Shield, label: "Morte", pts: "-0.5", color: "text-red-400" },
-  { icon: Zap, label: "Headshot", pts: "+0.15", color: "text-green-400" },
-  { icon: Star, label: "ACE (5K)", pts: "+10", color: "text-orange-400" },
-  { icon: Star, label: "4K", pts: "+5", color: "text-orange-400" },
-  { icon: Star, label: "3K", pts: "+3", color: "text-orange-400" },
-  { icon: Star, label: "Double Kill", pts: "+1", color: "text-orange-400" },
-  { icon: Trophy, label: "Clutch 1v1", pts: "+5", color: "text-yellow-400" },
-  { icon: Trophy, label: "Clutch 1v2", pts: "+8", color: "text-yellow-400" },
-  { icon: TrendingUp, label: "First Kill", pts: "+1.5", color: "text-blue-400" },
-  { icon: Medal, label: "MVP da partida", pts: "+4", color: "text-yellow-400" },
-  { icon: CheckCircle2, label: "Vitória", pts: "+3", color: "text-green-400" },
+  { icon: Swords,     label: "Kill",            pts: "+1",           color: "text-green-400" },
+  { icon: Target,     label: "Assistência",     pts: "+1",           color: "text-green-400" },
+  { icon: Shield,     label: "Morte",           pts: "-1",           color: "text-red-400" },
+  { icon: Star,       label: "ACE (5K)",        pts: "+8",           color: "text-orange-400" },
+  { icon: Star,       label: "4K",              pts: "+5",           color: "text-orange-400" },
+  { icon: TrendingUp, label: "K/D ≥ 1.20",     pts: "+5 a +10",    color: "text-green-400" },
+  { icon: TrendingUp, label: "K/D 0.90–1.19",  pts: "+2",           color: "text-green-400" },
+  { icon: TrendingUp, label: "K/D < 0.90",     pts: "-1 a -6",     color: "text-red-400" },
+  { icon: Zap,        label: "HS% > 50%",       pts: "+2 a +10",    color: "text-green-400" },
+  { icon: Zap,        label: "HS% ≤ 50%",       pts: "-1 a -6",     color: "text-red-400" },
+  { icon: Calculator, label: "Dano > 1000",     pts: "+2 a +10",    color: "text-green-400" },
+  { icon: Calculator, label: "Dano ≤ 1000",     pts: "-1 a -6",     color: "text-red-400" },
 ];
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
@@ -696,10 +695,10 @@ export default function JogatinaFantasy() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    { tier: "Elite", range: "SR acima de ~2570", price: "R$35–40", cls: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-                    { tier: "Alto",  range: "SR acima de ~1710", price: "R$25–34", cls: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-                    { tier: "Médio", range: "SR acima de ~855",  price: "R$15–24", cls: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-                    { tier: "Baixo", range: "SR até ~855",       price: "R$5–14",  cls: "bg-muted text-muted-foreground border-border" },
+                    { tier: "Elite", range: "Alta performance (K/D, HS%, Dano)", price: "R$35–40", cls: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+                    { tier: "Alto",  range: "Boa performance geral",              price: "R$25–34", cls: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+                    { tier: "Médio", range: "Performance moderada",               price: "R$15–24", cls: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+                    { tier: "Baixo", range: "Poucas partidas ou baixa perf.",     price: "R$5–14",  cls: "bg-muted text-muted-foreground border-border" },
                   ].map(t => (
                     <div key={t.tier} className={`p-2 rounded border ${t.cls}`}>
                       <p className="font-bold">{t.tier} — {t.price}</p>
@@ -708,8 +707,8 @@ export default function JogatinaFantasy() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Preço calculado pelo Nível de cada jogador. Quanto maior o Nível, mais caro.
-                  Com R${FANTASY_BUDGET}, é impossível escalar os 5 melhores do servidor.
+                  Preço calculado com base na projeção de pontos de fantasy (K/D, HS%, Dano médio).
+                  Jogadores performáticos são mais caros. Com R${FANTASY_BUDGET}, não é possível escalar os 5 melhores.
                 </p>
               </CardContent>
             </Card>

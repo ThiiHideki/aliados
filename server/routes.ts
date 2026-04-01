@@ -3140,19 +3140,59 @@ export async function registerRoutes(
 
   function calcFantasyPoints(stat: any): number {
     let pts = 0;
-    pts += (stat.kills || 0) * 1.0;
-    pts += (stat.assists || 0) * 0.3;
-    pts -= (stat.deaths || 0) * 0.5;
-    pts += (stat.headshots || 0) * 0.15;
-    pts += (stat.fiveK || 0) * 10;
-    pts += (stat.fourK || 0) * 5;
-    pts += (stat.threeK || 0) * 3;
-    pts += (stat.twoK || 0) * 1;
-    pts += (stat.clutch1v1Wins || 0) * 5;
-    pts += (stat.clutch1v2Wins || 0) * 8;
-    pts += (stat.firstKills || 0) * 1.5;
-    pts += (stat.isMvp ? 4 : 0);
-    pts += (stat.wonMatch ? 3 : 0);
+
+    const kills   = stat.kills   || 0;
+    const deaths  = stat.deaths  || 0;
+    const assists = stat.assists || 0;
+    const fiveK   = stat.fiveK   || 0;
+    const fourK   = stat.fourK   || 0;
+    const damage  = stat.damage  || 0;
+    const headshots = stat.headshots || 0;
+
+    // Base flat points
+    pts += kills   * 1;
+    pts -= deaths  * 1;
+    pts += assists * 1;
+    pts += fiveK   * 8;
+    pts += fourK   * 5;
+
+    // KD ratio bonus/penalty (per match)
+    const kd = deaths > 0 ? kills / deaths : kills;
+    if (kd >= 1.20) {
+      // Starts at 5 (kd=1.20), grows linearly to 10 (kd=2.50)
+      const kdBonus = 5 + Math.min(1, (kd - 1.20) / (2.50 - 1.20)) * 5;
+      pts += Math.min(10, kdBonus);
+    } else if (kd >= 0.90) {
+      pts += 2;
+    } else {
+      // Starts at -1 (kd=0.90), drops linearly to -6 (kd=0)
+      const kdPenalty = -1 - Math.min(1, (0.90 - kd) / 0.90) * 5;
+      pts += Math.max(-6, kdPenalty);
+    }
+
+    // Headshot % bonus/penalty (per match)
+    const hsPct = kills > 0 ? (headshots / kills) * 100 : 0;
+    if (hsPct > 50) {
+      // Starts at 2 (hs%=50), grows linearly to 10 (hs%=100)
+      const hsBonus = 2 + Math.min(1, (hsPct - 50) / 50) * 8;
+      pts += Math.min(10, hsBonus);
+    } else {
+      // Starts at -1 (hs%=50), drops linearly to -6 (hs%=0)
+      const hsPenalty = -1 - Math.min(1, (50 - hsPct) / 50) * 5;
+      pts += Math.max(-6, hsPenalty);
+    }
+
+    // Damage bonus/penalty (per match)
+    if (damage > 1000) {
+      // Starts at 2 (damage=1000), grows linearly to 10 (damage=2000)
+      const dmgBonus = 2 + Math.min(1, (damage - 1000) / 1000) * 8;
+      pts += Math.min(10, dmgBonus);
+    } else {
+      // Starts at -1 (damage=1000), drops linearly to -6 (damage=0)
+      const dmgPenalty = -1 - Math.min(1, (1000 - damage) / 1000) * 5;
+      pts += Math.max(-6, dmgPenalty);
+    }
+
     return Math.round(pts * 100) / 100;
   }
 
@@ -3172,17 +3212,42 @@ export async function registerRoutes(
         const deaths = u.total_deaths || 0;
         const lp = u.level_points ?? 0;
         const level = Math.max(1, Math.min(21, Math.floor(lp / 30) + 1));
+        const avgKills   = kills / matches;
+        const avgDeaths  = deaths / matches;
+        const avgAssists = (u.total_assists || 0) / matches;
+        const avgDamage  = (u.total_damage || 0) / matches;
+        const avgHeadshots = (u.total_headshots || 0) / matches;
+
+        // Project fantasy points per match from career averages
+        const projectedPts = u.total_matches > 0
+          ? calcFantasyPoints({
+              kills: avgKills,
+              deaths: avgDeaths,
+              assists: avgAssists,
+              headshots: avgHeadshots,
+              fiveK: 0,
+              fourK: 0,
+              damage: avgDamage,
+            })
+          : 0;
+
+        // Price: base of 5, driven by projected fantasy performance
+        // projectedPts range: roughly -18 to +30
+        // Map to price range 5..40
+        const priceFromFantasy = Math.round(5 + Math.max(0, Math.min(35, (projectedPts + 18) / 48 * 35)));
+        const price = u.total_matches > 0 ? priceFromFantasy : 5;
+
         return {
           ...u,
           level_points: lp,
           skill_rating: level,
-          price: calcPlayerPrice(lp),
-          avg_kills: Math.round((kills / matches) * 10) / 10,
-          avg_deaths: Math.round((deaths / matches) * 10) / 10,
-          avg_assists: Math.round(((u.total_assists || 0) / matches) * 10) / 10,
-          avg_damage: Math.round((u.total_damage || 0) / matches),
+          price,
+          avg_kills: Math.round(avgKills * 10) / 10,
+          avg_deaths: Math.round(avgDeaths * 10) / 10,
+          avg_assists: Math.round(avgAssists * 10) / 10,
+          avg_damage: Math.round(avgDamage),
           kd_ratio: deaths > 0 ? Math.round((kills / deaths) * 100) / 100 : kills,
-          hs_pct: kills > 0 ? Math.round(((u.total_headshots || 0) / kills) * 1000) / 10 : 0,
+          hs_pct: kills > 0 ? Math.round((u.total_headshots || 0) / kills * 1000) / 10 : 0,
         };
       });
       res.json({ players, budget: FANTASY_BUDGET });
@@ -3393,13 +3458,7 @@ export async function registerRoutes(
           headshots: stat.headshots,
           fiveK: stat.enemy_5ks,
           fourK: stat.enemy_4ks,
-          threeK: stat.enemy_3ks,
-          twoK: stat.enemy_2ks,
-          clutch1v1Wins: stat.v1_wins,
-          clutch1v2Wins: stat.v2_wins,
-          firstKills: stat.entry_wins,
-          isMvp: stat.mvps > 0,
-          wonMatch: stat.won_match,
+          damage: stat.damage,
         });
         pointMap[pid] = (pointMap[pid] || 0) + pts;
       }
