@@ -392,42 +392,30 @@ export class DatabaseStorage implements IStorage {
         wonMatch = isTeam1 ? t1 > t2 : t2 > t1;
       }
 
-      const kills  = Number(stat.kills)   || 0;
-      const deaths = Number(stat.deaths)  || 0;
-      const damage = Number(stat.damage)  || 0;
-      const hs     = Number(stat.headshots) || 0;
-      const rounds = matchRounds || 24;
+      const kills         = Number(stat.kills)          || 0;
+      const assists       = Number(stat.assists)        || 0;
+      const damage        = Number(stat.damage)         || 0;
+      const entryWins     = Number(stat.entryWins)      || 0;
+      const entryCount    = Number(stat.entryCount)     || 0;
+      const utilityDmg    = Number(stat.utilityDamage)  || 0;
+      const enemiesFlash  = Number(stat.enemiesFlashed) || 0;
+      const rounds        = matchRounds || 24;
 
-      const matchKd  = kills / Math.max(deaths, 1);
-      const matchAdr = damage / Math.max(rounds, 1);
-      const matchHs  = kills > 0 ? hs / kills : 0;
+      // ── Rating Formula ────────────────────────────────────────────────────────
+      // Rating = 0.3*(K/R) + 0.4*(ADR/100) + 0.15*(EntryWins/EntryTotal)
+      //        + 0.1*(A/R) + 0.05*UtilityScore
+      const kpr         = kills / Math.max(rounds, 1);
+      const adr         = damage / Math.max(rounds, 1);
+      const entryRate   = entryCount > 0 ? entryWins / entryCount : 0.5;
+      const apr         = assists / Math.max(rounds, 1);
+      const utilScore   = Math.min(1, utilityDmg / 100 + enemiesFlash / 20);
 
-      let lp = wonMatch ? 10 : -5;
+      const rating = (0.3 * kpr) + (0.4 * (adr / 100)) + (0.15 * entryRate)
+                   + (0.1 * apr) + (0.05 * utilScore);
 
-      // K/D contribution (deviation from 1.0)
-      const kdContrib = Math.round((matchKd - 1.0) * 12);
-      lp += Math.max(-15, Math.min(18, kdContrib));
-
-      // ADR bonus/penalty
-      if (matchAdr >= 95)      lp += 4;
-      else if (matchAdr >= 80) lp += 3;
-      else if (matchAdr >= 70) lp += 2;
-      else if (matchAdr >= 60) lp += 1;
-      else if (matchAdr < 45)  lp -= 3;
-      else if (matchAdr < 55)  lp -= 1;
-
-      // HS% minor bonus
-      if (matchHs >= 0.45) lp += 1;
-
-      // Multi-kill bonuses
-      lp += (Number(stat.enemy5ks) || 0) * 4;
-      lp += (Number(stat.enemy4ks) || 0) * 1;
-
-      // Clutch wins
-      lp += (Number(stat.v1Wins) || 0) * 1;
-      lp += (Number(stat.v2Wins) || 0) * 2;
-
-      const clampedLP = Math.max(-18, Math.min(25, Math.round(lp)));
+      // Converte rating em LP: ponto neutro ≈ 0.5, escala ×50
+      // 0.5 → 0 LP | 0.7 → +10 | 0.9 → +20 | 1.0+ → +25 (cap) | 0.3 → -10
+      const clampedLP = Math.max(-18, Math.min(25, Math.round((rating - 0.5) * 50)));
       levelPoints = Math.max(0, Math.min(630, levelPoints + clampedLP));
     }
 
