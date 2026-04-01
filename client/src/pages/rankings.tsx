@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useQuery } from "@tanstack/react-query";
-import { Trophy, Medal, Award, Target, Crosshair, Star, Info, ChevronDown, Handshake, Zap, Flame, Shield, AlertCircle, Calendar } from "lucide-react";
+import { Trophy, Medal, Award, Target, Crosshair, Star, Info, ChevronDown, Handshake, Zap, Flame, Shield, AlertCircle, Calendar, TrendingUp, TrendingDown } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import type { User, Trophy as TrophySchema } from "@shared/schema";
@@ -241,91 +241,130 @@ export default function Rankings() {
             </CardHeader>
           </CollapsibleTrigger>
           <CollapsibleContent>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Sistema de progressão estilo GC — do <strong>Nível 1</strong> ao <strong>Nível 21</strong>. Cada partida ganha ou perde LP baseado no desempenho individual. Nível 21 é reservado para jogadores excepcionais.
+                Sistema de progressão do <strong className="text-foreground">Nível 1</strong> ao <strong className="text-foreground">Nível 21</strong>. A cada partida você ganha ou perde LP com base no seu desempenho individual, medido pelo <strong className="text-foreground">Rating Jacarézão (RJ)</strong>.
               </p>
 
-              <div className="grid grid-cols-5 gap-2 text-center">
-                {[{ label: "Bronze", sub: "1–5", color: "text-amber-700 bg-amber-700/10 border-amber-700/30" },
-                  { label: "Prata",   sub: "6–10", color: "text-slate-400 bg-slate-400/10 border-slate-400/30" },
-                  { label: "Ouro",    sub: "11–15", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
-                  { label: "Diamante",sub: "16–20", color: "text-cyan-400 bg-cyan-400/10 border-cyan-400/30" },
-                  { label: "Lendário",sub: "21", color: "text-orange-400 bg-orange-400/10 border-orange-400/30" },
-                ].map(t => (
-                  <div key={t.label} className={`rounded-md border p-2 ${t.color}`}>
-                    <div className="text-xs font-bold">{t.label}</div>
-                    <div className="text-[11px] opacity-75">{t.sub}</div>
-                  </div>
-                ))}
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b">
-                      <th className="text-left py-2 font-medium">Fator</th>
-                      <th className="text-left py-2 font-medium">LP</th>
-                      <th className="text-left py-2 font-medium">Explicação</th>
-                    </tr>
-                  </thead>
-                  <tbody className="text-muted-foreground">
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">Vitória</td>
-                      <td className="py-2 font-mono text-xs text-green-500">+10</td>
-                      <td className="py-2">Ganhar a partida</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">Derrota</td>
-                      <td className="py-2 font-mono text-xs text-red-500">-5</td>
-                      <td className="py-2">Perder a partida</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">K/D alto (ex: 2.0)</td>
-                      <td className="py-2 font-mono text-xs text-green-500">+12</td>
-                      <td className="py-2">(K/D − 1.0) × 12, máx ±18</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">K/D baixo (ex: 0.5)</td>
-                      <td className="py-2 font-mono text-xs text-red-500">-6</td>
-                      <td className="py-2">K/D abaixo de 1.0 perde LP</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">ADR ≥ 95</td>
-                      <td className="py-2 font-mono text-xs text-green-500">+4</td>
-                      <td className="py-2">Dano por round acima da média</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">ADR &lt; 45</td>
-                      <td className="py-2 font-mono text-xs text-red-500">-3</td>
-                      <td className="py-2">Dano por round muito baixo</td>
-                    </tr>
-                    <tr className="border-b border-border/50">
-                      <td className="py-2 font-medium text-foreground">ACE (5K)</td>
-                      <td className="py-2 font-mono text-xs text-green-500">+4</td>
-                      <td className="py-2">Cada ACE na partida</td>
-                    </tr>
-                    <tr>
-                      <td className="py-2 font-medium text-foreground">Clutch 1v2</td>
-                      <td className="py-2 font-mono text-xs text-green-500">+2</td>
-                      <td className="py-2">Cada clutch 1v2 vencido</td>
-                    </tr>
-                  </tbody>
-                </table>
+              {/* Tiers */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2">Divisões</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  {[
+                    { label: "Bronze",   sub: "Níveis 1–9",   lp: "0–269 LP",   color: "text-amber-600 bg-amber-700/10 border-amber-700/30" },
+                    { label: "Prata",    sub: "Níveis 10–15",  lp: "270–449 LP", color: "text-slate-300 bg-slate-400/10 border-slate-400/30" },
+                    { label: "Dourado",  sub: "Níveis 16–20",  lp: "450–599 LP", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
+                    { label: "Lendário", sub: "Nível 21",      lp: "600 LP MAX", color: "text-teal-400 bg-teal-400/10 border-teal-400/30" },
+                  ].map(t => (
+                    <div key={t.label} className={`rounded-md border p-2 ${t.color}`}>
+                      <div className="text-xs font-bold">{t.label}</div>
+                      <div className="text-[11px] opacity-80">{t.sub}</div>
+                      <div className="text-[10px] opacity-60 font-mono mt-0.5">{t.lp}</div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">Cada nível exige <strong className="text-foreground">30 LP</strong>. O nível máximo é <strong className="text-foreground">21</strong> com 600 LP.</p>
               </div>
 
-              <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 mt-2">
-                <h4 className="font-medium mb-2 flex items-center gap-2">
-                  <Star className="h-4 w-4 text-yellow-500" />
-                  Como funciona
+              {/* Rating Jacarézão */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                  <Zap className="h-4 w-4 text-orange-400" />
+                  Rating Jacarézão (RJ)
                 </h4>
-                <div className="text-sm text-muted-foreground space-y-1">
-                  <p>Todo jogador começa no <strong className="text-foreground">Nível 6</strong> (base de 500 LP).</p>
-                  <p>Cada nível requer <strong className="text-foreground">100 LP</strong> para avançar.</p>
-                  <p>Uma boa partida (K/D 2, ADR 90, vitória): <span className="text-green-500 font-mono">+20 a +25 LP</span></p>
-                  <p>Uma partida ruim (K/D 0.5, ADR 40, derrota): <span className="text-red-500 font-mono">-15 a -18 LP</span></p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Mede sua performance individual por round. É calculado com 4 componentes:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { label: "KPR",     peso: "35%", formula: "Kills ÷ Rounds",                          desc: "Kills por round" },
+                    { label: "ADR",     peso: "35%", formula: "Dano ÷ Rounds ÷ 100",                     desc: "Dano médio por round" },
+                    { label: "Entry",   peso: "15%", formula: "EntryWins ÷ EntryCount",                   desc: "Taxa de first-blood" },
+                    { label: "Utility", peso: "15%", formula: "(UtilDmg + Flash×15) ÷ Rounds",            desc: "Impacto com granadas" },
+                  ].map(c => (
+                    <div key={c.label} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border border-border/50">
+                      <Badge variant="outline" className="text-orange-400 border-orange-400/40 shrink-0 font-mono text-[10px]">{c.peso}</Badge>
+                      <div className="min-w-0">
+                        <span className="text-xs font-semibold text-foreground">{c.label}</span>
+                        <span className="text-xs text-muted-foreground"> — {c.desc}</span>
+                        <p className="text-[10px] text-muted-foreground/60 font-mono mt-0.5">{c.formula}</p>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
+
+              {/* LP table */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                  <TrendingUp className="h-4 w-4 text-green-400" />
+                  LP por Partida
+                </h4>
+                <div className="rounded-md border overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-muted/60 border-b">
+                        <th className="text-left px-3 py-2 font-semibold">Resultado</th>
+                        <th className="text-left px-3 py-2 font-semibold">Rating RJ</th>
+                        <th className="text-right px-3 py-2 font-semibold">LP</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { result: "Vitória", rj: "RJ > 1.3",  lp: "+25", win: true,  strong: true  },
+                        { result: "Vitória", rj: "RJ ≥ 1.0",  lp: "+18", win: true,  strong: false },
+                        { result: "Vitória", rj: "RJ < 1.0",  lp: "+10", win: true,  strong: false },
+                        { result: "Derrota", rj: "RJ > 1.3",  lp: "−2",  win: false, strong: false },
+                        { result: "Derrota", rj: "RJ ≥ 1.0",  lp: "−10", win: false, strong: false },
+                        { result: "Derrota", rj: "RJ < 1.0",  lp: "−20", win: false, strong: true  },
+                      ].map((row, i) => (
+                        <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                          <td className="px-3 py-2">
+                            {row.win
+                              ? <span className="text-green-400 font-medium flex items-center gap-1"><TrendingUp className="h-3 w-3" />Vitória</span>
+                              : <span className="text-red-400 font-medium flex items-center gap-1"><TrendingDown className="h-3 w-3" />Derrota</span>
+                            }
+                          </td>
+                          <td className="px-3 py-2 font-mono text-muted-foreground">{row.rj}</td>
+                          <td className="px-3 py-2 text-right">
+                            <span className={`font-mono font-bold ${row.win ? "text-green-400" : "text-red-400"}`}>{row.lp}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              {/* Clutch bonuses */}
+              <div>
+                <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
+                  <Shield className="h-4 w-4 text-blue-400" />
+                  Bônus de Clutch
+                </h4>
+                <div className="flex gap-3">
+                  <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-md border bg-blue-500/5 border-blue-500/20 text-xs">
+                    <span className="text-muted-foreground">Clutch 1v1 vencido</span>
+                    <span className="font-mono font-bold text-blue-400">+2 LP</span>
+                  </div>
+                  <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-md border bg-blue-500/10 border-blue-500/30 text-xs">
+                    <span className="text-muted-foreground">Clutch 1v2 vencido</span>
+                    <span className="font-mono font-bold text-blue-400">+3 LP</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Protection note */}
+              <div className="p-3 rounded-md border bg-yellow-500/5 border-yellow-500/20">
+                <p className="text-xs font-semibold text-yellow-400 mb-1">Proteção ao MVP da Derrota</p>
+                <p className="text-xs text-muted-foreground">
+                  Se você foi o melhor jogador mesmo perdendo (RJ &gt; 1.3), perde apenas <strong className="text-foreground">2 LP</strong> em vez de 20. Boas performances são reconhecidas independente do resultado.
+                </p>
+              </div>
+
+              <p className="text-xs text-muted-foreground text-center border-t pt-3">
+                LP mínimo por partida: −20 · LP máximo por partida: +28 (com bônus de clutch)
+              </p>
             </CardContent>
           </CollapsibleContent>
         </Card>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -58,6 +59,9 @@ export function LevelSystemInfoButton({ className }: { className?: string }) {
             <Trophy className="h-5 w-5 text-orange-400" />
             Como funciona o Sistema de Nível
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Explicação do sistema de nível, divisões, Rating Jacarézão e LP por partida.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 text-sm">
