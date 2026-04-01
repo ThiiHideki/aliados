@@ -44,6 +44,7 @@ import AdminHistoricoRankings from "@/pages/admin-historico-rankings";
 import AdminPunicoes from "@/pages/admin-punicoes";
 import Apostas from "@/pages/apostas";
 import Cassino from "@/pages/cassino";
+import JogatinaFantasy from "@/pages/jogatina-fantasy";
 import Mural from "@/pages/mural";
 import Pesquisa from "@/pages/pesquisa";
 import AdminPesquisa from "@/pages/admin-pesquisa";
@@ -126,6 +127,7 @@ function Router() {
         <Route path="/denuncias" component={Denuncias} />
         <Route path="/cassino/apostas" component={Apostas} />
         <Route path="/cassino/jogos" component={Cassino} />
+        <Route path="/jogatina/fantasy" component={JogatinaFantasy} />
         <Route path="/partidas/minhas" component={PartidasMinhas} />
         <Route path="/partidas/todas" component={PartidasTodas} />
         <Route path="/partidas/mapas" component={MapasMaisJogados} />

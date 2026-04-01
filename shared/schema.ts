@@ -627,3 +627,38 @@ export type MixAvailability = typeof mixAvailability.$inferSelect;
 export type InsertMixAvailability = z.infer<typeof insertMixAvailabilitySchema>;
 export type MixPenalty = typeof mixPenalties.$inferSelect;
 export type InsertMixPenalty = z.infer<typeof insertMixPenaltySchema>;
+
+// ─── Inimigos da Bala Fantasy ────────────────────────────────────────────────
+
+export const fantasyRounds = pgTable("fantasy_rounds", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 100 }).notNull(),
+  status: varchar("status", { length: 20 }).default("open").notNull(), // open | calculating | finished
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const fantasyTeams = pgTable("fantasy_teams", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  roundId: integer("round_id").notNull().references(() => fantasyRounds.id, { onDelete: "cascade" }),
+  totalPoints: real("total_points").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const fantasyPicks = pgTable("fantasy_picks", {
+  id: serial("id").primaryKey(),
+  teamId: integer("team_id").notNull().references(() => fantasyTeams.id, { onDelete: "cascade" }),
+  pickedUserId: varchar("picked_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  points: real("points").default(0).notNull(),
+});
+
+export const insertFantasyRoundSchema = createInsertSchema(fantasyRounds).omit({ id: true, createdAt: true });
+export const insertFantasyTeamSchema = createInsertSchema(fantasyTeams).omit({ id: true, createdAt: true, totalPoints: true });
+export const insertFantasyPickSchema = createInsertSchema(fantasyPicks).omit({ id: true, points: true });
+
+export type FantasyRound = typeof fantasyRounds.$inferSelect;
+export type InsertFantasyRound = z.infer<typeof insertFantasyRoundSchema>;
+export type FantasyTeam = typeof fantasyTeams.$inferSelect;
+export type FantasyPick = typeof fantasyPicks.$inferSelect;

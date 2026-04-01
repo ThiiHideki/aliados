@@ -6,7 +6,7 @@ import { setupSteamAuth } from "./steamAuth";
 import { updateUserStatsSchema, mixPenalties, users } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
 
 // CSV row schema for validation
@@ -2828,6 +2828,232 @@ export async function registerRoutes(
       res.json({ success: true, message: "Notificação enviada ao Discord!" });
     } else {
       res.status(503).json({ message: result.error || "Falha ao enviar notificação" });
+    }
+  });
+
+  // ─── Fantasy Routes ─────────────────────────────────────────────────────────
+
+  // Point calculation per match stat for fantasy
+  function calcFantasyPoints(stat: any): number {
+    let pts = 0;
+    pts += (stat.kills || 0) * 1.0;
+    pts += (stat.assists || 0) * 0.3;
+    pts -= (stat.deaths || 0) * 0.5;
+    pts += (stat.headshots || 0) * 0.15;
+    pts += (stat.fiveK || 0) * 10;
+    pts += (stat.fourK || 0) * 5;
+    pts += (stat.threeK || 0) * 3;
+    pts += (stat.twoK || 0) * 1;
+    pts += (stat.clutch1v1Wins || 0) * 5;
+    pts += (stat.clutch1v2Wins || 0) * 8;
+    pts += (stat.firstKills || 0) * 1.5;
+    pts += (stat.isMvp ? 4 : 0);
+    pts += (stat.wonMatch ? 3 : 0);
+    return Math.round(pts * 100) / 100;
+  }
+
+  // GET /api/fantasy/rounds — list all rounds
+  app.get("/api/fantasy/rounds", isAuthenticated, async (req, res) => {
+    try {
+      const rounds = await db.execute(
+        sql`SELECT * FROM fantasy_rounds ORDER BY created_at DESC`
+      );
+      res.json(rounds.rows);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // GET /api/fantasy/rounds/active — current open round
+  app.get("/api/fantasy/rounds/active", isAuthenticated, async (req, res) => {
+    try {
+      const round = await db.execute(
+        sql`SELECT * FROM fantasy_rounds WHERE status = 'open' ORDER BY created_at DESC LIMIT 1`
+      );
+      res.json(round.rows[0] || null);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // GET /api/fantasy/my-team/:roundId — my team + picks for a round
+  app.get("/api/fantasy/my-team/:roundId", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const roundId = parseInt(req.params.roundId);
+      const team = await db.execute(
+        sql`SELECT * FROM fantasy_teams WHERE user_id = ${userId} AND round_id = ${roundId} LIMIT 1`
+      );
+      if (!team.rows[0]) return res.json(null);
+      const teamId = (team.rows[0] as any).id;
+      const picks = await db.execute(
+        sql`SELECT fp.*, u.nickname, u.first_name, u.last_name, u.profile_image_url, u.steam_id_64
+            FROM fantasy_picks fp
+            JOIN users u ON fp.picked_user_id = u.id
+            WHERE fp.team_id = ${teamId}
+            ORDER BY fp.points DESC`
+      );
+      res.json({ team: team.rows[0], picks: picks.rows });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // POST /api/fantasy/teams — create/replace my team for a round
+  app.post("/api/fantasy/teams", isAuthenticated, async (req, res) => {
+    try {
+      const userId = (req.user as any).id;
+      const { roundId, playerIds } = req.body;
+      if (!roundId || !Array.isArray(playerIds) || playerIds.length === 0 || playerIds.length > 5) {
+        return res.status(400).json({ message: "Selecione entre 1 e 5 jogadores." });
+      }
+      // Check round exists and is open
+      const round = await db.execute(
+        sql`SELECT * FROM fantasy_rounds WHERE id = ${roundId} AND status = 'open' LIMIT 1`
+      );
+      if (!round.rows[0]) return res.status(400).json({ message: "Rodada não está aberta para escalações." });
+
+      // Upsert team
+      const existing = await db.execute(
+        sql`SELECT id FROM fantasy_teams WHERE user_id = ${userId} AND round_id = ${roundId} LIMIT 1`
+      );
+      let teamId: number;
+      if (existing.rows[0]) {
+        teamId = (existing.rows[0] as any).id;
+        await db.execute(sql`DELETE FROM fantasy_picks WHERE team_id = ${teamId}`);
+      } else {
+        const ins = await db.execute(
+          sql`INSERT INTO fantasy_teams (user_id, round_id, total_points) VALUES (${userId}, ${roundId}, 0) RETURNING id`
+        );
+        teamId = (ins.rows[0] as any).id;
+      }
+      for (const pid of playerIds) {
+        await db.execute(
+          sql`INSERT INTO fantasy_picks (team_id, picked_user_id, points) VALUES (${teamId}, ${pid}, 0)`
+        );
+      }
+      res.json({ success: true, teamId });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // GET /api/fantasy/ranking/:roundId — ranking of all teams
+  app.get("/api/fantasy/ranking/:roundId", isAuthenticated, async (req, res) => {
+    try {
+      const roundId = parseInt(req.params.roundId);
+      const teams = await db.execute(
+        sql`SELECT ft.id, ft.total_points, ft.user_id,
+                   u.nickname, u.first_name, u.last_name, u.profile_image_url
+            FROM fantasy_teams ft
+            JOIN users u ON ft.user_id = u.id
+            WHERE ft.round_id = ${roundId}
+            ORDER BY ft.total_points DESC`
+      );
+      // For each team, get picks count
+      const result = [];
+      for (const t of teams.rows as any[]) {
+        const picks = await db.execute(
+          sql`SELECT COUNT(*) as cnt FROM fantasy_picks WHERE team_id = ${t.id}`
+        );
+        result.push({ ...t, playerCount: parseInt((picks.rows[0] as any).cnt) });
+      }
+      res.json(result);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // POST /api/fantasy/rounds — admin creates a round
+  app.post("/api/fantasy/rounds", isAuthenticated, async (req, res) => {
+    try {
+      if (!(req.user as any).isAdmin) return res.status(403).json({ message: "Acesso negado." });
+      const { name, startDate, endDate } = req.body;
+      if (!name || !startDate || !endDate) return res.status(400).json({ message: "Dados incompletos." });
+      const r = await db.execute(
+        sql`INSERT INTO fantasy_rounds (name, status, start_date, end_date)
+            VALUES (${name}, 'open', ${new Date(startDate).toISOString()}, ${new Date(endDate).toISOString()})
+            RETURNING *`
+      );
+      res.json(r.rows[0]);
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // POST /api/fantasy/rounds/:id/calculate — admin calculates points
+  app.post("/api/fantasy/rounds/:id/calculate", isAuthenticated, async (req, res) => {
+    try {
+      if (!(req.user as any).isAdmin) return res.status(403).json({ message: "Acesso negado." });
+      const roundId = parseInt(req.params.id);
+      const round = await db.execute(
+        sql`SELECT * FROM fantasy_rounds WHERE id = ${roundId} LIMIT 1`
+      );
+      if (!round.rows[0]) return res.status(404).json({ message: "Rodada não encontrada." });
+      const r = round.rows[0] as any;
+
+      // Update status to calculating
+      await db.execute(sql`UPDATE fantasy_rounds SET status = 'calculating' WHERE id = ${roundId}`);
+
+      // Get all match stats in the round date range
+      const stats = await db.execute(
+        sql`SELECT ms.*, m.winner_team, ms.team = m.winner_team AS won_match
+            FROM match_stats ms
+            JOIN matches m ON ms.match_id = m.id
+            WHERE m.date >= ${r.start_date} AND m.date <= ${r.end_date}`
+      );
+
+      // Build a map: userId -> total fantasy points
+      const pointMap: Record<string, number> = {};
+      for (const stat of stats.rows as any[]) {
+        const pid = stat.user_id;
+        if (!pid) continue;
+        const pts = calcFantasyPoints({
+          kills: stat.kills,
+          deaths: stat.deaths,
+          assists: stat.assists,
+          headshots: stat.headshots,
+          fiveK: stat.five_k,
+          fourK: stat.four_k,
+          threeK: stat.three_k,
+          twoK: stat.two_k,
+          clutch1v1Wins: stat.clutch_1v1_wins,
+          clutch1v2Wins: stat.clutch_1v2_wins,
+          firstKills: stat.first_kills,
+          isMvp: stat.is_mvp,
+          wonMatch: stat.won_match,
+        });
+        pointMap[pid] = (pointMap[pid] || 0) + pts;
+      }
+
+      // Update fantasy_picks.points for each pick in this round
+      const teams = await db.execute(sql`SELECT id FROM fantasy_teams WHERE round_id = ${roundId}`);
+      for (const team of teams.rows as any[]) {
+        const picks = await db.execute(sql`SELECT * FROM fantasy_picks WHERE team_id = ${team.id}`);
+        let teamTotal = 0;
+        for (const pick of picks.rows as any[]) {
+          const pts = pointMap[pick.picked_user_id] || 0;
+          await db.execute(sql`UPDATE fantasy_picks SET points = ${pts} WHERE id = ${pick.id}`);
+          teamTotal += pts;
+        }
+        await db.execute(sql`UPDATE fantasy_teams SET total_points = ${Math.round(teamTotal * 100) / 100} WHERE id = ${team.id}`);
+      }
+
+      await db.execute(sql`UPDATE fantasy_rounds SET status = 'finished' WHERE id = ${roundId}`);
+      res.json({ success: true, message: "Pontuação calculada com sucesso!" });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
+
+  // DELETE /api/fantasy/rounds/:id — admin deletes a round
+  app.delete("/api/fantasy/rounds/:id", isAuthenticated, async (req, res) => {
+    try {
+      if (!(req.user as any).isAdmin) return res.status(403).json({ message: "Acesso negado." });
+      await db.execute(sql`DELETE FROM fantasy_rounds WHERE id = ${parseInt(req.params.id)}`);
+      res.json({ success: true });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
     }
   });
 

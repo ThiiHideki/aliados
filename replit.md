@@ -67,6 +67,7 @@ The sidebar navigation includes the following sections:
 - `/patrocinadores` - Sponsors page
 - `/cassino/apostas` - Virtual betting on player stats
 - `/cassino/jogos` - Case opening and slot machine games
+- `/jogatina/fantasy` - Inimigos da Bala Fantasy (Cartola FC-style, pick 5 players, score based on match performance)
 - `/partidas/minhas` - User's matches
 - `/partidas/todas` - All matches
 - `/admin/users` - Admin user management

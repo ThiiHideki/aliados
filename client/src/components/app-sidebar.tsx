@@ -432,17 +432,29 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               </Collapsible>
 
-              <Collapsible className="group/collapsible" defaultOpen={location.startsWith("/cassino")}>
+              <Collapsible className="group/collapsible" defaultOpen={location.startsWith("/cassino") || location.startsWith("/jogatina")}>
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton data-testid="nav-cassino">
+                    <SidebarMenuButton data-testid="nav-jogatina">
                       <Sparkles className="h-4 w-4" />
-                      <span>Cassino</span>
+                      <span>Jogatina</span>
                       <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
+                      <SidebarMenuSubItem>
+                        <SidebarMenuSubButton
+                          asChild
+                          isActive={location === "/jogatina/fantasy"}
+                          data-testid="nav-jogatina-fantasy"
+                        >
+                          <Link href="/jogatina/fantasy">
+                            <Trophy className="h-4 w-4" />
+                            <span>Fantasy</span>
+                          </Link>
+                        </SidebarMenuSubButton>
+                      </SidebarMenuSubItem>
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton
                           asChild
