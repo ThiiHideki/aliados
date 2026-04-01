@@ -28,6 +28,7 @@ interface MonthlyPlayerStats {
   total5ks: number;
   total4ks: number;
   total3ks: number;
+  monthlyLevelPoints: number;
   user: {
     id: string;
     nickname: string | null;
@@ -113,7 +114,8 @@ export default function RankingMensal() {
   const getWinRate = (p: MonthlyPlayerStats) => p.matchesPlayed > 0 ? (p.matchesWon / p.matchesPlayed) * 100 : 0;
   const getPlayerName = (p: MonthlyPlayerStats) => p.user?.nickname || p.user?.firstName || p.user?.email || "Jogador";
   
-  const getPlayerLevel = (p: MonthlyPlayerStats) => getLevel(p.user?.levelPoints ?? 500);
+  // Monthly level = level based only on LP accumulated this month
+  const getPlayerLevel = (p: MonthlyPlayerStats) => getLevel(Math.max(0, p.monthlyLevelPoints ?? 0));
 
   const sortedPlayers = [...players].sort((a, b) => {
     switch (sortField) {
@@ -436,7 +438,7 @@ export default function RankingMensal() {
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center">
-                            <LevelBadge levelPoints={player.user?.levelPoints ?? 500} size="sm" showTierLabel />
+                            <LevelBadge levelPoints={Math.max(0, player.monthlyLevelPoints ?? 0)} size="sm" />
                           </div>
                         </TableCell>
                         <TableCell className="text-center">

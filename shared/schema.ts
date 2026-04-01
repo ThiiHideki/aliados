@@ -70,7 +70,7 @@ export const users = pgTable("users", {
   totalShotsFired: integer("total_shots_fired").default(0).notNull(),
   totalShotsOnTarget: integer("total_shots_on_target").default(0).notNull(),
   skillRating: integer("skill_rating").default(1000).notNull(),
-  levelPoints: integer("level_points").default(500).notNull(),
+  levelPoints: integer("level_points").default(0).notNull(),
   discordUserId: varchar("discord_user_id", { length: 32 }).unique(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),

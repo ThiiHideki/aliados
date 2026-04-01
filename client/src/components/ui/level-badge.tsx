@@ -1,10 +1,10 @@
-import { getLevel, getLevelTier, TIER_CONFIG, getLPInLevel } from "@/lib/level-utils";
+import { getLevel, getLevelTier, TIER_CONFIG, getLPInLevel, LP_PER_LEVEL } from "@/lib/level-utils";
 import { cn } from "@/lib/utils";
 
 interface LevelBadgeProps {
   levelPoints: number;
   size?: "xs" | "sm" | "md" | "lg";
-  showTierLabel?: boolean;
+  showTierLabel?: boolean; // kept for API compat, no longer used
   className?: string;
 }
 
@@ -38,10 +38,9 @@ const sizeConfig = {
 export function LevelBadge({
   levelPoints,
   size = "sm",
-  showTierLabel = false,
   className,
 }: LevelBadgeProps) {
-  const level = getLevel(levelPoints ?? 500);
+  const level = getLevel(levelPoints ?? 0);
   const tier = getLevelTier(level);
   const cfg = TIER_CONFIG[tier];
   const sz = sizeConfig[size];
@@ -62,11 +61,6 @@ export function LevelBadge({
     >
       <span className={cn("flex items-center", sz.inner)}>
         <span>{level}</span>
-        {showTierLabel && (
-          <span className={cn("opacity-70 font-sans font-normal", sz.labelText)}>
-            {cfg.label}
-          </span>
-        )}
       </span>
     </span>
   );
@@ -78,10 +72,10 @@ interface LevelProgressProps {
 }
 
 export function LevelProgress({ levelPoints, className }: LevelProgressProps) {
-  const level = getLevel(levelPoints ?? 500);
+  const level = getLevel(levelPoints ?? 0);
   const tier = getLevelTier(level);
   const cfg = TIER_CONFIG[tier];
-  const lpInLevel = level >= 21 ? 100 : getLPInLevel(levelPoints ?? 500);
+  const lpInLevel = level >= 21 ? LP_PER_LEVEL : getLPInLevel(levelPoints ?? 0);
   const isMaxLevel = level >= 21;
 
   return (
@@ -96,7 +90,7 @@ export function LevelProgress({ levelPoints, className }: LevelProgressProps) {
         ) : (
           <span className="text-xs text-muted-foreground font-mono">
             <span className={cn("font-bold", cfg.color)}>{lpInLevel}</span>
-            <span> / 100 LP</span>
+            <span> / {LP_PER_LEVEL} LP</span>
           </span>
         )}
       </div>
@@ -109,12 +103,12 @@ export function LevelProgress({ levelPoints, className }: LevelProgressProps) {
             tier === "dourado" && "bg-yellow-400",
             tier === "lendario" && "bg-teal-400",
           )}
-          style={{ width: `${isMaxLevel ? 100 : lpInLevel}%` }}
+          style={{ width: `${isMaxLevel ? 100 : Math.round((lpInLevel / LP_PER_LEVEL) * 100)}%` }}
         />
       </div>
       {!isMaxLevel && (
         <p className="text-xs text-muted-foreground">
-          {100 - lpInLevel} LP para o nível {level + 1}
+          {LP_PER_LEVEL - lpInLevel} LP para o nível {level + 1}
         </p>
       )}
     </div>

@@ -375,9 +375,9 @@ export class DatabaseStorage implements IStorage {
     );
 
     // ── Level Points (user-facing, accumulates per match ±LP) ────────────────
-    // Start at 500 (Level 6 base). Each match adds/subtracts LP based on performance.
-    // Level = floor(levelPoints / 100) + 1, capped at 21.
-    let levelPoints = 500;
+    // Start at 0 (Level 1 base). Each match adds/subtracts LP based on performance.
+    // Level = floor(levelPoints / 30) + 1, capped at 21.
+    let levelPoints = 0;
     for (const { stats: stat, match } of userMatchStatsWithMatch) {
       const matchRounds = (match.team1Score || 0) + (match.team2Score || 0);
       const playerTeam = stat.team;
@@ -664,8 +664,8 @@ export class DatabaseStorage implements IStorage {
       : Math.round((srcR + tgtR) / 2);
 
     // Level points: weighted average
-    const srcLP = sourceUser.levelPoints ?? 500;
-    const tgtLP = targetUser.levelPoints ?? 500;
+    const srcLP = sourceUser.levelPoints ?? 0;
+    const tgtLP = targetUser.levelPoints ?? 0;
     const levelPoints = (srcM + tgtM) > 0
       ? Math.round((srcLP * srcM + tgtLP * tgtM) / (srcM + tgtM))
       : Math.round((srcLP + tgtLP) / 2);

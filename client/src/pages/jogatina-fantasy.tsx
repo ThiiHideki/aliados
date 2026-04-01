@@ -32,6 +32,7 @@ function calcPlayerPrice(levelPoints: number): number {
 type Round = {
   id: number; name: string; status: string;
   start_date: string; end_date: string; created_at: string;
+  marketOpen?: boolean;
 };
 type Pick = {
   id: number; team_id: number; picked_user_id: string; points: number; price: number;
@@ -474,6 +475,7 @@ export default function JogatinaFantasy() {
 
   const statusInfo = activeRound ? STATUS_LABEL[activeRound.status] : null;
   const isOpen = activeRound?.status === "open";
+  const marketOpen = isOpen && (activeRound?.marketOpen !== false);
 
   return (
     <div className="max-w-2xl mx-auto p-4 space-y-5">
@@ -517,9 +519,16 @@ export default function JogatinaFantasy() {
                   </span>
                 </div>
               </div>
-              {statusInfo && (
-                <Badge variant="secondary" className={statusInfo.color}>{statusInfo.label}</Badge>
-              )}
+              <div className="flex items-center gap-2 flex-wrap">
+                {statusInfo && (
+                  <Badge variant="secondary" className={statusInfo.color}>{statusInfo.label}</Badge>
+                )}
+                {isOpen && (
+                  <Badge variant="outline" className={marketOpen ? "text-green-500 border-green-500/50" : "text-red-500 border-red-500/50"}>
+                    {marketOpen ? "Mercado Aberto" : "Mercado Fechado"}
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -595,23 +604,25 @@ export default function JogatinaFantasy() {
               <div className="text-center py-8 space-y-2">
                 <Users className="w-10 h-10 mx-auto text-muted-foreground opacity-30" />
                 <p className="text-muted-foreground text-sm">
-                  {isOpen ? "Você ainda não escalou nenhum jogador." : "Você não escalou nenhum jogador nesta rodada."}
+                  {marketOpen ? "Você ainda não escalou nenhum jogador." : "Você não escalou nenhum jogador nesta rodada."}
                 </p>
               </div>
             )}
 
             {/* Action */}
-            {isOpen && (
+            {marketOpen && (
               <PlayerPickerDialog
                 selected={pickedIds}
                 disabled={saveMutation.isPending}
                 onConfirm={(ids) => saveMutation.mutate(ids)}
               />
             )}
-            {!isOpen && (
+            {(!isOpen || !marketOpen) && (
               <p className="text-xs text-muted-foreground flex items-center gap-1">
                 <Lock className="w-3 h-3" />
-                {activeRound.status === "finished" ? "Rodada encerrada — escalação bloqueada." : "Escalação bloqueada durante o cálculo."}
+                {!isOpen
+                  ? (activeRound.status === "finished" ? "Rodada encerrada — escalação bloqueada." : "Escalação bloqueada durante o cálculo.")
+                  : "Mercado fechado! Escalações encerram toda segunda-feira às 16h (horário de Brasília)."}
               </p>
             )}
           </TabsContent>

@@ -1,15 +1,19 @@
 // ── Level System (GC-style, 1-21) ─────────────────────────────────────────
-// Level = Math.floor(levelPoints / 100) + 1, capped at 21
+// Level = Math.floor(levelPoints / 30) + 1, capped at 21
 // Level 1-9:  Bronze | Level 10-15: Prata | Level 16-20: Dourado | Level 21: Lendário (teal)
+// LP per level: 30 | Max LP for level 21: 600+
+// Starting LP: 0 (everyone begins at Level 1)
 
 export function getLevel(levelPoints: number): number {
-  return Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints) / 100) + 1));
+  return Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints) / 30) + 1));
 }
 
 export function getLPInLevel(levelPoints: number): number {
-  if (levelPoints >= 2100) return 100;
-  return Math.max(0, levelPoints) % 100;
+  if (levelPoints >= 600) return 30;
+  return Math.max(0, levelPoints) % 30;
 }
+
+export const LP_PER_LEVEL = 30;
 
 export type LevelTier = "bronze" | "prata" | "dourado" | "lendario";
 

@@ -2388,11 +2388,39 @@ export async function registerRoutes(
         }
       }
 
+      // Calculate monthly LP per player based on match performance
+      const playerMonthlyLP: Record<string, number> = {};
+      for (const match of monthlyMatches) {
+        const stats = await storage.getMatchStats(match.id);
+        for (const stat of stats) {
+          const matchRounds = (match.team1Score || 0) + (match.team2Score || 0);
+          let wonMatch = false;
+          if (match.winnerTeam) {
+            wonMatch = match.winnerTeam === stat.team;
+          } else {
+            const isTeam1 = stat.team === match.team1Name;
+            const t1 = match.team1Score || 0;
+            const t2 = match.team2Score || 0;
+            wonMatch = isTeam1 ? t1 > t2 : t2 > t1;
+          }
+          const result_str = wonMatch ? "win" : "loss";
+          const kills = Number(stat.kills) || 0;
+          const deaths = Number(stat.deaths) || 0;
+          const damage = Number(stat.damage) || 0;
+          const rounds = matchRounds || 24;
+          const aces = Number(stat.enemy5ks) || 0;
+          const v2wins = Number(stat.v2Wins) || 0;
+          const lp = calcMatchLP(result_str as "win" | "loss", kills, deaths, damage, rounds, aces, v2wins);
+          playerMonthlyLP[stat.userId] = (playerMonthlyLP[stat.userId] ?? 0) + lp;
+        }
+      }
+
       const result = Object.values(playerStats).map(ps => {
         const user = userMap.get(ps.userId);
         const { seenMatches, ...statsWithoutSet } = ps;
         return {
           ...statsWithoutSet,
+          monthlyLevelPoints: playerMonthlyLP[ps.userId] ?? 0,
           user: user ? {
             id: user.id, nickname: user.nickname, firstName: user.firstName,
             email: user.email, profileImageUrl: user.profileImageUrl, steamId64: user.steamId64,
@@ -2838,11 +2866,48 @@ export async function registerRoutes(
 
   // Point calculation per match stat for fantasy
   // Calcula o preço de um jogador baseado no Level (escala de R$5 a R$40)
-  // Level = floor(levelPoints / 100) + 1, capped at 21
+  // Level = floor(levelPoints / 30) + 1, capped at 21
   // Com budget de R$100, é impossível escalar os 5 melhores
   function calcPlayerPrice(levelPoints: number): number {
-    const level = Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints) / 100) + 1));
+    const level = Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints) / 30) + 1));
     return Math.max(5, Math.min(40, Math.round(5 + (level - 1) / 20 * 35)));
+  }
+
+  // Calcula LP ganho/perdido em uma partida (server-side)
+  function calcMatchLP(
+    result: "win" | "loss",
+    kills: number, deaths: number, damage: number,
+    rounds: number, aces: number, v2Wins: number,
+  ): number {
+    const baseLP = result === "win" ? 10 : -5;
+    const kd = deaths > 0 ? kills / deaths : kills;
+    const kdBonus = Math.max(-18, Math.min(18, (kd - 1) * 12));
+    const adr = rounds > 0 ? damage / rounds : 0;
+    const adrBonus = adr >= 95 ? 4 : adr < 45 ? -3 : 0;
+    const aceBonus = aces * 4;
+    const clutchBonus = v2Wins * 2;
+    return Math.max(-18, Math.min(25, Math.round(baseLP + kdBonus + adrBonus + aceBonus + clutchBonus)));
+  }
+
+  // Retorna se o mercado do fantasy está aberto para uma rodada
+  // Mercado fecha na segunda-feira às 16:00 BRT (19:00 UTC) da semana da rodada
+  function isMarketOpen(roundStartDate: Date): boolean {
+    const now = new Date();
+    const start = new Date(roundStartDate);
+    // Find the Monday of the same week as start_date (week starts Monday)
+    const monday = new Date(start);
+    monday.setUTCHours(0, 0, 0, 0);
+    const dow = monday.getUTCDay(); // 0=Sun, 1=Mon, ...
+    const daysToMonday = dow === 0 ? -6 : 1 - dow; // go back to monday
+    monday.setUTCDate(monday.getUTCDate() + daysToMonday);
+    // Market closes Monday 16:00 BRT = 19:00 UTC
+    const marketClose = new Date(monday);
+    marketClose.setUTCHours(19, 0, 0, 0);
+    // If round start is past Monday, use the next Monday
+    if (start > marketClose) {
+      marketClose.setUTCDate(marketClose.getUTCDate() + 7);
+    }
+    return now < marketClose;
   }
 
   function calcFantasyPoints(stat: any): number {
@@ -2877,8 +2942,8 @@ export async function registerRoutes(
         const matches = u.total_matches || 1;
         const kills = u.total_kills || 0;
         const deaths = u.total_deaths || 0;
-        const lp = u.level_points ?? 500;
-        const level = Math.max(1, Math.min(21, Math.floor(lp / 100) + 1));
+        const lp = u.level_points ?? 0;
+        const level = Math.max(1, Math.min(21, Math.floor(lp / 30) + 1));
         return {
           ...u,
           level_points: lp,
@@ -2916,7 +2981,10 @@ export async function registerRoutes(
       const round = await db.execute(
         sql`SELECT * FROM fantasy_rounds WHERE status = 'open' ORDER BY created_at DESC LIMIT 1`
       );
-      res.json(round.rows[0] || null);
+      const r = round.rows[0] as any;
+      if (!r) return res.json(null);
+      const marketOpen = isMarketOpen(new Date(r.start_date));
+      res.json({ ...r, marketOpen });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
@@ -2958,6 +3026,11 @@ export async function registerRoutes(
         sql`SELECT * FROM fantasy_rounds WHERE id = ${roundId} AND status = 'open' LIMIT 1`
       );
       if (!round.rows[0]) return res.status(400).json({ message: "Rodada não está aberta para escalações." });
+      // Check market is still open (closes Monday 16:00 BRT)
+      const roundData = round.rows[0] as any;
+      if (!isMarketOpen(new Date(roundData.start_date))) {
+        return res.status(400).json({ message: "Mercado fechado! Escalações encerram às segundas-feiras às 16h (horário de Brasília)." });
+      }
 
       // Fetch level_points for each selected player to calculate prices
       const playerRows = await db.execute(
@@ -2965,7 +3038,7 @@ export async function registerRoutes(
       );
       const lpMap: Record<string, number> = {};
       for (const row of playerRows.rows as any[]) {
-        lpMap[row.id] = row.level_points ?? 500;
+        lpMap[row.id] = row.level_points ?? 0;
       }
       const prices: Record<string, number> = {};
       let totalCost = 0;
