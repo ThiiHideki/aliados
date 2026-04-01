@@ -2862,19 +2862,32 @@ export async function registerRoutes(
     return Math.round(pts * 100) / 100;
   }
 
-  // GET /api/fantasy/players — all users with calculated prices
+  // GET /api/fantasy/players — all users with calculated prices and avg stats
   app.get("/api/fantasy/players", isAuthenticated, async (req, res) => {
     try {
       const result = await db.execute(
-        sql`SELECT id, nickname, first_name, last_name, profile_image_url, steam_id_64, skill_rating
+        sql`SELECT id, nickname, first_name, last_name, profile_image_url, steam_id_64,
+                   skill_rating, total_kills, total_deaths, total_assists, total_headshots,
+                   total_matches, total_damage
             FROM users
             WHERE skill_rating > 0
             ORDER BY skill_rating DESC`
       );
-      const players = (result.rows as any[]).map(u => ({
-        ...u,
-        price: calcPlayerPrice(u.skill_rating || 0),
-      }));
+      const players = (result.rows as any[]).map(u => {
+        const matches = u.total_matches || 1;
+        const kills = u.total_kills || 0;
+        const deaths = u.total_deaths || 0;
+        return {
+          ...u,
+          price: calcPlayerPrice(u.skill_rating || 0),
+          avg_kills: Math.round((kills / matches) * 10) / 10,
+          avg_deaths: Math.round((deaths / matches) * 10) / 10,
+          avg_assists: Math.round(((u.total_assists || 0) / matches) * 10) / 10,
+          avg_damage: Math.round((u.total_damage || 0) / matches),
+          kd_ratio: deaths > 0 ? Math.round((kills / deaths) * 100) / 100 : kills,
+          hs_pct: kills > 0 ? Math.round(((u.total_headshots || 0) / kills) * 1000) / 10 : 0,
+        };
+      });
       res.json({ players, budget: FANTASY_BUDGET });
     } catch (e: any) {
       res.status(500).json({ message: e.message });

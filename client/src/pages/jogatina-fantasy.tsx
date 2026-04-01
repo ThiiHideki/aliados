@@ -41,6 +41,9 @@ type TeamData = { team: { id: number; total_points: number; budget_used: number 
 type FantasyPlayer = {
   id: string; nickname?: string; first_name?: string; last_name?: string;
   profile_image_url?: string; skill_rating: number; price: number;
+  total_matches: number;
+  avg_kills: number; avg_deaths: number; avg_assists: number;
+  avg_damage: number; kd_ratio: number; hs_pct: number;
 };
 type RankingEntry = {
   id: number; total_points: number; user_id: string;
@@ -56,6 +59,19 @@ function displayName(p: { nickname?: string | null; first_name?: string | null; 
 function initials(name: string) {
   const parts = name.split(" ");
   return (parts[0]?.[0] || "") + (parts[1]?.[0] || "");
+}
+
+// Remove acentos e normaliza para busca
+function normalize(s: string) {
+  return s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+}
+
+// Busca fuzzy: todos os tokens da query devem aparecer em algum lugar no nome
+function fuzzyMatch(name: string, query: string): boolean {
+  if (!query) return true;
+  const n = normalize(name);
+  const tokens = normalize(query).split(/\s+/).filter(Boolean);
+  return tokens.every(token => n.includes(token));
 }
 
 const STATUS_LABEL: Record<string, { label: string; color: string }> = {
@@ -206,10 +222,18 @@ function PlayerPickerDialog({
 
   const allPlayers = playersData?.players ?? [];
 
-  const filtered = allPlayers.filter(p => {
-    const name = displayName(p).toLowerCase();
-    return name.includes(search.toLowerCase()) || (p.nickname || "").toLowerCase().includes(search.toLowerCase());
-  });
+  const filtered = allPlayers
+    .filter(p => {
+      if (!search) return true;
+      const fullName = displayName(p);
+      // Fuzzy match: busca nos campos nome, nickname, first_name
+      return (
+        fuzzyMatch(fullName, search) ||
+        fuzzyMatch(p.nickname || "", search) ||
+        fuzzyMatch(p.first_name || "", search)
+      );
+    })
+    .sort((a, b) => displayName(a).localeCompare(displayName(b), "pt-BR", { sensitivity: "base" }));
 
   const priceMap = Object.fromEntries(allPlayers.map(p => [p.id, p.price]));
   const totalCost = picks.reduce((sum, id) => sum + (priceMap[id] ?? 0), 0);
@@ -280,34 +304,58 @@ function PlayerPickerDialog({
           <Input placeholder="Buscar jogador..." value={search}
             onChange={e => setSearch(e.target.value)} data-testid="input-search-player" />
 
-          <div className="max-h-72 overflow-y-auto space-y-1">
+          <div className="max-h-80 overflow-y-auto space-y-1">
             {filtered.map(p => {
               const name = displayName(p);
               const isSelected = picks.includes(p.id);
               const wouldExceed = !isSelected && (totalCost + p.price > FANTASY_BUDGET);
               const atMax = !isSelected && picks.length >= 5;
               const isDisabled = wouldExceed || atMax;
+              const hasMatches = (p.total_matches || 0) > 0;
               return (
                 <button key={p.id} onClick={() => !isDisabled && toggle(p.id)}
                   data-testid={`pick-player-${p.id}`}
-                  className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors
+                  className={`w-full flex items-start gap-3 p-2.5 rounded-md text-left transition-colors
                     ${isSelected ? "bg-primary/20 border border-primary/40" : "hover:bg-muted/60"}
                     ${isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
                   `}>
-                  <Avatar className="w-8 h-8 shrink-0">
+                  <Avatar className="w-9 h-9 shrink-0 mt-0.5">
                     <AvatarImage src={p.profile_image_url || undefined} />
                     <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium truncate">{name}</p>
-                    <p className="text-xs text-muted-foreground">SR {p.skill_rating || 1000}</p>
+                    <p className="text-sm font-semibold truncate leading-tight">{name}</p>
+                    {hasMatches ? (
+                      <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-0.5">
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          <span className="text-foreground/70 font-medium">SR</span> {p.skill_rating}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          <span className="text-foreground/70 font-medium">K/D</span> {p.kd_ratio.toFixed(2)}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          <span className="text-foreground/70 font-medium">Kills</span> {p.avg_kills}
+                        </span>
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          <span className="text-foreground/70 font-medium">HS%</span> {p.hs_pct.toFixed(1)}%
+                        </span>
+                        <span className="text-[11px] text-muted-foreground tabular-nums">
+                          <span className="text-foreground/70 font-medium">ADR</span> {p.avg_damage}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">SR {p.skill_rating} · sem partidas</p>
+                    )}
                   </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <PriceTierBadge price={p.price} />
+                  <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-sm font-bold tabular-nums ${isSelected ? "text-primary" : "text-foreground"}`}>
                       R${p.price}
                     </span>
-                    {isSelected && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                    <PriceTierBadge price={p.price} />
+                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+                    {wouldExceed && !isSelected && (
+                      <span className="text-[10px] text-destructive font-medium">sem saldo</span>
+                    )}
                   </div>
                 </button>
               );
