@@ -816,6 +816,7 @@ export async function registerRoutes(
             email: user.email,
             profileImageUrl: user.profileImageUrl,
             steamId64: user.steamId64,
+            levelPoints: user.levelPoints,
           } : null,
         };
       }).filter(p => p.user !== null);
@@ -2395,6 +2396,7 @@ export async function registerRoutes(
           user: user ? {
             id: user.id, nickname: user.nickname, firstName: user.firstName,
             email: user.email, profileImageUrl: user.profileImageUrl, steamId64: user.steamId64,
+            levelPoints: user.levelPoints,
           } : null,
         };
       }).filter(p => p.user !== null);

@@ -9,6 +9,7 @@ import { History, Trophy, Medal, Award, Save, Trash2, Calendar, ChevronDown, Che
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { User, MonthlyRanking } from "@shared/schema";
+import { getLevel } from "@/lib/level-utils";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,7 +54,7 @@ const MONTH_NAMES = [
 ];
 
 function getUserLevel(user: User): number {
-  return Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1);
+  return getLevel(user.levelPoints ?? 500);
 }
 
 function getPlayerDisplayName(user: User): string {

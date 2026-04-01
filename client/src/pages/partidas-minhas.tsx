@@ -2,8 +2,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { History, Trophy, Target, Skull, Calendar, CheckCircle, XCircle, TrendingUp, Star } from "lucide-react";
+import { History, Trophy, Target, Skull, Calendar, CheckCircle, XCircle, TrendingUp, Star, TrendingDown } from "lucide-react";
 import type { MatchStats, Match } from "@shared/schema";
+import { calculateMatchLP } from "@/lib/level-utils";
 
 type MatchStatsWithMatch = {
   stats: MatchStats;
@@ -197,6 +198,28 @@ export default function PartidasMinhas() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 md:gap-6">
+                      {(() => {
+                        const totalRounds = (match.team1Score ?? 0) + (match.team2Score ?? 0);
+                        const lp = calculateMatchLP(
+                          result,
+                          stats.kills,
+                          stats.deaths,
+                          stats.damage,
+                          totalRounds,
+                          stats.enemy5ks ?? 0,
+                          stats.v2Wins ?? 0,
+                        );
+                        if (result === "unknown") return null;
+                        return (
+                          <div className="text-center" data-testid={`stat-lp-${stats.id}`}>
+                            <div className={`font-mono font-bold text-sm flex items-center gap-0.5 ${lp > 0 ? "text-green-400" : "text-red-400"}`}>
+                              {lp > 0 ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                              {lp > 0 ? `+${lp}` : `${lp}`}
+                            </div>
+                            <div className="text-xs text-muted-foreground">LP</div>
+                          </div>
+                        );
+                      })()}
                       <div className="text-center">
                         <div className="font-mono font-bold text-green-500">{stats.kills}</div>
                         <div className="text-xs text-muted-foreground">K</div>

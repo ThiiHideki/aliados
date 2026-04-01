@@ -10,6 +10,8 @@ import {
   Zap, Award, Eye, ArrowRight, ArrowLeft, Minus
 } from "lucide-react";
 import type { User } from "@shared/schema";
+import { LevelBadge } from "@/components/ui/level-badge";
+import { getLevel } from "@/lib/level-utils";
 
 function StatComparison({ 
   label, 
@@ -79,9 +81,7 @@ function PlayerCard({ player, position }: { player: User | null; position: "left
             {player.nickname || player.firstName || "Jogador"}
           </h3>
           <div className="flex gap-2 mt-2">
-            <Badge variant="outline" className="font-mono">
-              Nível {Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
-            </Badge>
+            <LevelBadge levelPoints={player.levelPoints ?? 500} size="sm" showTierLabel />
             <Badge variant="secondary">
               {player.totalMatches} partidas
             </Badge>
@@ -146,7 +146,7 @@ export default function CompararJogadores() {
                 >
                   <div className="flex items-center gap-2">
                     <span>{user.nickname || user.firstName || "Jogador"}</span>
-                    <span className="text-muted-foreground text-xs">(Nv.{Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1)})</span>
+                    <span className="text-muted-foreground text-xs">(Nv.{getLevel(user.levelPoints ?? 500)})</span>
                   </div>
                 </SelectItem>
               ))}
@@ -170,7 +170,7 @@ export default function CompararJogadores() {
                 >
                   <div className="flex items-center gap-2">
                     <span>{user.nickname || user.firstName || "Jogador"}</span>
-                    <span className="text-muted-foreground text-xs">(Nv.{Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1)})</span>
+                    <span className="text-muted-foreground text-xs">(Nv.{getLevel(user.levelPoints ?? 500)})</span>
                   </div>
                 </SelectItem>
               ))}
@@ -197,7 +197,7 @@ export default function CompararJogadores() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <StatComparison label="Nível" value1={Math.min(21, Math.floor((player1.levelPoints ?? 500) / 100) + 1)} value2={Math.min(21, Math.floor((player2.levelPoints ?? 500) / 100) + 1)} icon={<Star className="h-4 w-4" />} />
+              <StatComparison label="Nível" value1={getLevel(player1.levelPoints ?? 500)} value2={getLevel(player2.levelPoints ?? 500)} icon={<Star className="h-4 w-4" />} />
               <StatComparison label="K/D Ratio" value1={getKD(player1)} value2={getKD(player2)} icon={<Crosshair className="h-4 w-4" />} />
               <StatComparison label="Headshot %" value1={getHS(player1)} value2={getHS(player2)} icon={<Target className="h-4 w-4" />} isPercent />
               <StatComparison label="Win Rate" value1={getWinRate(player1)} value2={getWinRate(player2)} icon={<Trophy className="h-4 w-4" />} isPercent />

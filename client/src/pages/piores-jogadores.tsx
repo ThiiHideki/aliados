@@ -5,6 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Skull, AlertTriangle, Target, Crosshair, TrendingDown, Handshake } from "lucide-react";
 import { Link } from "wouter";
 import type { User } from "@shared/schema";
+import type { ReactNode } from "react";
+import { LevelBadge } from "@/components/ui/level-badge";
 
 export default function PioresJogadores() {
   const { data: users = [], isLoading } = useQuery<User[]>({
@@ -73,7 +75,7 @@ export default function PioresJogadores() {
     }
   };
 
-  const PlayerRow = ({ player, index, stat }: { player: User; index: number; stat: string }) => (
+  const PlayerRow = ({ player, index, stat }: { player: User; index: number; stat: ReactNode }) => (
     <div 
       className={`flex items-center justify-between p-4 rounded-lg ${
         index < 3 ? 'bg-red-500/5 border border-red-500/20' : 'bg-background/50'
@@ -125,7 +127,7 @@ export default function PioresJogadores() {
                 key={player.id}
                 player={player}
                 index={index}
-                stat={`Nível ${Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}`}
+                stat={<LevelBadge levelPoints={player.levelPoints ?? 500} size="md" showTierLabel />}
               />
             ))}
             {sortedByRating.length === 0 && (

@@ -19,11 +19,12 @@ import {
   CheckCircle2, Calendar, Clock, DollarSign, Wallet,
 } from "lucide-react";
 import type { User } from "@shared/schema";
+import { getLevel } from "@/lib/level-utils";
 
 const FANTASY_BUDGET = 100;
 
 function calcPlayerPrice(levelPoints: number): number {
-  const level = Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints || 0) / 100) + 1));
+  const level = getLevel(levelPoints || 0);
   return Math.max(5, Math.min(40, Math.round(5 + (level - 1) / 20 * 35)));
 }
 

@@ -18,6 +18,8 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import type { User as UserType, MonthlyRanking, Trophy as TrophyType } from "@shared/schema";
+import { LevelBadge, LevelProgress } from "@/components/ui/level-badge";
+import { getLevel } from "@/lib/level-utils";
 
 export default function Perfil() {
   const { user } = useAuth();
@@ -493,9 +495,7 @@ export default function Perfil() {
                     <Badge variant={user.isAdmin ? "default" : "secondary"}>
                       {user.isAdmin ? "Admin" : "Jogador"}
                     </Badge>
-                    <Badge variant="outline" className="font-mono">
-                      Nível {Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1)}
-                    </Badge>
+                    <LevelBadge levelPoints={user.levelPoints ?? 500} size="sm" showTierLabel />
                   </div>
                   {user.steamId64 && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -505,14 +505,8 @@ export default function Perfil() {
                   )}
                 </div>
 
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Nível</span>
-                      <span className="font-mono">{Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1)} / 21</span>
-                    </div>
-                    <Progress value={((user.levelPoints ?? 500) / 2100) * 100} />
-                  </div>
+                <div className="mt-6">
+                  <LevelProgress levelPoints={user.levelPoints ?? 500} />
                 </div>
 
                 <div className="mt-6 pt-6 border-t">
@@ -563,7 +557,7 @@ export default function Perfil() {
               <div className="text-center p-4 bg-background/50 rounded-lg" data-testid="card-skill-rating">
                 <TrendingUp className="h-8 w-8 mx-auto mb-2 text-primary" />
                 <div className="text-2xl font-bold font-mono">
-                  {Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1)}
+                  {getLevel(user.levelPoints ?? 500)}
                 </div>
                 <div className="text-sm text-muted-foreground">Nível</div>
               </div>

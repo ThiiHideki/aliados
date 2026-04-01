@@ -20,6 +20,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "wouter";
 import type { User, Trophy as TrophyType } from "@shared/schema";
+import { LevelBadge, LevelProgress } from "@/components/ui/level-badge";
 
 export default function PerfilJogador() {
   const { id } = useParams<{ id: string }>();
@@ -508,9 +509,7 @@ export default function PerfilJogador() {
                     <Badge variant={player.isAdmin ? "default" : "secondary"}>
                       {player.isAdmin ? "Admin" : "Jogador"}
                     </Badge>
-                    <Badge variant="outline" className="font-mono">
-                      Nível {Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
-                    </Badge>
+                    <LevelBadge levelPoints={player.levelPoints ?? 500} size="sm" showTierLabel />
                   </div>
                   {player.steamId64 && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
@@ -520,14 +519,8 @@ export default function PerfilJogador() {
                   )}
                 </div>
 
-                <div className="mt-6 space-y-4">
-                  <div>
-                    <div className="flex justify-between text-sm mb-2">
-                      <span>Nível</span>
-                      <span className="font-mono">{Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)} / 21</span>
-                    </div>
-                    <Progress value={((player.levelPoints ?? 500) / 2100) * 100} />
-                  </div>
+                <div className="mt-6">
+                  <LevelProgress levelPoints={player.levelPoints ?? 500} />
                 </div>
 
                 {canEdit && (
@@ -579,10 +572,10 @@ export default function PerfilJogador() {
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg" data-testid="card-skill-rating">
                 <TrendingUp className="h-8 w-8 mx-auto mb-2 text-primary" />
-                <div className="text-2xl font-bold font-mono">
-                  {Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
+                <div className="flex justify-center mt-1">
+                  <LevelBadge levelPoints={player.levelPoints ?? 500} size="md" showTierLabel />
                 </div>
-                <div className="text-sm text-muted-foreground">Nível</div>
+                <div className="text-sm text-muted-foreground mt-1">Nível</div>
               </div>
               <div className="text-center p-4 bg-background/50 rounded-lg" data-testid="card-mvps-total">
                 <Star className="h-8 w-8 mx-auto mb-2 text-yellow-500" />

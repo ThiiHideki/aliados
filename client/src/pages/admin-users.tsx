@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { isUnauthorizedError } from "@/lib/authUtils";
+import { LevelBadge } from "@/components/ui/level-badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -375,9 +376,9 @@ export default function AdminUsers() {
                       </TableCell>
                       <TableCell className="text-right font-mono">{hs}%</TableCell>
                       <TableCell className="text-right">
-                        <Badge variant="outline" className="font-mono">
-                          Nv.{Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
-                        </Badge>
+                        <div className="flex justify-end">
+                          <LevelBadge levelPoints={player.levelPoints ?? 500} size="xs" showTierLabel />
+                        </div>
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">

@@ -12,6 +12,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { LevelBadge } from "@/components/ui/level-badge";
+import { getLevel } from "@/lib/level-utils";
 
 interface MonthlyPlayerStats {
   userId: string;
@@ -33,6 +35,7 @@ interface MonthlyPlayerStats {
     email: string | null;
     profileImageUrl: string | null;
     steamId64: string | null;
+    levelPoints: number | null;
   } | null;
 }
 
@@ -43,7 +46,7 @@ interface MonthlyStatsResponse {
   players: MonthlyPlayerStats[];
 }
 
-type SortField = "skillRating" | "kd" | "kills" | "deaths" | "headshots" | "winrate" | "matches" | "mvps" | "assists" | "alphabetical";
+type SortField = "level" | "kd" | "kills" | "deaths" | "headshots" | "winrate" | "matches" | "mvps" | "assists" | "killsAvg" | "alphabetical";
 
 function getMonthOptions() {
   const now = new Date();
@@ -62,7 +65,7 @@ function getMonthOptions() {
 export default function RankingMensal() {
   const monthOptions = useMemo(() => getMonthOptions(), []);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [sortField, setSortField] = useState<SortField>("skillRating");
+  const [sortField, setSortField] = useState<SortField>("level");
   const { user } = useAuth();
   const { toast } = useToast();
   const isAdmin = (user as any)?.isAdmin;
@@ -110,28 +113,12 @@ export default function RankingMensal() {
   const getWinRate = (p: MonthlyPlayerStats) => p.matchesPlayed > 0 ? (p.matchesWon / p.matchesPlayed) * 100 : 0;
   const getPlayerName = (p: MonthlyPlayerStats) => p.user?.nickname || p.user?.firstName || p.user?.email || "Jogador";
   
-  const getSkillRating = (p: MonthlyPlayerStats) => {
-    const kd = getKd(p);
-    const hsPercent = getHsPercent(p);
-    const winRate = getWinRate(p);
-    const estimatedRounds = p.matchesPlayed * 24;
-    const adr = estimatedRounds > 0 ? p.damage / estimatedRounds : 0;
-    let rating = 1000;
-    rating += (kd - 1) * 150;
-    rating += (hsPercent - 30) * 2;
-    rating += (adr - 70) * 1.5;
-    rating += (winRate - 50) * 3;
-    rating += p.mvps * 2;
-    rating += p.total5ks * 30;
-    rating += p.total4ks * 15;
-    rating += p.total3ks * 5;
-    return Math.max(100, Math.min(3000, Math.round(rating)));
-  };
+  const getPlayerLevel = (p: MonthlyPlayerStats) => getLevel(p.user?.levelPoints ?? 500);
 
   const sortedPlayers = [...players].sort((a, b) => {
     switch (sortField) {
-      case "skillRating":
-        return getSkillRating(b) - getSkillRating(a);
+      case "level":
+        return getPlayerLevel(b) - getPlayerLevel(a);
       case "kd":
         return getKd(b) - getKd(a);
       case "kills":
@@ -166,7 +153,7 @@ export default function RankingMensal() {
   const getAvgAssists = (p: MonthlyPlayerStats) => p.matchesPlayed > 0 ? p.assists / p.matchesPlayed : 0;
   const getAvgKills = (p: MonthlyPlayerStats) => p.matchesPlayed > 0 ? p.kills / p.matchesPlayed : 0;
 
-  const topBySkillRating = [...players].sort((a, b) => getSkillRating(b) - getSkillRating(a)).slice(0, 3);
+  const topByLevel = [...players].sort((a, b) => getPlayerLevel(b) - getPlayerLevel(a)).slice(0, 3);
   const topByKd = [...players].sort((a, b) => getKd(b) - getKd(a)).slice(0, 3);
   const topByKills = [...players].sort((a, b) => b.kills - a.kills).slice(0, 3);
   const topByWinRate = [...players].sort((a, b) => getWinRate(b) - getWinRate(a)).slice(0, 3);
@@ -306,10 +293,10 @@ export default function RankingMensal() {
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
         <TopCard
-          title="Melhor Desempenho"
+          title="Maior Nível"
           icon={<Star className="h-4 w-4 text-yellow-500" />}
-          players={topBySkillRating}
-          statFormatter={(p) => getSkillRating(p).toString()}
+          players={topByLevel}
+          statFormatter={(p) => `Nv. ${getPlayerLevel(p)}`}
         />
         <TopCard
           title="Melhor K/D"
@@ -377,7 +364,7 @@ export default function RankingMensal() {
                 <SelectValue placeholder="Ordenar por" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="skillRating">Desempenho</SelectItem>
+                <SelectItem value="level">Nível</SelectItem>
                 <SelectItem value="kd">K/D Ratio</SelectItem>
                 <SelectItem value="kills">Kills</SelectItem>
                 <SelectItem value="deaths">Deaths</SelectItem>
@@ -406,7 +393,7 @@ export default function RankingMensal() {
                   <TableRow>
                     <TableHead className="w-12">#</TableHead>
                     <TableHead>Jogador</TableHead>
-                    <TableHead className="text-center">Rating</TableHead>
+                    <TableHead className="text-center">Nível</TableHead>
                     <TableHead className="text-center">Partidas</TableHead>
                     <TableHead className="text-center">K/D</TableHead>
                     <TableHead className="text-center">Kills</TableHead>
@@ -425,7 +412,6 @@ export default function RankingMensal() {
                     const kd = getKd(player);
                     const hsPercent = getHsPercent(player);
                     const winRate = getWinRate(player);
-                    const skillRating = getSkillRating(player);
 
                     return (
                       <TableRow key={player.userId} data-testid={`row-monthly-${player.userId}`}>
@@ -449,9 +435,9 @@ export default function RankingMensal() {
                           </Link>
                         </TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="default" className="font-mono font-bold">
-                            {skillRating}
-                          </Badge>
+                          <div className="flex justify-center">
+                            <LevelBadge levelPoints={player.user?.levelPoints ?? 500} size="sm" showTierLabel />
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           <Badge variant="outline">{player.matchesPlayed}</Badge>

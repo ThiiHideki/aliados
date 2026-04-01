@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import type { User } from "@shared/schema";
+import { LevelBadge } from "@/components/ui/level-badge";
 import {
   Users,
   Trophy,
@@ -260,9 +261,9 @@ export default function AdminDashboard() {
                           {player.totalMatches}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Badge variant="secondary" className="font-mono">
-                            Nível {Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}
-                          </Badge>
+                          <div className="flex justify-end">
+                            <LevelBadge levelPoints={player.levelPoints ?? 500} size="xs" showTierLabel />
+                          </div>
                         </TableCell>
                       </TableRow>
                     );

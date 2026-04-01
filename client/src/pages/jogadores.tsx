@@ -7,6 +7,7 @@ import { Users, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useState } from "react";
 import { Link } from "wouter";
 import type { User } from "@shared/schema";
+import { LevelBadge } from "@/components/ui/level-badge";
 
 type SortField = "nickname" | "skillRating" | "kd" | "hs" | "adr" | "winRate" | "matches";
 type SortDirection = "asc" | "desc";
@@ -206,7 +207,7 @@ export default function Jogadores() {
                           </Link>
                         </td>
                         <td className="p-3 text-center">
-                          <span className="font-mono font-bold">{Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}</span>
+                          <LevelBadge levelPoints={player.levelPoints ?? 500} size="xs" showTierLabel />
                         </td>
                         <td className="p-3 text-center">
                           <span className={`font-mono font-bold ${kd >= 1 ? 'text-green-500' : 'text-red-500'}`}>

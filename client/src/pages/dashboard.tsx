@@ -1,4 +1,5 @@
 import { useAuth } from "@/hooks/useAuth";
+import { LevelBadge } from "@/components/ui/level-badge";
 import { StatsCard } from "@/components/stats-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -106,9 +107,7 @@ export default function Dashboard() {
                 {user.nickname || user.firstName || user.email?.split("@")[0]}
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="text-xs">
-                  Nível {Math.max(1, Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1))}
-                </Badge>
+                <LevelBadge levelPoints={user.levelPoints ?? 500} size="xs" showTierLabel />
               </div>
             </div>
           </Card>
@@ -236,9 +235,7 @@ export default function Dashboard() {
                 <span className="text-sm text-muted-foreground">
                   Nível
                 </span>
-                <Badge variant="default" className="font-mono">
-                  {Math.min(21, Math.floor((user.levelPoints ?? 500) / 100) + 1)}
-                </Badge>
+                <LevelBadge levelPoints={user.levelPoints ?? 500} size="sm" showTierLabel />
               </div>
             </div>
           </CardContent>

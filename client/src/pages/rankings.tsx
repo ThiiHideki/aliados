@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,6 +9,7 @@ import { Trophy, Medal, Award, Target, Crosshair, Star, Info, ChevronDown, Hands
 import { useState } from "react";
 import { Link } from "wouter";
 import type { User, Trophy as TrophySchema } from "@shared/schema";
+import { LevelBadge } from "@/components/ui/level-badge";
 
 export default function Rankings() {
   const [isLegendOpen, setIsLegendOpen] = useState(false);
@@ -113,7 +115,7 @@ export default function Rankings() {
     }
   };
 
-  const PlayerRow = ({ player, index, stat }: { player: User; index: number; stat: string }) => (
+  const PlayerRow = ({ player, index, stat }: { player: User; index: number; stat: ReactNode }) => (
     <div className={`flex items-center justify-between p-4 rounded-lg ${index < 3 ? 'bg-primary/5 border border-primary/20' : 'bg-background/50'}`}>
       <div className="flex items-center gap-4">
         <div className="flex items-center justify-center w-8">
@@ -343,7 +345,7 @@ export default function Rankings() {
                 key={player.id}
                 player={player}
                 index={index}
-                stat={`Nível ${Math.min(21, Math.floor((player.levelPoints ?? 500) / 100) + 1)}`}
+                stat={<LevelBadge levelPoints={player.levelPoints ?? 500} size="md" showTierLabel />}
               />
             ))}
           </CardContent>
