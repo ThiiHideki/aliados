@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import { Gamepad2, Calendar, MapPin, Trophy, Target, Skull, Crosshair, Star, ChevronDown, ChevronUp, Users } from "lucide-react";
+import { Gamepad2, Calendar, MapPin, Trophy, Target, Skull, Crosshair, Star, ChevronDown, ChevronUp, Users, TrendingUp, TrendingDown } from "lucide-react";
 import { Link } from "wouter";
 import type { Match, MatchStats } from "@shared/schema";
+import { calculateMatchLP } from "@/lib/level-utils";
 
 type MatchWithStats = {
   match: Match;
@@ -231,7 +232,7 @@ export default function PartidasTodas() {
                     
                     {isExpanded && sortedStats.length > 0 && (
                       <div className="pt-2 border-t border-border/50 space-y-2" data-testid={`player-stats-${match.id}`}>
-                        <div className="grid grid-cols-7 gap-2 text-xs font-medium text-muted-foreground px-2 py-1">
+                        <div className="grid grid-cols-8 gap-2 text-xs font-medium text-muted-foreground px-2 py-1">
                           <div>Jogador</div>
                           <div className="text-center">K</div>
                           <div className="text-center">D</div>
@@ -239,15 +240,48 @@ export default function PartidasTodas() {
                           <div className="text-center">K/D</div>
                           <div className="text-center">HS</div>
                           <div className="text-center">DMG</div>
+                          <div className="text-center">LP</div>
                         </div>
                         {sortedStats.map((stat, idx) => {
                           const kd = stat.deaths > 0 ? (stat.kills / stat.deaths).toFixed(2) : stat.kills.toFixed(2);
                           const isTopKiller = aggregated.topKiller?.id === stat.id;
                           const isMvp = aggregated.mvpPlayer?.id === stat.id;
+
+                          // Determinar vitória/derrota do jogador nesta partida
+                          const totalRounds = (match.team1Score ?? 0) + (match.team2Score ?? 0);
+                          const playerTeam = stat.team;
+                          let won = false;
+                          if (match.winnerTeam) {
+                            won = match.winnerTeam === playerTeam;
+                          } else {
+                            const isTeam1 = playerTeam === match.team1Name;
+                            const t1 = match.team1Score ?? 0;
+                            const t2 = match.team2Score ?? 0;
+                            won = isTeam1 ? t1 > t2 : t2 > t1;
+                          }
+
+                          const lp = playerTeam
+                            ? calculateMatchLP(
+                                won,
+                                stat.kills,
+                                stat.damage ?? 0,
+                                totalRounds,
+                                stat.entryWins ?? 0,
+                                stat.entryCount ?? 0,
+                                stat.utilityDamage ?? 0,
+                                stat.enemiesFlashed ?? 0,
+                                stat.v1Wins ?? 0,
+                                stat.v2Wins ?? 0,
+                                stat.mvps ?? 0,
+                                stat.enemy5ks ?? 0,
+                                stat.enemy4ks ?? 0,
+                              )
+                            : null;
+
                           return (
                             <div 
                               key={stat.id} 
-                              className={`grid grid-cols-7 gap-2 text-sm px-2 py-2 rounded ${idx % 2 === 0 ? 'bg-muted/30' : ''} ${isTopKiller ? 'ring-1 ring-amber-500/50' : ''}`}
+                              className={`grid grid-cols-8 gap-2 text-sm px-2 py-2 rounded ${idx % 2 === 0 ? 'bg-muted/30' : ''} ${isTopKiller ? 'ring-1 ring-amber-500/50' : ''}`}
                               data-testid={`player-stat-row-${stat.id}`}
                             >
                               <div className="flex items-center gap-2 truncate">
@@ -268,6 +302,21 @@ export default function PartidasTodas() {
                               <div className="text-center font-mono text-purple-500">{kd}</div>
                               <div className="text-center font-mono text-orange-500">{stat.headshots}</div>
                               <div className="text-center font-mono text-yellow-500">{stat.damage.toLocaleString('pt-BR')}</div>
+                              <div className="text-center" data-testid={`stat-lp-${stat.id}`}>
+                                {lp !== null ? (
+                                  <span className={`font-mono font-bold text-xs flex items-center justify-center gap-0.5 ${lp > 0 ? 'text-green-400' : lp < 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                                    {lp > 0
+                                      ? <TrendingUp className="h-3 w-3" />
+                                      : lp < 0
+                                        ? <TrendingDown className="h-3 w-3" />
+                                        : null
+                                    }
+                                    {lp > 0 ? `+${lp}` : `${lp}`}
+                                  </span>
+                                ) : (
+                                  <span className="text-muted-foreground text-xs">—</span>
+                                )}
+                              </div>
                             </div>
                           );
                         })}
