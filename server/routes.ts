@@ -2410,7 +2410,10 @@ export async function registerRoutes(
           const rounds = matchRounds || 24;
           const aces = Number(stat.enemy5ks) || 0;
           const v2wins = Number(stat.v2Wins) || 0;
-          const lp = calcMatchLP(result_str as "win" | "loss", kills, deaths, damage, rounds, aces, v2wins);
+          const headshots = Number(stat.headshots) || 0;
+          const fours = Number(stat.enemy4ks) || 0;
+          const v1wins = Number(stat.v1Wins) || 0;
+          const lp = calcMatchLP(result_str as "win" | "loss", kills, deaths, damage, rounds, aces, v2wins, headshots, fours, v1wins);
           playerMonthlyLP[stat.userId] = (playerMonthlyLP[stat.userId] ?? 0) + lp;
         }
       }
@@ -2878,15 +2881,37 @@ export async function registerRoutes(
     result: "win" | "loss",
     kills: number, deaths: number, damage: number,
     rounds: number, aces: number, v2Wins: number,
+    headshots?: number, fours?: number, v1Wins?: number,
   ): number {
-    const baseLP = result === "win" ? 10 : -5;
-    const kd = deaths > 0 ? kills / deaths : kills;
-    const kdBonus = Math.max(-18, Math.min(18, (kd - 1) * 12));
-    const adr = rounds > 0 ? damage / rounds : 0;
-    const adrBonus = adr >= 95 ? 4 : adr < 45 ? -3 : 0;
-    const aceBonus = aces * 4;
-    const clutchBonus = v2Wins * 2;
-    return Math.max(-18, Math.min(25, Math.round(baseLP + kdBonus + adrBonus + aceBonus + clutchBonus)));
+    let lp = result === "win" ? 10 : -5;
+
+    // K/D contribution — identical to storage.ts
+    const kd = kills / Math.max(deaths, 1);
+    const kdContrib = Math.round((kd - 1.0) * 12);
+    lp += Math.max(-15, Math.min(18, kdContrib));
+
+    // ADR bonus/penalty — identical to storage.ts
+    const adr = damage / Math.max(rounds, 1);
+    if      (adr >= 95) lp += 4;
+    else if (adr >= 80) lp += 3;
+    else if (adr >= 70) lp += 2;
+    else if (adr >= 60) lp += 1;
+    else if (adr < 45)  lp -= 3;
+    else if (adr < 55)  lp -= 1;
+
+    // HS% minor bonus
+    const hs = headshots ?? 0;
+    if (kills > 0 && hs / kills >= 0.45) lp += 1;
+
+    // Multi-kill bonuses
+    lp += aces * 4;
+    lp += (fours ?? 0) * 1;
+
+    // Clutch wins
+    lp += (v1Wins ?? 0) * 1;
+    lp += v2Wins * 2;
+
+    return Math.max(-18, Math.min(25, Math.round(lp)));
   }
 
   // Retorna se o mercado do fantasy está aberto para uma rodada

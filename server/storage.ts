@@ -428,7 +428,7 @@ export class DatabaseStorage implements IStorage {
       lp += (Number(stat.v2Wins) || 0) * 2;
 
       const clampedLP = Math.max(-18, Math.min(25, Math.round(lp)));
-      levelPoints = Math.max(0, Math.min(2100, levelPoints + clampedLP));
+      levelPoints = Math.max(0, Math.min(630, levelPoints + clampedLP));
     }
 
     const [user] = await db
@@ -679,7 +679,7 @@ export class DatabaseStorage implements IStorage {
       totalFlashCount, totalFlashSuccesses, totalEnemiesFlashed, totalUtilityDamage,
       totalShotsFired, totalShotsOnTarget,
       skillRating: Math.max(100, Math.min(3000, skillRating)),
-      levelPoints: Math.max(0, Math.min(2100, levelPoints)),
+      levelPoints: Math.max(0, Math.min(630, levelPoints)),
       nickname: targetUser.nickname || sourceUser.nickname,
     };
 
