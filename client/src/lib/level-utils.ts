@@ -83,7 +83,7 @@ export function getLevelColor(levelPoints: number): string {
 /**
  * Calcula o Rating Inimigos (RI) de uma partida.
  * RI = (KPR × 0.35) + (ADR/100 × 0.35) + (EntrySuccess × 0.15) + (Utility × 0.15)
- * Utility = (utilityDamage + enemiesFlashed × 15) / rounds
+ * Utility = (utilityDamage + enemiesFlashed × 7.5) / rounds
  *
  * Vitória: RI > 1.3 → +25 | RI ≥ 1.0 → +18 | else → +10
  * Derrota: RI > 1.3 → −2  | RI ≥ 1.0 → −10 | else → −20
@@ -109,7 +109,7 @@ export function calculateMatchLP(
   const kpr          = kills / r;
   const adr          = damage / r;
   const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
-  const utility      = (utilityDamage + enemiesFlashed * 15) / r;
+  const utility      = (utilityDamage + enemiesFlashed * 7.5) / r;
 
   const ri = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 
@@ -149,7 +149,7 @@ export function calcRatingInimigos(
   const kpr          = kills / r;
   const adr          = damage / r;
   const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
-  const utility      = (utilityDamage + enemiesFlashed * 15) / r;
+  const utility      = (utilityDamage + enemiesFlashed * 7.5) / r;
   return (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 }
 

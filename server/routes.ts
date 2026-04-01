@@ -2892,7 +2892,7 @@ export async function registerRoutes(
     const kpr          = kills / r;
     const adr          = damage / r;
     const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
-    const utility      = (utilityDamage + enemiesFlashed * 15) / r;
+    const utility      = (utilityDamage + enemiesFlashed * 7.5) / r;
 
     const ri = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 

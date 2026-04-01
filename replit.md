@@ -135,7 +135,7 @@ The application uses the following main tables:
      - Tiers: Bronze 1–9 (0–899 LP), Prata 10–15 (900–1499 LP), Dourado 16–20 (1500–1999 LP), Lendário 21 (2000+ LP)
      - Starting LP = 0 (Level 1); per match uses "Rating Inimigos (RI)":
        - RI = (KPR×0.35) + (ADR/100×0.35) + (EntrySuccess×0.15) + (Utility×0.15)
-       - Utility = (utilityDamage + enemiesFlashed×15) / rounds
+       - Utility = (utilityDamage + enemiesFlashed×7.5) / rounds
        - Vitória: RI>1.3→+25 | RI≥1.0→+18 | else→+10
        - Derrota: RI>1.3→-2 | RI≥1.0→-10 | else→-20
        - Bônus: v1Wins×2, v2Wins×3, MVP×5, ACE(5K)×5, 4K×3 (clamped -20/+40)

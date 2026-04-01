@@ -24,7 +24,7 @@ const riComponents = [
   { label: "KPR",     weight: "35%", formula: "Kills ÷ Rounds",                desc: "Kills por round" },
   { label: "ADR",     weight: "35%", formula: "Dano ÷ Rounds ÷ 100",           desc: "Dano médio por round (normalizado)" },
   { label: "Entry",   weight: "15%", formula: "EntryWins ÷ EntryCount",         desc: "Taxa de sucesso como first-blood" },
-  { label: "Utility", weight: "15%", formula: "(UtilDmg + Flash×15) ÷ Rounds",  desc: "Impacto com granadas e flashes" },
+  { label: "Utility", weight: "15%", formula: "(UtilDmg + Flash×7.5) ÷ Rounds", desc: "Impacto com granadas e flashes" },
 ];
 
 const lpTable = [
