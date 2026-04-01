@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { FileUp, CheckCircle, AlertCircle, Upload, FileText, Info, Trophy, Users, Star, RefreshCw } from "lucide-react";
+import { FileUp, CheckCircle, AlertCircle, Upload, FileText, Info, Trophy, Users, Star, RefreshCw, Calendar } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -62,6 +62,7 @@ export default function AdminImport() {
   const [winnerTeam, setWinnerTeam] = useState<string>("");
   const [team1Score, setTeam1Score] = useState<string>("");
   const [team2Score, setTeam2Score] = useState<string>("");
+  const [matchDate, setMatchDate] = useState<string>("");
 
   const detectedTeams = useMemo(() => parseCSVForTeams(csvContent), [csvContent]);
 
@@ -80,6 +81,7 @@ export default function AdminImport() {
       winnerTeam?: string;
       team1Score?: number;
       team2Score?: number;
+      matchDate?: string;
     }) => {
       const response = await apiRequest("POST", "/api/matches/import", data);
       const result = await response.json();
@@ -100,6 +102,7 @@ export default function AdminImport() {
       setWinnerTeam("");
       setTeam1Score("");
       setTeam2Score("");
+      setMatchDate("");
       queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
     },
@@ -192,6 +195,9 @@ export default function AdminImport() {
     if (team1Score && team2Score) {
       importData.team1Score = parseInt(team1Score);
       importData.team2Score = parseInt(team2Score);
+    }
+    if (matchDate) {
+      importData.matchDate = matchDate;
     }
     
     importMutation.mutate(importData);
@@ -408,7 +414,7 @@ export default function AdminImport() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <div className="space-y-2">
                 <Label htmlFor="map-name">Nome do Mapa</Label>
                 <Input
@@ -418,6 +424,25 @@ export default function AdminImport() {
                   onChange={(e) => setMapName(e.target.value)}
                   data-testid="input-map-name"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="match-date" className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4" />
+                  Data do Jogo
+                  <span className="text-xs text-muted-foreground font-normal">(opcional)</span>
+                </Label>
+                <Input
+                  id="match-date"
+                  type="date"
+                  value={matchDate}
+                  onChange={(e) => setMatchDate(e.target.value)}
+                  data-testid="input-match-date"
+                />
+                {!matchDate && (
+                  <p className="text-xs text-muted-foreground">
+                    Sem data: usa data de hoje
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label>Preview</Label>

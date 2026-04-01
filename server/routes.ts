@@ -422,7 +422,7 @@ export async function registerRoutes(
         return res.status(403).json({ message: "Forbidden - Admin access required" });
       }
 
-      const { csvContent, map, winnerTeam, team1Score, team2Score } = req.body;
+      const { csvContent, map, winnerTeam, team1Score, team2Score, matchDate } = req.body;
 
       if (!csvContent || typeof csvContent !== 'string') {
         return res.status(400).json({ message: "CSV content is required" });
@@ -483,6 +483,7 @@ export async function registerRoutes(
       }
 
       // Create match with winner info
+      const resolvedDate = matchDate ? new Date(matchDate + "T12:00:00") : new Date();
       const match = await storage.createMatch({
         externalMatchId: matchId,
         mapNumber,
@@ -492,7 +493,7 @@ export async function registerRoutes(
         team1Score: finalTeam1Score,
         team2Score: finalTeam2Score,
         winnerTeam: finalWinnerTeam,
-        date: new Date(),
+        date: resolvedDate,
       });
 
       // Calculate MVP - find the best performing player based on statistics
