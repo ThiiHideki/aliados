@@ -2879,7 +2879,7 @@ export async function registerRoutes(
   // GET /api/fantasy/my-team/:roundId — my team + picks for a round
   app.get("/api/fantasy/my-team/:roundId", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
       const roundId = parseInt(req.params.roundId);
       const team = await db.execute(
         sql`SELECT * FROM fantasy_teams WHERE user_id = ${userId} AND round_id = ${roundId} LIMIT 1`
@@ -2902,7 +2902,7 @@ export async function registerRoutes(
   // POST /api/fantasy/teams — create/replace my team for a round
   app.post("/api/fantasy/teams", isAuthenticated, async (req, res) => {
     try {
-      const userId = (req.user as any).id;
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
       const { roundId, playerIds } = req.body;
       if (!roundId || !Array.isArray(playerIds) || playerIds.length === 0 || playerIds.length > 5) {
         return res.status(400).json({ message: "Selecione entre 1 e 5 jogadores." });
@@ -2967,8 +2967,8 @@ export async function registerRoutes(
   // POST /api/fantasy/rounds — admin creates a round
   app.post("/api/fantasy/rounds", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims?.sub || req.user.id;
-      const adminUser = await storage.getUser(userId);
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id ?? null;
+      const adminUser = userId ? await storage.getUser(userId) : null;
       if (!adminUser?.isAdmin) return res.status(403).json({ message: "Acesso negado." });
       const { name, startDate, endDate } = req.body;
       if (!name || !startDate || !endDate) return res.status(400).json({ message: "Dados incompletos." });
@@ -3001,7 +3001,7 @@ export async function registerRoutes(
 
       // Get all match stats in the round date range
       const stats = await db.execute(
-        sql`SELECT ms.*, m.winner_team, ms.team = m.winner_team AS won_match
+        sql`SELECT ms.*, m.winner_team, (ms.team_name = m.winner_team) AS won_match
             FROM match_stats ms
             JOIN matches m ON ms.match_id = m.id
             WHERE m.date >= ${r.start_date} AND m.date <= ${r.end_date}`
@@ -3017,14 +3017,14 @@ export async function registerRoutes(
           deaths: stat.deaths,
           assists: stat.assists,
           headshots: stat.headshots,
-          fiveK: stat.five_k,
-          fourK: stat.four_k,
-          threeK: stat.three_k,
-          twoK: stat.two_k,
-          clutch1v1Wins: stat.clutch_1v1_wins,
-          clutch1v2Wins: stat.clutch_1v2_wins,
-          firstKills: stat.first_kills,
-          isMvp: stat.is_mvp,
+          fiveK: stat.enemy_5ks,
+          fourK: stat.enemy_4ks,
+          threeK: stat.enemy_3ks,
+          twoK: stat.enemy_2ks,
+          clutch1v1Wins: stat.v1_wins,
+          clutch1v2Wins: stat.v2_wins,
+          firstKills: stat.entry_wins,
+          isMvp: stat.mvps > 0,
           wonMatch: stat.won_match,
         });
         pointMap[pid] = (pointMap[pid] || 0) + pts;
