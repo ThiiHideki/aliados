@@ -2965,9 +2965,11 @@ export async function registerRoutes(
   });
 
   // POST /api/fantasy/rounds — admin creates a round
-  app.post("/api/fantasy/rounds", isAuthenticated, async (req, res) => {
+  app.post("/api/fantasy/rounds", isAuthenticated, async (req: any, res) => {
     try {
-      if (!(req.user as any).isAdmin) return res.status(403).json({ message: "Acesso negado." });
+      const userId = req.user.claims?.sub || req.user.id;
+      const adminUser = await storage.getUser(userId);
+      if (!adminUser?.isAdmin) return res.status(403).json({ message: "Acesso negado." });
       const { name, startDate, endDate } = req.body;
       if (!name || !startDate || !endDate) return res.status(400).json({ message: "Dados incompletos." });
       const r = await db.execute(
@@ -2982,9 +2984,11 @@ export async function registerRoutes(
   });
 
   // POST /api/fantasy/rounds/:id/calculate — admin calculates points
-  app.post("/api/fantasy/rounds/:id/calculate", isAuthenticated, async (req, res) => {
+  app.post("/api/fantasy/rounds/:id/calculate", isAuthenticated, async (req: any, res) => {
     try {
-      if (!(req.user as any).isAdmin) return res.status(403).json({ message: "Acesso negado." });
+      const userId = req.user.claims?.sub || req.user.id;
+      const adminUser = await storage.getUser(userId);
+      if (!adminUser?.isAdmin) return res.status(403).json({ message: "Acesso negado." });
       const roundId = parseInt(req.params.id);
       const round = await db.execute(
         sql`SELECT * FROM fantasy_rounds WHERE id = ${roundId} LIMIT 1`
@@ -3047,9 +3051,11 @@ export async function registerRoutes(
   });
 
   // DELETE /api/fantasy/rounds/:id — admin deletes a round
-  app.delete("/api/fantasy/rounds/:id", isAuthenticated, async (req, res) => {
+  app.delete("/api/fantasy/rounds/:id", isAuthenticated, async (req: any, res) => {
     try {
-      if (!(req.user as any).isAdmin) return res.status(403).json({ message: "Acesso negado." });
+      const userId = req.user.claims?.sub || req.user.id;
+      const adminUser = await storage.getUser(userId);
+      if (!adminUser?.isAdmin) return res.status(403).json({ message: "Acesso negado." });
       await db.execute(sql`DELETE FROM fantasy_rounds WHERE id = ${parseInt(req.params.id)}`);
       res.json({ success: true });
     } catch (e: any) {
