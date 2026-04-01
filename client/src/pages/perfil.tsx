@@ -815,7 +815,7 @@ export default function Perfil() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Package className="h-5 w-5 text-primary" />
-            Itens e Modificadores de RP
+            Itens e Modificadores de LP
           </CardTitle>
           <CardDescription>
             Ganhos completando objetivos. Use até 2 por dia entre 07:00 e 19:00 (BRT).
@@ -846,7 +846,7 @@ export default function Perfil() {
                   : <Snowflake className="h-5 w-5 text-blue-400 flex-shrink-0" />}
                 <div>
                   <p className="font-semibold text-sm">
-                    {itemsData.activeModifier === 'desafio_rp' ? 'Desafio RP ativo' : 'Freeze RP ativo'}
+                    {itemsData.activeModifier === 'desafio_rp' ? 'Desafio LP ativo' : 'Freeze LP ativo'}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {itemsData.activeModifier === 'desafio_rp'
@@ -875,7 +875,7 @@ export default function Perfil() {
               <div className="flex items-center gap-2">
                 <Zap className="h-5 w-5 text-primary" />
                 <div>
-                  <p className="font-semibold text-sm">Desafio RP</p>
+                  <p className="font-semibold text-sm">Desafio LP</p>
                   <p className="text-xs text-muted-foreground">Dobra os LP ganhos ou perdidos</p>
                 </div>
                 <Badge variant="secondary" className="ml-auto font-mono">
@@ -905,7 +905,7 @@ export default function Perfil() {
               <div className="flex items-center gap-2">
                 <Snowflake className="h-5 w-5 text-blue-400" />
                 <div>
-                  <p className="font-semibold text-sm">Freeze RP</p>
+                  <p className="font-semibold text-sm">Freeze LP</p>
                   <p className="text-xs text-muted-foreground">Zera ganhos/perdas (sem LP)</p>
                 </div>
                 <Badge variant="secondary" className="ml-auto font-mono">
