@@ -3141,20 +3141,35 @@ export async function registerRoutes(
   function calcFantasyPoints(stat: any): number {
     let pts = 0;
 
-    const kills   = stat.kills   || 0;
-    const deaths  = stat.deaths  || 0;
-    const assists = stat.assists || 0;
-    const fiveK   = stat.fiveK   || 0;
-    const fourK   = stat.fourK   || 0;
-    const damage  = stat.damage  || 0;
-    const headshots = stat.headshots || 0;
+    const kills        = stat.kills        || 0;
+    const deaths       = stat.deaths       || 0;
+    const assists      = stat.assists      || 0;
+    const fiveK        = stat.fiveK        || 0;
+    const fourK        = stat.fourK        || 0;
+    const threeK       = stat.threeK       || 0;
+    const twoK         = stat.twoK         || 0;
+    const damage       = stat.damage       || 0;
+    const headshots    = stat.headshots    || 0;
+    const clutch1v1    = stat.clutch1v1    || 0;
+    const clutch1v2    = stat.clutch1v2    || 0;
+    const firstKills   = stat.firstKills   || 0;
+    const isMvp        = stat.isMvp        ? 1 : 0;
+    const wonMatch     = stat.wonMatch;   // true/false/undefined
 
     // Base flat points
-    pts += kills   * 1;
-    pts -= deaths  * 1;
-    pts += assists * 1;
-    pts += fiveK   * 8;
-    pts += fourK   * 5;
+    pts += kills     * 1;
+    pts -= deaths    * 1;
+    pts += assists   * 1;
+    pts += fiveK     * 8;
+    pts += fourK     * 5;
+    pts += threeK    * 3;
+    pts += twoK      * 1;
+    pts += clutch1v1 * 5;
+    pts += clutch1v2 * 8;
+    pts += firstKills * 1.5;
+    pts += isMvp     * 4;
+    if (wonMatch === true)       pts += 3;
+    else if (wonMatch === false) pts -= 5;
 
     // KD ratio bonus/penalty (per match)
     const kd = deaths > 0 ? kills / deaths : kills;
@@ -3452,13 +3467,20 @@ export async function registerRoutes(
         const pid = stat.user_id;
         if (!pid) continue;
         const pts = calcFantasyPoints({
-          kills: stat.kills,
-          deaths: stat.deaths,
-          assists: stat.assists,
-          headshots: stat.headshots,
-          fiveK: stat.enemy_5ks,
-          fourK: stat.enemy_4ks,
-          damage: stat.damage,
+          kills:      stat.kills,
+          deaths:     stat.deaths,
+          assists:    stat.assists,
+          headshots:  stat.headshots,
+          fiveK:      stat.enemy_5ks,
+          fourK:      stat.enemy_4ks,
+          threeK:     stat.enemy_3ks,
+          twoK:       stat.enemy_2ks,
+          damage:     stat.damage,
+          clutch1v1:  stat.v1_wins,
+          clutch1v2:  stat.v2_wins,
+          firstKills: stat.entry_wins,
+          isMvp:      stat.mvps > 0,
+          wonMatch:   stat.won_match === true || stat.won_match === "true",
         });
         pointMap[pid] = (pointMap[pid] || 0) + pts;
       }

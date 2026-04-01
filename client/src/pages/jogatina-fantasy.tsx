@@ -16,7 +16,7 @@ import {
   Trophy, Users, Star, TrendingUp, Zap, Target,
   Shield, Calculator, Plus, RefreshCw, Trash2, Info,
   ChevronRight, Crown, Medal, Swords, Lock, PlusCircle,
-  CheckCircle2, Calendar, Clock, DollarSign, Wallet,
+  CheckCircle2, Calendar, Clock, Wallet,
 } from "lucide-react";
 import type { User } from "@shared/schema";
 import { getLevel } from "@/lib/level-utils";
@@ -87,18 +87,26 @@ const STATUS_LABEL: Record<string, { label: string; color: string }> = {
 
 // ─── Scoring rules ────────────────────────────────────────────────────────────
 const RULES = [
-  { icon: Swords,     label: "Kill",            pts: "+1",           color: "text-green-400" },
-  { icon: Target,     label: "Assistência",     pts: "+1",           color: "text-green-400" },
-  { icon: Shield,     label: "Morte",           pts: "-1",           color: "text-red-400" },
-  { icon: Star,       label: "ACE (5K)",        pts: "+8",           color: "text-orange-400" },
-  { icon: Star,       label: "4K",              pts: "+5",           color: "text-orange-400" },
-  { icon: TrendingUp, label: "K/D ≥ 1.20",     pts: "+5 a +10",    color: "text-green-400" },
-  { icon: TrendingUp, label: "K/D 0.90–1.19",  pts: "+2",           color: "text-green-400" },
-  { icon: TrendingUp, label: "K/D < 0.90",     pts: "-1 a -6",     color: "text-red-400" },
-  { icon: Zap,        label: "HS% > 50%",       pts: "+2 a +10",    color: "text-green-400" },
-  { icon: Zap,        label: "HS% ≤ 50%",       pts: "-1 a -6",     color: "text-red-400" },
-  { icon: Calculator, label: "Dano > 1000",     pts: "+2 a +10",    color: "text-green-400" },
-  { icon: Calculator, label: "Dano ≤ 1000",     pts: "-1 a -6",     color: "text-red-400" },
+  { icon: Swords,       label: "Kill",            pts: "+1",        color: "text-green-400" },
+  { icon: Target,       label: "Assistência",     pts: "+1",        color: "text-green-400" },
+  { icon: Shield,       label: "Morte",           pts: "-1",        color: "text-red-400" },
+  { icon: Star,         label: "ACE (5K)",        pts: "+8",        color: "text-orange-400" },
+  { icon: Star,         label: "4K",              pts: "+5",        color: "text-orange-400" },
+  { icon: Star,         label: "3K",              pts: "+3",        color: "text-orange-400" },
+  { icon: Star,         label: "Double Kill",     pts: "+1",        color: "text-orange-400" },
+  { icon: Trophy,       label: "Clutch 1v1",      pts: "+5",        color: "text-yellow-400" },
+  { icon: Trophy,       label: "Clutch 1v2",      pts: "+8",        color: "text-yellow-400" },
+  { icon: TrendingUp,   label: "First Kill",      pts: "+1.5",      color: "text-blue-400" },
+  { icon: Medal,        label: "MVP da partida",  pts: "+4",        color: "text-yellow-400" },
+  { icon: CheckCircle2, label: "Vitória",         pts: "+3",        color: "text-green-400" },
+  { icon: Shield,       label: "Derrota",         pts: "-5",        color: "text-red-400" },
+  { icon: TrendingUp,   label: "K/D ≥ 1.20",     pts: "+5 a +10",  color: "text-green-400" },
+  { icon: TrendingUp,   label: "K/D 0.90–1.19",  pts: "+2",        color: "text-green-400" },
+  { icon: TrendingUp,   label: "K/D < 0.90",     pts: "-1 a -6",   color: "text-red-400" },
+  { icon: Zap,          label: "HS% > 50%",       pts: "+2 a +10",  color: "text-green-400" },
+  { icon: Zap,          label: "HS% ≤ 50%",       pts: "-1 a -6",   color: "text-red-400" },
+  { icon: Calculator,   label: "Dano > 1000",     pts: "+2 a +10",  color: "text-green-400" },
+  { icon: Calculator,   label: "Dano ≤ 1000",     pts: "-1 a -6",   color: "text-red-400" },
 ];
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
@@ -290,7 +298,7 @@ function PlayerPickerDialog({
                 Orçamento
               </span>
               <span className={`font-bold tabular-nums ${overBudget ? "text-destructive" : remaining <= 10 ? "text-yellow-400" : "text-green-400"}`}>
-                R${totalCost} / R${FANTASY_BUDGET}
+                FP {totalCost} / FP {FANTASY_BUDGET}
               </span>
             </div>
             <div className="h-2 bg-background rounded-full overflow-hidden">
@@ -301,7 +309,7 @@ function PlayerPickerDialog({
             </div>
             <div className="flex justify-between text-xs text-muted-foreground">
               <span>{picks.length}/5 jogadores</span>
-              <span>{remaining >= 0 ? `R$${remaining} disponível` : `R${Math.abs(remaining)} acima do limite`}</span>
+              <span>{remaining >= 0 ? `FP ${remaining} disponível` : `FP ${Math.abs(remaining)} acima do limite`}</span>
             </div>
           </div>
 
@@ -353,7 +361,7 @@ function PlayerPickerDialog({
                   </div>
                   <div className="flex flex-col items-end gap-1 shrink-0">
                     <span className={`text-sm font-bold tabular-nums ${isSelected ? "text-primary" : "text-foreground"}`}>
-                      R${p.price}
+                      FP {p.price}
                     </span>
                     <PriceTierBadge price={p.price} />
                     {isSelected && <CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
@@ -374,7 +382,7 @@ function PlayerPickerDialog({
           <div className="flex gap-2">
             <Button className="flex-1" onClick={handleConfirm}
               disabled={picks.length === 0 || overBudget} data-testid="button-confirm-picks">
-              Confirmar — R${totalCost} ({picks.length} jogador{picks.length !== 1 ? "es" : ""})
+              Confirmar — FP {totalCost} ({picks.length} jogador{picks.length !== 1 ? "es" : ""})
             </Button>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           </div>
@@ -493,7 +501,7 @@ export default function JogatinaFantasy() {
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold">Inimigos da Bala Fantasy</h1>
           <p className="text-muted-foreground text-sm">
-            Escale até 5 jogadores com orçamento de <span className="text-primary font-semibold">R${FANTASY_BUDGET}</span>. Jogadores mais fortes custam mais caro — gerencie bem o budget!
+            Escale até 5 jogadores com orçamento de <span className="text-primary font-semibold">FP {FANTASY_BUDGET}</span> Fantasy Points. Jogadores mais fortes custam mais caro — gerencie bem o saldo!
           </p>
         </div>
       </div>
@@ -574,7 +582,7 @@ export default function JogatinaFantasy() {
                       Orçamento usado
                     </span>
                     <span className="font-bold text-primary">
-                      R${myTeam.team.budget_used} / R${FANTASY_BUDGET}
+                      FP {myTeam.team.budget_used} / FP {FANTASY_BUDGET}
                     </span>
                   </div>
                 )}
@@ -592,7 +600,7 @@ export default function JogatinaFantasy() {
                         <div className="flex-1 min-w-0">
                           <p className="text-sm font-semibold truncate">{name}</p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <DollarSign className="w-3 h-3" /> R${pick.price ?? 0}
+                            <Wallet className="w-3 h-3" /> FP {pick.price ?? 0}
                             {ps && <span className="ml-1">· {ps.total_matches} {ps.total_matches === 1 ? "partida" : "partidas"}</span>}
                           </p>
                         </div>
@@ -690,15 +698,15 @@ export default function JogatinaFantasy() {
                 <CardTitle className="text-sm flex items-center gap-2">
                   <Wallet className="w-4 h-4" /> Sistema de Orçamento
                 </CardTitle>
-                <CardDescription className="text-xs">Você tem R${FANTASY_BUDGET} para montar seu time de 5 jogadores</CardDescription>
+                <CardDescription className="text-xs">Você tem FP {FANTASY_BUDGET} Fantasy Points para montar seu time de 5 jogadores</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   {[
-                    { tier: "Elite", range: "Alta performance (K/D, HS%, Dano)", price: "R$35–40", cls: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
-                    { tier: "Alto",  range: "Boa performance geral",              price: "R$25–34", cls: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
-                    { tier: "Médio", range: "Performance moderada",               price: "R$15–24", cls: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
-                    { tier: "Baixo", range: "Poucas partidas ou baixa perf.",     price: "R$5–14",  cls: "bg-muted text-muted-foreground border-border" },
+                    { tier: "Elite", range: "Alta performance (K/D, HS%, Dano)", price: "FP 35–40", cls: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+                    { tier: "Alto",  range: "Boa performance geral",              price: "FP 25–34", cls: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+                    { tier: "Médio", range: "Performance moderada",               price: "FP 15–24", cls: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+                    { tier: "Baixo", range: "Poucas partidas ou baixa perf.",     price: "FP 5–14",  cls: "bg-muted text-muted-foreground border-border" },
                   ].map(t => (
                     <div key={t.tier} className={`p-2 rounded border ${t.cls}`}>
                       <p className="font-bold">{t.tier} — {t.price}</p>
@@ -707,8 +715,8 @@ export default function JogatinaFantasy() {
                   ))}
                 </div>
                 <p className="text-xs text-muted-foreground mt-2">
-                  Preço calculado com base na projeção de pontos de fantasy (K/D, HS%, Dano médio).
-                  Jogadores performáticos são mais caros. Com R${FANTASY_BUDGET}, não é possível escalar os 5 melhores.
+                  Custo calculado com base na projeção de pontos de fantasy (K/D, HS%, Dano médio).
+                  Jogadores performáticos custam mais FP. Com FP {FANTASY_BUDGET}, não é possível escalar os 5 melhores.
                 </p>
               </CardContent>
             </Card>
