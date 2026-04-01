@@ -1,0 +1,29 @@
+1. Camada de Normalização (Métricas por Round)Não use números brutos (29 kills). Use médias, pois uma partida 13-0 é diferente de uma 16-14.Assumindo que total_rounds = rounds_vencidos + rounds_perdidos.ADR: damage / total_roundsKPR: kills / total_roundsUtility Impact: (utility_damage + (enemies_flashed * 10)) / total_roundsEntry Success: entry_wins / entry_count (Se entry_count > 0)2. O Cálculo do "Rating Jacarézão" ($RJ$)Esta fórmula equilibra o individual e o coletivo. Use pesos que valorizem o impacto real no round:$$RJ = (KPR \times 0.35) + (\frac{ADR}{100} \times 0.35) + (EntrySuccess \times 0.15) + (UtilityImpact \times 0.15)$$Nota de QA: Um jogador médio terá um $RJ \approx 1.0$. Um jogador excepcional terá $> 1.3$.3. A Regra de Atribuição de LP (Lógica Final)Aqui está a tabela lógica que resolve o problema do "Nível 1 preso". O segredo é o fator multiplicador baseado no resultado da partida.Se o Time VENCEU:Performance (RJ)Cálculo de LPDescriçãoElite ($> 1.3$)+25 LPCarregou o jogo (MVP).Sólido ($1.0$ a $1.3$)+18 LPJogou bem e ajudou na vitória.Suporte/Baixo ($< 1.0$)+10 LPVitória garantida, mas impacto foi menor.Se o Time PERDEU:Performance (RJ)Cálculo de LPDescriçãoHeroico ($> 1.3$)-2 LPJogou muito, mas o time não ajudou. (Evita cair de nível injustamente).Esforçado ($1.0$ a $1.3$)-10 LPPerda padrão de ELO.Passivo/Ruim ($< 1.0$)-20 LPNão rendeu e o time perdeu. Punição maior.4. Bônus de "Clutch & Entry" (Os Diferenciais)Para tornar o sistema ainda mais justo, adicione bônus fixos baseados nas colunas v1_wins, v2_wins e entry_wins do seu CSV:Cada v1_win ou v2_win: +2 LP (Premia o sangue frio).Se entry_wins > 5: +3 LP (Premia quem abre o bomb).Headshot % alto (> 60%): +2 LP (Premia a precisão técnica).Exemplo de Implementação (Pseudo-código)JavaScriptfunction calcularLP(playerData, totalRounds, timeVenceu) {
+    // 1. Normalização
+    const adr = playerData.damage / totalRounds;
+    const kpr = playerData.kills / totalRounds;
+    const entrySuccess = playerData.entry_count > 0 ? (playerData.entry_wins / playerData.entry_count) : 0;
+    const utility = (playerData.utility_damage + (playerData.enemies_flashed * 15)) / totalRounds;
+
+    // 2. Rating Jacarézão (RJ)
+    const rj = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
+
+    let lpFinal = 0;
+
+    // 3. Lógica de Vitória/Derrota
+    if (timeVenceu) {
+        if (rj > 1.3) lpFinal = 25;
+        else if (rj >= 1.0) lpFinal = 18;
+        else lpFinal = 10;
+    } else {
+        if (rj > 1.3) lpFinal = -2; // Proteção para o melhor do time perdedor
+        else if (rj >= 1.0) lpFinal = -10;
+        else lpFinal = -20;
+    }
+
+    // 4. Bônus Adicionais (Baseado no seu CSV)
+    lpFinal += (playerData.v1_wins * 2);
+    lpFinal += (playerData.v2_wins * 3);
+    
+    return lpFinal;
+}

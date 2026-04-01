@@ -392,30 +392,41 @@ export class DatabaseStorage implements IStorage {
         wonMatch = isTeam1 ? t1 > t2 : t2 > t1;
       }
 
-      const kills         = Number(stat.kills)          || 0;
-      const assists       = Number(stat.assists)        || 0;
-      const damage        = Number(stat.damage)         || 0;
-      const entryWins     = Number(stat.entryWins)      || 0;
-      const entryCount    = Number(stat.entryCount)     || 0;
-      const utilityDmg    = Number(stat.utilityDamage)  || 0;
-      const enemiesFlash  = Number(stat.enemiesFlashed) || 0;
-      const rounds        = matchRounds || 24;
+      const kills        = Number(stat.kills)          || 0;
+      const damage       = Number(stat.damage)         || 0;
+      const entryWins    = Number(stat.entryWins)      || 0;
+      const entryCount   = Number(stat.entryCount)     || 0;
+      const utilityDmg   = Number(stat.utilityDamage)  || 0;
+      const enemiesFlash = Number(stat.enemiesFlashed) || 0;
+      const v1wins       = Number(stat.v1Wins)         || 0;
+      const v2wins       = Number(stat.v2Wins)         || 0;
+      const rounds       = matchRounds || 24;
 
-      // ── Rating Formula ────────────────────────────────────────────────────────
-      // Rating = 0.3*(K/R) + 0.4*(ADR/100) + 0.15*(EntryWins/EntryTotal)
-      //        + 0.1*(A/R) + 0.05*UtilityScore
-      const kpr         = kills / Math.max(rounds, 1);
-      const adr         = damage / Math.max(rounds, 1);
-      const entryRate   = entryCount > 0 ? entryWins / entryCount : 0.5;
-      const apr         = assists / Math.max(rounds, 1);
-      const utilScore   = Math.min(1, utilityDmg / 100 + enemiesFlash / 20);
+      // ── Rating Jacarézão ──────────────────────────────────────────────────────
+      const kpr          = kills / Math.max(rounds, 1);
+      const adr          = damage / Math.max(rounds, 1);
+      const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
+      const utility      = (utilityDmg + enemiesFlash * 15) / Math.max(rounds, 1);
 
-      const rating = (0.3 * kpr) + (0.4 * (adr / 100)) + (0.15 * entryRate)
-                   + (0.1 * apr) + (0.05 * utilScore);
+      const rj = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 
-      // Converte rating em LP: ponto neutro ≈ 0.5, escala ×50
-      // 0.5 → 0 LP | 0.7 → +10 | 0.9 → +20 | 1.0+ → +25 (cap) | 0.3 → -10
-      const clampedLP = Math.max(-18, Math.min(25, Math.round((rating - 0.5) * 50)));
+      // Lógica de vitória/derrota
+      let lpMatch = 0;
+      if (wonMatch) {
+        if      (rj > 1.3)  lpMatch = 25;
+        else if (rj >= 1.0) lpMatch = 18;
+        else                lpMatch = 10;
+      } else {
+        if      (rj > 1.3)  lpMatch = -2;
+        else if (rj >= 1.0) lpMatch = -10;
+        else                lpMatch = -20;
+      }
+
+      // Bônus de clutch
+      lpMatch += v1wins * 2;
+      lpMatch += v2wins * 3;
+
+      const clampedLP = Math.max(-20, Math.min(28, lpMatch));
       levelPoints = Math.max(0, Math.min(630, levelPoints + clampedLP));
     }
 

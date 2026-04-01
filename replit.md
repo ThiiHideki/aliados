@@ -133,7 +133,12 @@ The application uses the following main tables:
    - `levelPoints` (integer, default 0) - Level progression points (0–600 → Level 1–21)
      - Level = floor(levelPoints/30) + 1, capped at 21
      - Tiers: Bronze 1–9 (amber), Prata 10–15 (slate), Dourado 16–20 (yellow), Lendário 21 (teal)
-     - Starting LP = 0 (Level 1); per match: win+10/loss-5 ± K/D bonus (clamped ±18) ± ADR ± ACE ± clutch
+     - Starting LP = 0 (Level 1); per match uses "Rating Jacarézão":
+       - RJ = (KPR×0.35) + (ADR/100×0.35) + (EntrySuccess×0.15) + (Utility×0.15)
+       - Utility = (utilityDamage + enemiesFlashed×15) / rounds
+       - Vitória: RJ>1.3→+25 | RJ≥1.0→+18 | else→+10
+       - Derrota: RJ>1.3→-2 | RJ≥1.0→-10 | else→-20
+       - Bônus: v1Wins×2, v2Wins×3 (clamped -20/+28)
      - `skillRating` kept in DB for mix team balancing (not displayed as "SR" anymore)
      - LevelBadge shows number only (no tier text in badge itself)
    - Fantasy pricing: `price = max(5, min(40, round(5 + (level-1)/20 * 35)))`, budget = R$100

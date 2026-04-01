@@ -2404,14 +2404,15 @@ export async function registerRoutes(
             wonMatch = isTeam1 ? t1 > t2 : t2 > t1;
           }
           const kills          = Number(stat.kills)          || 0;
-          const assists        = Number(stat.assists)        || 0;
           const damage         = Number(stat.damage)         || 0;
           const rounds         = matchRounds || 24;
           const entryWins      = Number(stat.entryWins)      || 0;
           const entryCount     = Number(stat.entryCount)     || 0;
           const utilityDamage  = Number(stat.utilityDamage)  || 0;
           const enemiesFlashed = Number(stat.enemiesFlashed) || 0;
-          const lp = calcMatchLP(kills, assists, damage, rounds, entryWins, entryCount, utilityDamage, enemiesFlashed);
+          const v1Wins         = Number(stat.v1Wins)         || 0;
+          const v2Wins         = Number(stat.v2Wins)         || 0;
+          const lp = calcMatchLP(wonMatch, kills, damage, rounds, entryWins, entryCount, utilityDamage, enemiesFlashed, v1Wins, v2Wins);
           playerMonthlyLP[stat.userId] = (playerMonthlyLP[stat.userId] ?? 0) + lp;
         }
       }
@@ -2874,25 +2875,41 @@ export async function registerRoutes(
     return Math.max(5, Math.min(40, Math.round(5 + (level - 1) / 20 * 35)));
   }
 
-  // Calcula LP ganho/perdido em uma partida (server-side)
-  // Rating = 0.3*(K/R) + 0.4*(ADR/100) + 0.15*(EntryWins/EntryTotal)
-  //        + 0.1*(A/R) + 0.05*UtilityScore
+  // Calcula LP por partida — Rating Jacarézão
+  // RJ = (KPR×0.35) + (ADR/100×0.35) + (EntrySuccess×0.15) + (Utility×0.15)
+  // Vitória: RJ>1.3→+25 | RJ≥1.0→+18 | else→+10
+  // Derrota: RJ>1.3→-2  | RJ≥1.0→-10 | else→-20
+  // Bônus: v1wins×2, v2wins×3
   function calcMatchLP(
-    kills: number, assists: number, damage: number,
+    won: boolean,
+    kills: number, damage: number,
     rounds: number, entryWins: number, entryCount: number,
     utilityDamage: number, enemiesFlashed: number,
+    v1Wins: number, v2Wins: number,
   ): number {
-    const kpr       = kills   / Math.max(rounds, 1);
-    const adr       = damage  / Math.max(rounds, 1);
-    const entryRate = entryCount > 0 ? entryWins / entryCount : 0.5;
-    const apr       = assists / Math.max(rounds, 1);
-    const utilScore = Math.min(1, utilityDamage / 100 + enemiesFlashed / 20);
+    const r            = Math.max(rounds, 1);
+    const kpr          = kills / r;
+    const adr          = damage / r;
+    const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
+    const utility      = (utilityDamage + enemiesFlashed * 15) / r;
 
-    const rating = (0.3 * kpr) + (0.4 * (adr / 100)) + (0.15 * entryRate)
-                 + (0.1 * apr) + (0.05 * utilScore);
+    const rj = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 
-    // Ponto neutro ≈ 0.5, escala ×50
-    return Math.max(-18, Math.min(25, Math.round((rating - 0.5) * 50)));
+    let lp = 0;
+    if (won) {
+      if      (rj > 1.3)  lp = 25;
+      else if (rj >= 1.0) lp = 18;
+      else                lp = 10;
+    } else {
+      if      (rj > 1.3)  lp = -2;
+      else if (rj >= 1.0) lp = -10;
+      else                lp = -20;
+    }
+
+    lp += v1Wins * 2;
+    lp += v2Wins * 3;
+
+    return Math.max(-20, Math.min(28, lp));
   }
 
   // Retorna se o mercado do fantasy está aberto para uma rodada
