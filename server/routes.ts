@@ -382,6 +382,101 @@ export async function registerRoutes(
     }
   });
 
+  // ── Modifier endpoints ─────────────────────────────────────────────────────
+  // GET /api/me/items — return current user's item counts + active modifier
+  app.get('/api/me/items', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      res.json({
+        desafioRpCount: user.desafioRpCount ?? 0,
+        freezeRpCount:  user.freezeRpCount  ?? 0,
+        activeModifier: user.activeModifier  ?? null,
+        itemsUsedToday: user.itemsUsedToday  ?? 0,
+        winStreak:      user.winStreak       ?? 0,
+      });
+    } catch (e) {
+      res.status(500).json({ message: "Erro ao buscar itens" });
+    }
+  });
+
+  // POST /api/me/modifier — activate a modifier item
+  app.post('/api/me/modifier', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+
+      const { type } = req.body;
+      if (type !== 'desafio_rp' && type !== 'freeze_rp') {
+        return res.status(400).json({ message: "Tipo inválido. Use 'desafio_rp' ou 'freeze_rp'" });
+      }
+
+      // Check time restriction: blocked after 19:00 BRT (22:00 UTC), reset at 07:00 BRT (10:00 UTC)
+      const nowUtc = new Date();
+      const nowBrt = new Date(nowUtc.getTime() - 3 * 60 * 60 * 1000); // BRT = UTC-3
+      const hourBrt = nowBrt.getUTCHours();
+      const isBlocked = hourBrt >= 19 || hourBrt < 7;
+      if (isBlocked) {
+        return res.status(403).json({ message: "Itens só podem ser ativados entre 07:00 e 19:00 (BRT)" });
+      }
+
+      // Reset daily counter if needed
+      const todayStr = nowBrt.toISOString().slice(0, 10);
+      let usedToday = user.itemsUsedToday ?? 0;
+      if ((user.itemsLastUsedDate ?? '') !== todayStr) {
+        usedToday = 0;
+      }
+
+      if (usedToday >= 2) {
+        return res.status(403).json({ message: "Limite de 2 itens por dia atingido" });
+      }
+
+      // Check stock
+      const count = type === 'desafio_rp' ? (user.desafioRpCount ?? 0) : (user.freezeRpCount ?? 0);
+      if (count <= 0) {
+        return res.status(400).json({ message: "Você não tem esse item disponível" });
+      }
+
+      const updates: Record<string, any> = {
+        activeModifier:     type,
+        itemsUsedToday:     usedToday + 1,
+        itemsLastUsedDate:  todayStr,
+        updatedAt:          new Date(),
+      };
+      if (type === 'desafio_rp') updates.desafioRpCount = (user.desafioRpCount ?? 0) - 1;
+      else                        updates.freezeRpCount  = (user.freezeRpCount  ?? 0) - 1;
+
+      await db.update(users).set(updates).where(eq(users.id, userId));
+      res.json({ message: "Modificador ativado com sucesso!", activeModifier: type });
+    } catch (e) {
+      console.error("Error activating modifier:", e);
+      res.status(500).json({ message: "Erro ao ativar modificador" });
+    }
+  });
+
+  // DELETE /api/me/modifier — cancel active modifier (refunds item)
+  app.delete('/api/me/modifier', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const user = await storage.getUser(userId);
+      if (!user) return res.status(404).json({ message: "User not found" });
+      if (!user.activeModifier) return res.status(400).json({ message: "Nenhum modificador ativo" });
+
+      const refundField = user.activeModifier === 'desafio_rp' ? 'desafioRpCount' : 'freezeRpCount';
+      const refundCount = user.activeModifier === 'desafio_rp' ? (user.desafioRpCount ?? 0) : (user.freezeRpCount ?? 0);
+      await db.update(users).set({
+        activeModifier: null,
+        [refundField]: refundCount + 1,
+        updatedAt: new Date(),
+      }).where(eq(users.id, userId));
+      res.json({ message: "Modificador cancelado. Item devolvido." });
+    } catch (e) {
+      res.status(500).json({ message: "Erro ao cancelar modificador" });
+    }
+  });
+
   // Delete user (admin only)
   app.delete('/api/users/:id', isAuthenticated, async (req: any, res) => {
     try {
@@ -535,6 +630,15 @@ export async function registerRoutes(
 
       // Process each player
       const usersToRecalculate: string[] = [];
+      // Capture pre-import modifier/streak state for each player (by steamid64)
+      type PlayerPreState = {
+        userId: string;
+        activeModifier: string | null;
+        winStreak: number;
+        desafioRpCount: number;
+        freezeRpCount: number;
+      };
+      const preStateMap: Record<string, PlayerPreState> = {};
 
       for (const row of rows) {
         // Find or create user by steamId64
@@ -546,6 +650,13 @@ export async function registerRoutes(
         }
 
         usersToRecalculate.push(user.id);
+        preStateMap[row.steamid64] = {
+          userId: user.id,
+          activeModifier: user.activeModifier ?? null,
+          winStreak: user.winStreak ?? 0,
+          desafioRpCount: user.desafioRpCount ?? 0,
+          freezeRpCount: user.freezeRpCount ?? 0,
+        };
 
         // Assign MVP = 1 to the best player, 0 to others
         const isMVP = row.steamid64 === mvpSteamId ? 1 : 0;
@@ -593,10 +704,100 @@ export async function registerRoutes(
         });
       }
 
-      // Recalculate stats for all users in this match
+      // Recalculate stats for all users in this match (base LP)
       const uniqueUserIds = Array.from(new Set(usersToRecalculate));
       for (const id of uniqueUserIds) {
         await storage.recalculateUserStats(id);
+      }
+
+      // ── Post-recalc: apply streaks, modifiers, and grant items ────────────────
+      const matchRoundsTotal = (finalTeam1Score || 0) + (finalTeam2Score || 0) || 24;
+      for (const row of rows) {
+        const pre = preStateMap[row.steamid64];
+        if (!pre) continue;
+
+        // Reload user (levelPoints just updated by recalculateUserStats)
+        const freshUser = await storage.getUser(pre.userId);
+        if (!freshUser) continue;
+
+        const wonMatch = !!finalWinnerTeam && finalWinnerTeam === row.team;
+        const isMvpInt = row.steamid64 === mvpSteamId ? 1 : 0;
+
+        // Base LP for this specific match
+        const baseLp = calcMatchLP(
+          wonMatch,
+          Number(row.kills), Number(row.damage), matchRoundsTotal,
+          Number(row.entry_wins), Number(row.entry_count),
+          Number(row.utility_damage), Number(row.enemies_flashed),
+          Number(row.v1_wins), Number(row.v2_wins),
+          isMvpInt, Number(row.enemy5ks), Number(row.enemy4ks),
+        );
+
+        // Streak: increment on win, reset on loss
+        const newStreak = wonMatch ? pre.winStreak + 1 : 0;
+
+        // Streak bonus (added from 3rd consecutive win onwards)
+        let streakBonus = 0;
+        if (wonMatch && newStreak >= 3) {
+          if      (newStreak >= 10) streakBonus = 12;
+          else if (newStreak >= 7)  streakBonus = 8;
+          else if (newStreak >= 5)  streakBonus = 5;
+          else                      streakBonus = 3;
+        }
+
+        // Modifier correction (applied on top of recalculated base LP)
+        let modifierCorrection = 0;
+        let modifierConsumed = false;
+        if (pre.activeModifier === 'desafio_rp') {
+          modifierCorrection = baseLp; // doubles this match's LP
+          modifierConsumed = true;
+        } else if (pre.activeModifier === 'freeze_rp') {
+          modifierCorrection = -baseLp; // zeroes this match's LP
+          modifierConsumed = true;
+        }
+
+        const totalCorrection = modifierCorrection + streakBonus;
+        const newLP = Math.max(0, Math.min(2100, (freshUser.levelPoints ?? 0) + totalCorrection));
+
+        // Item grants for objectives achieved in this match
+        let desafioGrant = 0;
+        let freezeGrant = 0;
+        if (row.enemy5ks > 0)  { desafioGrant++; freezeGrant++; } // ACE
+        if (isMvpInt > 0)       { desafioGrant++; freezeGrant++; } // MVP
+
+        // 5 distinct play days milestone (check if they just crossed it)
+        const daysRes = await db.execute(
+          sql`SELECT COUNT(DISTINCT DATE(m.date)) AS cnt
+              FROM match_stats ms
+              JOIN matches m ON ms.match_id = m.id
+              WHERE ms.user_id = ${pre.userId}`
+        );
+        const distinctDays = Number((daysRes.rows[0] as any)?.cnt ?? 0);
+        if (distinctDays === 5) { desafioGrant++; freezeGrant++; }
+
+        // Trophy from previous month
+        const now = new Date();
+        const prevMonth = now.getMonth() === 0 ? 12 : now.getMonth();
+        const prevYear  = now.getMonth() === 0 ? now.getFullYear() - 1 : now.getFullYear();
+        const trophyRes = await db.execute(
+          sql`SELECT id FROM trophies
+              WHERE user_id = ${pre.userId}
+                AND month = ${prevMonth} AND year = ${prevYear}
+              LIMIT 1`
+        );
+        if ((trophyRes.rows as any[]).length > 0) { desafioGrant++; freezeGrant++; }
+
+        // Persist updates
+        const updates: Record<string, any> = {
+          winStreak:      newStreak,
+          levelPoints:    newLP,
+          desafioRpCount: (freshUser.desafioRpCount ?? 0) + desafioGrant,
+          freezeRpCount:  (freshUser.freezeRpCount  ?? 0) + freezeGrant,
+          updatedAt:      new Date(),
+        };
+        if (modifierConsumed) updates.activeModifier = null;
+
+        await db.update(users).set(updates).where(eq(users.id, pre.userId));
       }
 
       // Resolve pending bets for all players in this match

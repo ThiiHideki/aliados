@@ -129,7 +129,15 @@ export default function Rankings() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium hover:text-primary transition-colors">{player.nickname || player.firstName || "Jogador"}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium hover:text-primary transition-colors">{player.nickname || player.firstName || "Jogador"}</span>
+              {(player.winStreak ?? 0) >= 3 && (
+                <span title={`${player.winStreak} vitórias em sequência`} className="flex items-center text-orange-500">
+                  <Flame className="h-4 w-4" />
+                  <span className="text-xs font-bold leading-none">{player.winStreak}</span>
+                </span>
+              )}
+            </div>
             <div className="text-xs text-muted-foreground">{player.totalMatches} partidas</div>
           </div>
         </Link>
@@ -520,7 +528,15 @@ export default function Rankings() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium hover:text-amber-500 transition-colors">{player.nickname || player.firstName || "Jogador"}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium hover:text-amber-500 transition-colors">{player.nickname || player.firstName || "Jogador"}</span>
+                            {(player.winStreak ?? 0) >= 3 && (
+                              <span title={`${player.winStreak} vitórias em sequência`} className="flex items-center text-orange-500">
+                                <Flame className="h-4 w-4" />
+                                <span className="text-xs font-bold leading-none">{player.winStreak}</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground">{mvpRate}% das partidas</div>
                         </div>
                       </Link>
@@ -570,7 +586,15 @@ export default function Rankings() {
                           </AvatarFallback>
                         </Avatar>
                         <div>
-                          <div className="font-medium hover:text-cyan-500 transition-colors">{player.nickname || player.firstName || "Jogador"}</div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-medium hover:text-cyan-500 transition-colors">{player.nickname || player.firstName || "Jogador"}</span>
+                            {(player.winStreak ?? 0) >= 3 && (
+                              <span title={`${player.winStreak} vitórias em sequência`} className="flex items-center text-orange-500">
+                                <Flame className="h-4 w-4" />
+                                <span className="text-xs font-bold leading-none">{player.winStreak}</span>
+                              </span>
+                            )}
+                          </div>
                           <div className="text-xs text-muted-foreground">{player.totalAssists} assists em {player.totalMatches} partidas</div>
                         </div>
                       </Link>

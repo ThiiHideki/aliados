@@ -2,7 +2,7 @@
 
 ## Overview
 
-Inimigos da Bala is a Counter-Strike 2 community management system designed for friend groups. The application tracks player performance metrics, manages user profiles, provides player rankings, team balancing (MIX), server information, and administrative dashboards. Built as a full-stack TypeScript application with Portuguese language interface, it combines a React frontend with an Express backend, using PostgreSQL for data persistence and Replit's OpenID Connect for authentication.
+Inimigos da Bala is a Counter-Strike 2 community management system for friend groups. It tracks player performance, manages user profiles, provides player rankings, facilitates team balancing (MIX), and offers administrative dashboards. The application is a full-stack TypeScript project with a React frontend and an Express backend, utilizing PostgreSQL for data and Replit's OpenID Connect for authentication, all presented in Portuguese. Key features include player statistics, a virtual casino with betting and games, and a fantasy league.
 
 ## User Preferences
 
@@ -10,242 +10,59 @@ Inimigos da Bala is a Counter-Strike 2 community management system designed for 
 - Language: Portuguese (Brazil)
 - Theme: CS-themed dark design with orange accents
 
-## Application Structure
-
-### Main Menu Structure
-The sidebar navigation includes the following sections:
-
-1. **Mural** - Home page with information board (server costs, ACE player, monthly ranking, championship, profile update)
-
-2. **Dashboard** - Personal stats dashboard (Admin: AdminDashboard, Player: Dashboard)
-
-3. **MIX** (Collapsible)
-   - Escolher Time do Mix - Team balancing for matches
-   - Lista do Mix - WhatsApp-style availability list for daily mix games
-   - Veto de Mapas - Map veto system
-
-4. **Perfil de Usuário** - User profile with personal stats
-
-4.5 **Vincular Discord** - Mandatory screen to link Discord user ID (required for all authenticated users after survey)
-
-5. **Melhores Jogadores** - Player rankings with multiple categories (Skill Rating, K/D, HS%, Win Rate, MVPs, Assists)
-
-6. **Piores Jogadores** - Worst player rankings (Skill Rating, K/D, HS%, Win Rate)
-
-5. **Servidor** (Collapsible)
-   - Comandos do Servidor - Server commands reference
-   - Mapas de Treino - Training maps with Workshop links
-   - Como Colocar as Skins - Skin customization guide
-   - SteamID64 - How to get SteamID64
-
-5. **Patrocinadores** - Sponsors page
-
-6. **Links** (Collapsible)
-   - Discord - External link
-   - WhatsApp - External link
-
-7. **Partidas** (Collapsible)
-   - Jogadas por você - User's match history
-   - Todas - All matches history
-
-8. **Painel Admin** (Admin only, Collapsible)
-   - Gerenciar Usuários - User management
-   - Importar Partida - CSV import from CS2 server
-
-### Page Routes
-- `/` - Mural (information board - home page after login)
-- `/dashboard` - Personal dashboard (Admin: AdminDashboard, Player: Dashboard)
-- `/perfil` - User profile page
-- `/mix/escolher-time` - Team selection for MIX
-- `/mix/disponibilidade` - Mix availability list
-- `/rankings` - Player leaderboards
-- `/piores-jogadores` - Worst player rankings
-- `/servidor/comandos` - Server commands
-- `/servidor/mapas` - Training maps
-- `/servidor/skins` - Skin guide
-- `/servidor/steamid` - SteamID64 guide
-- `/patrocinadores` - Sponsors page
-- `/cassino/apostas` - Virtual betting on player stats
-- `/cassino/jogos` - Case opening and slot machine games
-- `/jogatina/fantasy` - Inimigos da Bala Fantasy (Cartola FC-style, pick 5 players, score based on match performance)
-- `/partidas/minhas` - User's matches
-- `/partidas/todas` - All matches
-- `/admin/users` - Admin user management
-- `/admin/import` - CSV match data import (admin only)
-- `/copa/inscricao` - Team registration for Copa Inimigos da Bala (PIX payment + proof upload)
-- `/copa/tabela` - Tournament bracket and match results
-- `/copa/estatisticas` - Copa player leaderboards (kills, K/D, HS%, ADR, ACEs)
-- `/copa/premiacoes` - Prize pool calculator and tournament info
-- `/copa/regras` - Tournament rules (WO, disqualification, payment, prizes)
-- `/admin/copa` - Admin panel for team approval and match management
-
 ## System Architecture
 
 ### Frontend Architecture
 
-**Framework & Build System**
-- React 18 with TypeScript for type-safe component development
-- Vite as the build tool and development server, providing fast HMR and optimized production builds
-- Wouter for lightweight client-side routing instead of React Router
-
-**UI Component Strategy**
-- shadcn/ui component library built on Radix UI primitives for accessible, composable components
-- Tailwind CSS with custom design tokens for styling, following a "New York" style variant
-- Custom CSS variables for theming (light/dark mode support)
-- Gaming dashboard aesthetic inspired by competitive gaming platforms (Tracker.gg, FACEIT)
-
-**State Management**
-- TanStack Query (React Query) for server state management with aggressive caching strategies (staleTime: Infinity)
-- Custom hooks pattern for business logic encapsulation (useAuth for authentication state)
-- No global client state management library - relying on React Query's cache and local component state
-
-**Design System**
-- Custom logo integration (Inimigos da Bala logo)
-- Typography: Inter font for data display, JetBrains Mono for statistics and numerical values
-- Consistent spacing using Tailwind's 2/4/6/8 unit system
-- Responsive grid layouts: 3-column on desktop, collapsing to 1-2 columns on mobile
-- Component elevation system using subtle borders and shadows
+The frontend is built with React 18 and TypeScript, using Vite for fast development and optimized production builds. Wouter handles client-side routing. UI components leverage shadcn/ui (built on Radix UI) and Tailwind CSS for styling, adhering to a "New York" style variant with a gaming dashboard aesthetic. State management primarily uses TanStack Query for server state caching, avoiding a global client-side state library. Custom hooks encapsulate business logic. Typography uses Inter and JetBrains Mono, with a responsive grid layout.
 
 ### Backend Architecture
 
-**Server Framework**
-- Express.js with TypeScript for the HTTP server
-- Session-based authentication using express-session with PostgreSQL session storage
-- Middleware pattern for request logging, authentication checks, and error handling
+The backend is an Express.js application with TypeScript. It uses session-based authentication with `express-session` and PostgreSQL for session storage. Drizzle ORM provides type-safe PostgreSQL interactions, connecting to Neon serverless PostgreSQL. The data model includes tables for users (with detailed CS stats, level progression, streak system, and modifier items), matches, player-specific match statistics, a virtual casino system (balances, bets, transactions), and trophies.
 
-**Database Layer**
-- Drizzle ORM for type-safe database operations with PostgreSQL
-- Neon serverless PostgreSQL with WebSocket connections for serverless environments
-- Connection pooling via @neondatabase/serverless Pool
-- Schema-first approach with TypeScript types generated from Drizzle schema definitions
+**Authentication & Authorization:** A dual login system supports Replit OpenID Connect and custom Steam OpenID 2.0 implementation. The first user to log in automatically gains admin privileges, with subsequent users being regular players. Role-based access control uses an `isAdmin` flag.
 
-**Data Model**
-The application uses the following main tables:
-1. **sessions** - Express session storage for authentication state
-2. **users** - Player profiles with SteamID64 and aggregated CS stats including:
-   - Basic combat stats (kills, deaths, assists, headshots, damage)
-   - Match stats (wins, losses, rounds played/won, MVPs)
-   - Multi-kill stats (2K, 3K, 4K, 5K/ACE)
-   - Clutch performance (1v1, 1v2 wins/count)
-   - Entry frag stats (wins/count)
-   - Utility stats (flash count/success, enemies flashed, utility damage)
-   - Accuracy stats (shots fired, shots on target)
-   - `levelPoints` (integer, default 0) - Level progression points (0–2100 → Level 1–21)
-     - Level = floor(levelPoints/100) + 1, capped at 21
-     - Tiers: Bronze 1–9 (0–899 LP), Prata 10–15 (900–1499 LP), Dourado 16–20 (1500–1999 LP), Lendário 21 (2000+ LP)
-     - Starting LP = 0 (Level 1); per match uses "Rating Inimigos (RI)":
-       - RI = (KPR×0.35) + (ADR/100×0.35) + (EntrySuccess×0.15) + (Utility×0.15)
-       - Utility = (utilityDamage + enemiesFlashed×7.5) / rounds
-       - Vitória: RI>1.3→+25 | RI≥1.0→+18 | else→+10
-       - Derrota: RI>1.3→-2 | RI≥1.0→-10 | else→-20
-       - Bônus: v1Wins×2, v2Wins×3, MVP×5, ACE(5K)×5, 4K×3 (clamped -20/+40)
-     - `skillRating` kept in DB for mix team balancing (not displayed as "SR" anymore)
-     - LevelBadge shows number only (no tier text in badge itself)
-   - Fantasy pricing: `price = max(5, min(40, round(5 + (level-1)/20 * 35)))`, budget = R$100
-   - Fantasy market closes every Monday at 16:00 BRT (19:00 UTC) of the round's start week
-3. **matches** - Individual match records (map, scores, date, external match ID)
-4. **matchStats** - Per-player statistics for each match including all 30+ detailed stat fields from CS2 server CSV
-5. **casinoBalances** - Virtual currency balances for casino system (starts at R$10M)
-6. **bets** - Player betting records with target player, amounts, odds, and status
-7. **betItems** - Individual bet conditions (kills over/under, K/D, headshots, etc.)
-8. **casinoTransactions** - Transaction history for balance changes (bets, wins, games)
-9. **trophies** - Monthly award medals tied to player profiles (type, month, year, title, description, value)
-10. **surveys** - Community survey responses (one per user, UNIQUE userId): bestPlayTimes[], faceitLevel, gcLevel, valveLevel, improvementSuggestions, reasonNotPlaying, attractMorePlayers, playMoreWays, generalOpinions, levelUpInfluenced (yes/no, required), levelUpInfluencedComment (required if yes)
-   - Types: best_player, best_kd, best_assists, best_hs, most_matches, worst_player, worst_kd, best_kills_avg
-   - Auto-generated when admin saves monthly rankings, or manually via admin API
-   - Displayed on user profile pages as medals/badges
+**API Endpoints:** Key API endpoints handle user management, match data retrieval and import, SteamID linking, and casino functionalities (balance, betting, slot, case opening).
 
-**Authentication & Authorization**
-- Dual login system: Replit OpenID Connect (via openid-client/Passport.js) AND Steam OpenID 2.0
-- Steam login: custom implementation using native `fetch`, no extra packages needed
-  - Route `/api/auth/steam` → redirects to Steam OpenID
-  - Route `/api/auth/steam/callback` → verifies assertion, extracts SteamID64, creates/links user
-  - If `STEAM_API_KEY` env var is set, fetches Steam nickname and avatar automatically
-  - Automatically links to existing user if SteamID64 is already in DB (e.g., from CSV import)
-  - New Steam users get ID format `steam_{steamId64}` with SteamID64 pre-filled
-- Role-based access control with `isAdmin` flag on user records
-- Protected API routes using `isAuthenticated` middleware (supports both Replit and Steam sessions)
-- Session management with 7-day cookie lifetime (Replit) or 1-year (Steam)
+**CSV Import System:** An admin-only feature allows importing match data from CS2 server CSVs. This system automatically calculates MVPs based on various performance metrics and recalculates aggregated user statistics.
 
-**Admin Bootstrap Logic**
-- The FIRST user to log in is automatically granted admin privileges (`isAdmin = true`)
-- All subsequent users are regular players by default (`isAdmin = false`)
-- Admin status is preserved across logins: the `upsertUser` function uses PostgreSQL ON CONFLICT with a SET clause that excludes `isAdmin`, ensuring existing roles are never overwritten
-- Admins can promote other users via the user management API (PATCH /api/users/:id)
+### Feature Specifications
 
-**API Endpoints**
-- `GET /api/auth/user` - Get current authenticated user
-- `GET /api/users` - Get all users (for rankings, mix balancing)
-- `PATCH /api/users/:id` - Update user stats (admin only)
-- `DELETE /api/users/:id` - Delete user (admin only)
-- `GET /api/matches` - Get all matches
-- `GET /api/users/:id/matches` - Get user's match stats
-- `POST /api/matches/import` - Import CSV match data from CS2 server (admin only, also resolves pending bets)
-- `POST /api/users/link-steam` - Link SteamID64 to user account
-- `GET /api/casino/balance` - Get user's virtual currency balance
-- `GET /api/casino/bets` - Get user's betting history
-- `POST /api/casino/bet` - Place a bet on a player's stats
-- `POST /api/casino/slot` - Play the tigrinho slot machine (10% win rate, 2x-50x multipliers)
-- `POST /api/casino/case` - Open a case (6 rarity tiers: consumidor to faca/luva)
-
-**CSV Import System**
-- Admin-only feature for importing match data from CS2 server CSV exports
-- Supports file upload or direct paste of CSV content
-- CSV format includes: matchid, mapnumber, steamid64, team, and 30+ statistical fields
-- Automatic player creation from Steam data if SteamID64 not found in system
-- Aggregated user statistics are recalculated after each import
-- Duplicate match detection based on external match ID
-- **Automatic MVP Calculation**: When importing a match, the system analyzes player performance and assigns MVP to the best performer based on:
-  - Kills (2 pts each), Assists (0.5 pts), K/D ratio (5 pts per ratio)
-  - Headshot percentage (up to 10 pts), Damage (0.01 pts per damage)
-  - Multi-kills: ACE (15 pts), 4K (10 pts), 3K (5 pts), 2K (2 pts)
-  - Clutches: 1v1 wins (8 pts), 1v2 wins (12 pts)
-  - Entry frags (3 pts each), Utility damage (0.02 pts per damage)
-  - Enemies flashed (0.5 pts each)
-
-### Build & Deployment Strategy
-
-**Development Mode**
-- Vite dev server with middleware mode integrated into Express
-- Hot Module Replacement (HMR) for rapid development
-- Source maps enabled for debugging
-- Replit-specific plugins for error overlays and development banners
-
-**Production Build**
-- Two-stage build process: Vite for client, esbuild for server
-- Client assets bundled to `dist/public`
-- Server code bundled to `dist/index.cjs` with selective dependency bundling
-- Static file serving from Express in production
+-   **Level Progression:** Players earn `levelPoints` (LP) based on match performance (Rating Inimigos, wins/losses, bonuses) to progress through levels and tiers (Bronze, Prata, Dourado, Lendário).
+-   **Streak System:** Tracks consecutive wins and applies bonus LP for streaks of 3 or more, displayed with a "Fire" icon.
+-   **Modifier Items:** Players can earn and use `desafio_rp` (doubles LP change) and `freeze_rp` (zeroes LP change) items, with daily activation limits.
+-   **Trophies:** Monthly award medals are generated and displayed on user profiles.
+-   **Copa Inimigos da Bala:** Tournament system with team registration, bracket management, player leaderboards, prize calculation, and rules.
+-   **Virtual Casino:** Includes betting on player stats, a slot machine, and case opening games, using a virtual currency.
+-   **Fantasy League:** A "Cartola FC"-style fantasy game where users pick players, and scores are based on real match performance.
 
 ## External Dependencies
 
 ### Core Infrastructure
-- **Neon Database** - Serverless PostgreSQL hosting with WebSocket support
-- **Replit Authentication** - OpenID Connect provider for user authentication
+-   **Neon Database:** Serverless PostgreSQL hosting.
+-   **Replit Authentication:** OpenID Connect provider.
 
 ### UI & Component Libraries
-- **Radix UI** - Headless accessible component primitives (dialogs, dropdowns, tooltips, etc.)
-- **shadcn/ui** - Pre-built component patterns on top of Radix UI
-- **Lucide React** - Icon library for UI elements
+-   **Radix UI:** Headless accessible component primitives.
+-   **shadcn/ui:** Pre-built component library.
+-   **Lucide React:** Icon library.
 
 ### Data & State Management
-- **TanStack Query** - Server state synchronization and caching
-- **Drizzle ORM** - Type-safe database queries and migrations
-- **Zod** - Runtime schema validation for API payloads
+-   **TanStack Query:** Server state synchronization and caching.
+-   **Drizzle ORM:** Type-safe database queries.
+-   **Zod:** Runtime schema validation.
 
 ### Development Tools
-- **TypeScript** - Type safety across frontend and backend
-- **Tailwind CSS** - Utility-first styling framework
-- **PostCSS & Autoprefixer** - CSS processing pipeline
+-   **TypeScript:** Language for type safety.
+-   **Tailwind CSS:** Utility-first styling framework.
 
 ### Authentication Stack
-- **Passport.js** - Authentication middleware
-- **openid-client** - OpenID Connect client implementation
-- **express-session** - Session management
-- **connect-pg-simple** - PostgreSQL session store
+-   **Passport.js:** Authentication middleware.
+-   **openid-client:** OpenID Connect client.
+-   **express-session:** Session management.
+-   **connect-pg-simple:** PostgreSQL session store.
 
 ### Supporting Libraries
-- **date-fns** - Date manipulation and formatting
-- **recharts** - Data visualization for statistics charts
-- **react-hook-form** - Form state management with validation
-- **class-variance-authority** - Variant-based component styling
+-   **date-fns:** Date manipulation.
+-   **recharts:** Data visualization.
+-   **react-hook-form:** Form state management.

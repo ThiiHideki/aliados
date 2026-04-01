@@ -409,7 +409,7 @@ export class DatabaseStorage implements IStorage {
       const kpr          = kills / Math.max(rounds, 1);
       const adr          = damage / Math.max(rounds, 1);
       const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
-      const utility      = (utilityDmg + enemiesFlash * 15) / Math.max(rounds, 1);
+      const utility      = (utilityDmg + enemiesFlash * 7.5) / Math.max(rounds, 1);
 
       const ri = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 

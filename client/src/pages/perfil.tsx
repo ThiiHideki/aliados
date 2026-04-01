@@ -12,7 +12,8 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import { 
   User, Trophy, Target, Crosshair, Shield, Star, TrendingUp, 
   Zap, Award, Eye, Link2, Check, AlertCircle, Edit2, Save, X,
-  Medal, CalendarDays, Handshake, Skull
+  Medal, CalendarDays, Handshake, Skull, Flame, Snowflake,
+  PlayCircle, XCircle, Package
 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -92,6 +93,64 @@ export default function Perfil() {
     staleTime: Infinity,
   });
 
+  const { data: itemsData, refetch: refetchItems } = useQuery<{
+    desafioRpCount: number;
+    freezeRpCount: number;
+    activeModifier: string | null;
+    itemsUsedToday: number;
+    winStreak: number;
+  }>({
+    queryKey: ['/api/me/items'],
+    staleTime: 0,
+  });
+
+  const activateModifierMutation = useMutation({
+    mutationFn: async (type: 'desafio_rp' | 'freeze_rp') => {
+      const res = await apiRequest('POST', '/api/me/modifier', { type });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Erro ao ativar modificador');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/me/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({ title: 'Modificador ativado!', description: 'Será aplicado na sua próxima partida importada.' });
+    },
+    onError: (e: Error) => {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    },
+  });
+
+  const cancelModifierMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest('DELETE', '/api/me/modifier');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Erro ao cancelar');
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/me/items'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({ title: 'Modificador cancelado', description: 'Item devolvido ao inventário.' });
+    },
+    onError: (e: Error) => {
+      toast({ title: 'Erro', description: e.message, variant: 'destructive' });
+    },
+  });
+
+  // Check if item activation is currently blocked (outside 07:00–19:00 BRT)
+  const isItemTimeBlocked = (() => {
+    const now = new Date();
+    const brtOffset = -3 * 60; // BRT = UTC-3
+    const brtTime = new Date(now.getTime() + brtOffset * 60 * 1000);
+    const h = brtTime.getUTCHours();
+    return h >= 19 || h < 7;
+  })();
+
   const MONTH_NAMES_SHORT = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
   const skillRatingEvolution = useMemo(() => {
@@ -160,6 +219,70 @@ export default function Perfil() {
       })
       .filter(d => d.matchesPlayed >= 3);
   }, [userMatchHistory, user]);
+
+  // LP Evolution: cumulative LP at end of each month (from match history)
+  const lpEvolution = useMemo(() => {
+    if (!userMatchHistory.length) return [];
+
+    // Helper: replicate RI formula on client side (mirrors routes.ts calcMatchLP)
+    const calcMatchLPClient = (
+      won: boolean, kills: number, damage: number, rounds: number,
+      entryWins: number, entryCount: number, utilityDamage: number,
+      enemiesFlashed: number, v1Wins: number, v2Wins: number,
+      mvps: number, enemy5ks: number, enemy4ks: number,
+    ): number => {
+      const r = Math.max(rounds, 1);
+      const kpr = kills / r;
+      const adr = damage / r;
+      const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
+      const utility = (utilityDamage + enemiesFlashed * 7.5) / r;
+      const ri = kpr * 0.35 + (adr / 100) * 0.35 + entrySuccess * 0.15 + utility * 0.15;
+      let lp = 0;
+      if (won) { lp = ri > 1.3 ? 25 : ri >= 1.0 ? 18 : 10; }
+      else      { lp = ri > 1.3 ? -2 : ri >= 1.0 ? -10 : -20; }
+      lp += v1Wins * 2 + v2Wins * 3 + mvps * 5 + enemy5ks * 5 + enemy4ks * 3;
+      return Math.max(-20, Math.min(40, lp));
+    };
+
+    // Sort matches chronologically
+    const sorted = [...userMatchHistory].sort(
+      (a, b) => new Date(a.match.date).getTime() - new Date(b.match.date).getTime()
+    );
+
+    let cumLP = 0;
+    const byMonth: Record<string, { lp: number; matchCount: number; level: number }> = {};
+
+    for (const { stats, match } of sorted) {
+      const rounds = ((match.team1Score || 0) + (match.team2Score || 0)) || 24;
+      const won = match.winnerTeam ? match.winnerTeam === stats.team : false;
+      const lp = calcMatchLPClient(
+        won,
+        stats.kills ?? 0, stats.damage ?? 0, rounds,
+        stats.entryWins ?? 0, stats.entryCount ?? 0,
+        stats.utilityDamage ?? 0, stats.enemiesFlashed ?? 0,
+        stats.v1Wins ?? 0, stats.v2Wins ?? 0,
+        stats.mvps ?? 0, stats.enemy5ks ?? 0, stats.enemy4ks ?? 0,
+      );
+      cumLP = Math.max(0, Math.min(2100, cumLP + lp));
+      const date = new Date(match.date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      const level = Math.min(21, Math.floor(cumLP / 100) + 1);
+      byMonth[key] = { lp: cumLP, matchCount: (byMonth[key]?.matchCount ?? 0) + 1, level };
+    }
+
+    return Object.entries(byMonth)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, d]) => {
+        const [yearStr, monthStr] = key.split('-');
+        const monthIdx = parseInt(monthStr) - 1;
+        return {
+          month: `${MONTH_NAMES_SHORT[monthIdx]}/${yearStr}`,
+          levelPoints: d.lp,
+          level: d.level,
+          matchCount: d.matchCount,
+        };
+      });
+  }, [userMatchHistory]);
 
   const generalRanking = (() => {
     if (!user || allUsers.length === 0) return { position: 0, total: 0 };
@@ -611,7 +734,7 @@ export default function Perfil() {
         </Card>
       </div>
 
-      {skillRatingEvolution.length > 0 && (
+      {lpEvolution.length > 0 && (
         <Card data-testid="card-skill-evolution">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -619,13 +742,13 @@ export default function Perfil() {
               Evolução de Desempenho
             </CardTitle>
             <CardDescription>
-              Score de desempenho calculado mês a mês com base nas suas partidas reais (mínimo 3 partidas por mês)
+              Progressão de LP acumulada mês a mês com base nas suas partidas reais
             </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="h-[250px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={skillRatingEvolution} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <LineChart data={lpEvolution} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                   <XAxis
                     dataKey="month"
@@ -633,7 +756,7 @@ export default function Perfil() {
                     className="fill-muted-foreground"
                   />
                   <YAxis
-                    domain={['dataMin - 50', 'dataMax + 50']}
+                    domain={[0, 2100]}
                     tick={{ fontSize: 12 }}
                     className="fill-muted-foreground"
                   />
@@ -645,17 +768,19 @@ export default function Perfil() {
                       fontSize: '13px',
                     }}
                     formatter={(value: number, _name: string, props: any) => {
-                      const matches = props.payload?.matchesPlayed;
+                      const lvl = props.payload?.level;
                       return [
-                        <span key="v" className="font-mono font-bold">{value}{matches ? ` (${matches} partidas)` : ''}</span>,
-                        'Score'
+                        <span key="v" className="font-mono font-bold">{value} LP{lvl ? ` — Nível ${lvl}` : ''}</span>,
+                        'Pontos'
                       ];
                     }}
                   />
-                  <ReferenceLine y={1000} stroke="hsl(var(--muted-foreground))" strokeDasharray="5 5" label={{ value: "Média (1000)", position: "insideTopRight", fontSize: 10, fill: "hsl(var(--muted-foreground))" }} />
+                  <ReferenceLine y={900}  stroke="hsl(var(--muted-foreground))" strokeDasharray="4 4" label={{ value: "Prata", position: "insideTopRight", fontSize: 9, fill: "hsl(var(--muted-foreground))" }} />
+                  <ReferenceLine y={1500} stroke="hsl(220 70% 60%)" strokeDasharray="4 4" label={{ value: "Dourado", position: "insideTopRight", fontSize: 9, fill: "hsl(220 70% 60%)" }} />
+                  <ReferenceLine y={2000} stroke="hsl(var(--primary))" strokeDasharray="4 4" label={{ value: "Lendário", position: "insideTopRight", fontSize: 9, fill: "hsl(var(--primary))" }} />
                   <Line
                     type="monotone"
-                    dataKey="skillRating"
+                    dataKey="levelPoints"
                     stroke="hsl(var(--primary))"
                     strokeWidth={3}
                     dot={{ r: 6, fill: "hsl(var(--primary))", strokeWidth: 2, stroke: "hsl(var(--background))" }}
@@ -665,22 +790,158 @@ export default function Perfil() {
               </ResponsiveContainer>
             </div>
             <div className="flex items-center justify-center gap-4 mt-3 text-sm text-muted-foreground flex-wrap">
-              {skillRatingEvolution.length >= 2 && (() => {
-                const first = skillRatingEvolution[0].skillRating as number;
-                const last = skillRatingEvolution[skillRatingEvolution.length - 1].skillRating as number;
+              {lpEvolution.length >= 2 && (() => {
+                const first = lpEvolution[0].levelPoints;
+                const last = lpEvolution[lpEvolution.length - 1].levelPoints;
                 const diff = last - first;
                 return (
                   <Badge variant={diff >= 0 ? "default" : "destructive"} className="font-mono">
                     <TrendingUp className={`h-3 w-3 mr-1 ${diff < 0 ? "rotate-180" : ""}`} />
-                    {diff >= 0 ? "+" : ""}{diff} pts no período
+                    {diff >= 0 ? "+" : ""}{diff} LP no período
                   </Badge>
                 );
               })()}
-              <span className="text-xs">{skillRatingEvolution.length} {skillRatingEvolution.length === 1 ? "mês" : "meses"} com dados</span>
+              <Badge variant="secondary" className="font-mono">
+                Nível atual: {Math.min(21, Math.floor((user?.levelPoints ?? 0) / 100) + 1)}
+              </Badge>
+              <span className="text-xs">{lpEvolution.length} {lpEvolution.length === 1 ? "mês" : "meses"} com dados</span>
             </div>
           </CardContent>
         </Card>
       )}
+
+      {/* ── Itens e Modificadores ─────────────────────────────────────── */}
+      <Card data-testid="card-items">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Package className="h-5 w-5 text-primary" />
+            Itens e Modificadores de RP
+          </CardTitle>
+          <CardDescription>
+            Ganhos completando objetivos. Use até 2 por dia entre 07:00 e 19:00 (BRT).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {/* Streak */}
+          {(itemsData?.winStreak ?? 0) >= 3 && (
+            <div className="flex items-center gap-3 p-3 rounded-md bg-orange-500/10 border border-orange-500/30">
+              <Flame className="h-6 w-6 text-orange-500 flex-shrink-0" />
+              <div>
+                <p className="font-semibold text-sm text-orange-400">
+                  Sequência de {itemsData?.winStreak} vitórias!
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  +{(itemsData?.winStreak ?? 0) >= 10 ? 12 : (itemsData?.winStreak ?? 0) >= 7 ? 8 : (itemsData?.winStreak ?? 0) >= 5 ? 5 : 3} LP bônus por vitória enquanto mantiver o streak
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Active Modifier */}
+          {itemsData?.activeModifier && (
+            <div className={`flex items-center justify-between gap-3 p-3 rounded-md border ${itemsData.activeModifier === 'desafio_rp' ? 'bg-primary/10 border-primary/30' : 'bg-blue-500/10 border-blue-500/30'}`}>
+              <div className="flex items-center gap-3">
+                {itemsData.activeModifier === 'desafio_rp'
+                  ? <Zap className="h-5 w-5 text-primary flex-shrink-0" />
+                  : <Snowflake className="h-5 w-5 text-blue-400 flex-shrink-0" />}
+                <div>
+                  <p className="font-semibold text-sm">
+                    {itemsData.activeModifier === 'desafio_rp' ? 'Desafio RP ativo' : 'Freeze RP ativo'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {itemsData.activeModifier === 'desafio_rp'
+                      ? 'LP dobrado na próxima partida importada'
+                      : 'LP zerado na próxima partida (sem perda)'}
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                data-testid="button-cancel-modifier"
+                onClick={() => cancelModifierMutation.mutate()}
+                disabled={cancelModifierMutation.isPending}
+              >
+                <XCircle className="h-4 w-4 mr-1" />
+                Cancelar
+              </Button>
+            </div>
+          )}
+
+          {/* Items inventory */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Desafio RP */}
+            <div className="p-4 rounded-md border bg-card space-y-3">
+              <div className="flex items-center gap-2">
+                <Zap className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="font-semibold text-sm">Desafio RP</p>
+                  <p className="text-xs text-muted-foreground">Dobra os LP ganhos ou perdidos</p>
+                </div>
+                <Badge variant="secondary" className="ml-auto font-mono">
+                  ×{itemsData?.desafioRpCount ?? 0}
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                className="w-full"
+                data-testid="button-activate-desafio-rp"
+                disabled={
+                  (itemsData?.desafioRpCount ?? 0) <= 0 ||
+                  !!itemsData?.activeModifier ||
+                  (itemsData?.itemsUsedToday ?? 0) >= 2 ||
+                  isItemTimeBlocked ||
+                  activateModifierMutation.isPending
+                }
+                onClick={() => activateModifierMutation.mutate('desafio_rp')}
+              >
+                <PlayCircle className="h-4 w-4 mr-1" />
+                {itemsData?.activeModifier ? 'Modificador já ativo' : isItemTimeBlocked ? 'Bloqueado (fora do horário)' : (itemsData?.itemsUsedToday ?? 0) >= 2 ? 'Limite diário atingido' : 'Ativar'}
+              </Button>
+            </div>
+
+            {/* Freeze RP */}
+            <div className="p-4 rounded-md border bg-card space-y-3">
+              <div className="flex items-center gap-2">
+                <Snowflake className="h-5 w-5 text-blue-400" />
+                <div>
+                  <p className="font-semibold text-sm">Freeze RP</p>
+                  <p className="text-xs text-muted-foreground">Zera ganhos/perdas (sem LP)</p>
+                </div>
+                <Badge variant="secondary" className="ml-auto font-mono">
+                  ×{itemsData?.freezeRpCount ?? 0}
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="w-full"
+                data-testid="button-activate-freeze-rp"
+                disabled={
+                  (itemsData?.freezeRpCount ?? 0) <= 0 ||
+                  !!itemsData?.activeModifier ||
+                  (itemsData?.itemsUsedToday ?? 0) >= 2 ||
+                  isItemTimeBlocked ||
+                  activateModifierMutation.isPending
+                }
+                onClick={() => activateModifierMutation.mutate('freeze_rp')}
+              >
+                <PlayCircle className="h-4 w-4 mr-1" />
+                {itemsData?.activeModifier ? 'Modificador já ativo' : isItemTimeBlocked ? 'Bloqueado (fora do horário)' : (itemsData?.itemsUsedToday ?? 0) >= 2 ? 'Limite diário atingido' : 'Ativar'}
+              </Button>
+            </div>
+          </div>
+
+          {/* How to earn */}
+          <div className="text-xs text-muted-foreground space-y-1 pt-1 border-t">
+            <p className="font-semibold text-foreground mb-1">Como ganhar itens:</p>
+            <p>• Fazer 1 ACE (5K) em uma partida → +1 de cada</p>
+            <p>• Ser MVP de uma partida → +1 de cada</p>
+            <p>• Jogar 5 dias diferentes → +1 de cada (marco único)</p>
+            <p>• Ter troféu no ranking do mês anterior → +1 de cada</p>
+          </div>
+        </CardContent>
+      </Card>
 
       {userTrophies.length > 0 && (
         <Card data-testid="card-trophies">

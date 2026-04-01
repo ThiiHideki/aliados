@@ -72,6 +72,14 @@ export const users = pgTable("users", {
   skillRating: integer("skill_rating").default(1000).notNull(),
   levelPoints: integer("level_points").default(0).notNull(),
   discordUserId: varchar("discord_user_id", { length: 32 }).unique(),
+  // Streak system
+  winStreak: integer("win_streak").default(0).notNull(),
+  // Modifier items
+  desafioRpCount: integer("desafio_rp_count").default(0).notNull(),
+  freezeRpCount: integer("freeze_rp_count").default(0).notNull(),
+  activeModifier: varchar("active_modifier", { length: 20 }),
+  itemsUsedToday: integer("items_used_today").default(0).notNull(),
+  itemsLastUsedDate: varchar("items_last_used_date", { length: 10 }),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });

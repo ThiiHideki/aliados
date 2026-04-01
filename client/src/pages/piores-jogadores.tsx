@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useQuery } from "@tanstack/react-query";
-import { Skull, AlertTriangle, Target, Crosshair, TrendingDown, Handshake } from "lucide-react";
+import { Skull, AlertTriangle, Target, Crosshair, TrendingDown, Handshake, Flame } from "lucide-react";
 import { Link } from "wouter";
 import type { User } from "@shared/schema";
 import type { ReactNode } from "react";
@@ -94,7 +94,15 @@ export default function PioresJogadores() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium hover:text-primary transition-colors">{player.nickname || player.firstName || "Jogador"}</div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-medium hover:text-primary transition-colors">{player.nickname || player.firstName || "Jogador"}</span>
+              {(player.winStreak ?? 0) >= 3 && (
+                <span title={`${player.winStreak} vitórias em sequência`} className="flex items-center text-orange-500">
+                  <Flame className="h-4 w-4" />
+                  <span className="text-xs font-bold leading-none">{player.winStreak}</span>
+                </span>
+              )}
+            </div>
             <div className="text-xs text-muted-foreground">{player.totalMatches} partidas</div>
           </div>
         </Link>
