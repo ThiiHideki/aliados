@@ -212,6 +212,9 @@ export default function PartidasMinhas() {
                           stats.enemiesFlashed ?? 0,
                           stats.v1Wins ?? 0,
                           stats.v2Wins ?? 0,
+                          stats.mvps ?? 0,
+                          stats.enemy5ks ?? 0,
+                          stats.enemy4ks ?? 0,
                         );
                         return (
                           <div className="text-center" data-testid={`stat-lp-${stats.id}`}>

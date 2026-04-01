@@ -376,7 +376,7 @@ export class DatabaseStorage implements IStorage {
 
     // ── Level Points (user-facing, accumulates per match ±LP) ────────────────
     // Start at 0 (Level 1 base). Each match adds/subtracts LP based on performance.
-    // Level = floor(levelPoints / 30) + 1, capped at 21.
+    // Level = floor(levelPoints / 100) + 1, capped at 21. Max LP = 2100.
     let levelPoints = 0;
     for (const { stats: stat, match } of userMatchStatsWithMatch) {
       const matchRounds = (match.team1Score || 0) + (match.team2Score || 0);
@@ -400,34 +400,40 @@ export class DatabaseStorage implements IStorage {
       const enemiesFlash = Number(stat.enemiesFlashed) || 0;
       const v1wins       = Number(stat.v1Wins)         || 0;
       const v2wins       = Number(stat.v2Wins)         || 0;
+      const mvps         = Number(stat.mvps)           || 0;
+      const enemy5ks     = Number(stat.enemy5ks)       || 0;
+      const enemy4ks     = Number(stat.enemy4ks)       || 0;
       const rounds       = matchRounds || 24;
 
-      // ── Rating Jacarézão ──────────────────────────────────────────────────────
+      // ── Rating Inimigos (RI) ──────────────────────────────────────────────────
       const kpr          = kills / Math.max(rounds, 1);
       const adr          = damage / Math.max(rounds, 1);
       const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
       const utility      = (utilityDmg + enemiesFlash * 15) / Math.max(rounds, 1);
 
-      const rj = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
+      const ri = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 
       // Lógica de vitória/derrota
       let lpMatch = 0;
       if (wonMatch) {
-        if      (rj > 1.3)  lpMatch = 25;
-        else if (rj >= 1.0) lpMatch = 18;
+        if      (ri > 1.3)  lpMatch = 25;
+        else if (ri >= 1.0) lpMatch = 18;
         else                lpMatch = 10;
       } else {
-        if      (rj > 1.3)  lpMatch = -2;
-        else if (rj >= 1.0) lpMatch = -10;
+        if      (ri > 1.3)  lpMatch = -2;
+        else if (ri >= 1.0) lpMatch = -10;
         else                lpMatch = -20;
       }
 
-      // Bônus de clutch
-      lpMatch += v1wins * 2;
-      lpMatch += v2wins * 3;
+      // Bônus de clutch, MVP e multi-kills
+      lpMatch += v1wins   * 2;
+      lpMatch += v2wins   * 3;
+      lpMatch += mvps     * 5;
+      lpMatch += enemy5ks * 5;
+      lpMatch += enemy4ks * 3;
 
-      const clampedLP = Math.max(-20, Math.min(28, lpMatch));
-      levelPoints = Math.max(0, Math.min(630, levelPoints + clampedLP));
+      const clampedLP = Math.max(-20, Math.min(40, lpMatch));
+      levelPoints = Math.max(0, Math.min(2100, levelPoints + clampedLP));
     }
 
     const [user] = await db
@@ -678,7 +684,7 @@ export class DatabaseStorage implements IStorage {
       totalFlashCount, totalFlashSuccesses, totalEnemiesFlashed, totalUtilityDamage,
       totalShotsFired, totalShotsOnTarget,
       skillRating: Math.max(100, Math.min(3000, skillRating)),
-      levelPoints: Math.max(0, Math.min(630, levelPoints)),
+      levelPoints: Math.max(0, Math.min(2100, levelPoints)),
       nickname: targetUser.nickname || sourceUser.nickname,
     };
 

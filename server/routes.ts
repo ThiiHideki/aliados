@@ -2868,24 +2868,25 @@ export async function registerRoutes(
 
   // Point calculation per match stat for fantasy
   // Calcula o preço de um jogador baseado no Level (escala de R$5 a R$40)
-  // Level = floor(levelPoints / 30) + 1, capped at 21
+  // Level = floor(levelPoints / 100) + 1, capped at 21
   // Com budget de R$100, é impossível escalar os 5 melhores
   function calcPlayerPrice(levelPoints: number): number {
-    const level = Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints) / 30) + 1));
+    const level = Math.max(1, Math.min(21, Math.floor(Math.max(0, levelPoints) / 100) + 1));
     return Math.max(5, Math.min(40, Math.round(5 + (level - 1) / 20 * 35)));
   }
 
-  // Calcula LP por partida — Rating Jacarézão
-  // RJ = (KPR×0.35) + (ADR/100×0.35) + (EntrySuccess×0.15) + (Utility×0.15)
-  // Vitória: RJ>1.3→+25 | RJ≥1.0→+18 | else→+10
-  // Derrota: RJ>1.3→-2  | RJ≥1.0→-10 | else→-20
-  // Bônus: v1wins×2, v2wins×3
+  // Calcula LP por partida — Rating Inimigos (RI)
+  // RI = (KPR×0.35) + (ADR/100×0.35) + (EntrySuccess×0.15) + (Utility×0.15)
+  // Vitória: RI>1.3→+25 | RI≥1.0→+18 | else→+10
+  // Derrota: RI>1.3→-2  | RI≥1.0→-10 | else→-20
+  // Bônus: v1wins×2, v2wins×3, mvp×5, 5K×5, 4K×3
   function calcMatchLP(
     won: boolean,
     kills: number, damage: number,
     rounds: number, entryWins: number, entryCount: number,
     utilityDamage: number, enemiesFlashed: number,
     v1Wins: number, v2Wins: number,
+    mvps: number = 0, enemy5ks: number = 0, enemy4ks: number = 0,
   ): number {
     const r            = Math.max(rounds, 1);
     const kpr          = kills / r;
@@ -2893,23 +2894,26 @@ export async function registerRoutes(
     const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
     const utility      = (utilityDamage + enemiesFlashed * 15) / r;
 
-    const rj = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
+    const ri = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 
     let lp = 0;
     if (won) {
-      if      (rj > 1.3)  lp = 25;
-      else if (rj >= 1.0) lp = 18;
+      if      (ri > 1.3)  lp = 25;
+      else if (ri >= 1.0) lp = 18;
       else                lp = 10;
     } else {
-      if      (rj > 1.3)  lp = -2;
-      else if (rj >= 1.0) lp = -10;
+      if      (ri > 1.3)  lp = -2;
+      else if (ri >= 1.0) lp = -10;
       else                lp = -20;
     }
 
-    lp += v1Wins * 2;
-    lp += v2Wins * 3;
+    lp += v1Wins   * 2;
+    lp += v2Wins   * 3;
+    lp += mvps     * 5;
+    lp += enemy5ks * 5;
+    lp += enemy4ks * 3;
 
-    return Math.max(-20, Math.min(28, lp));
+    return Math.max(-20, Math.min(40, lp));
   }
 
   // Retorna se o mercado do fantasy está aberto para uma rodada

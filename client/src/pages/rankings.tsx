@@ -243,7 +243,7 @@ export default function Rankings() {
           <CollapsibleContent>
             <CardContent className="space-y-5">
               <p className="text-sm text-muted-foreground">
-                Sistema de progressão do <strong className="text-foreground">Nível 1</strong> ao <strong className="text-foreground">Nível 21</strong>. A cada partida você ganha ou perde LP com base no seu desempenho individual, medido pelo <strong className="text-foreground">Rating Jacarézão (RJ)</strong>.
+                Sistema de progressão do <strong className="text-foreground">Nível 1</strong> ao <strong className="text-foreground">Nível 21</strong>. A cada partida você ganha ou perde LP com base no seu desempenho individual, medido pelo <strong className="text-foreground">Rating Inimigos (RI)</strong>.
               </p>
 
               {/* Tiers */}
@@ -251,10 +251,10 @@ export default function Rankings() {
                 <h4 className="text-sm font-semibold mb-2">Divisões</h4>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
                   {[
-                    { label: "Bronze",   sub: "Níveis 1–9",   lp: "0–269 LP",   color: "text-amber-600 bg-amber-700/10 border-amber-700/30" },
-                    { label: "Prata",    sub: "Níveis 10–15",  lp: "270–449 LP", color: "text-slate-300 bg-slate-400/10 border-slate-400/30" },
-                    { label: "Dourado",  sub: "Níveis 16–20",  lp: "450–599 LP", color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
-                    { label: "Lendário", sub: "Nível 21",      lp: "600 LP MAX", color: "text-teal-400 bg-teal-400/10 border-teal-400/30" },
+                    { label: "Bronze",   sub: "Níveis 1–9",   lp: "0–899 LP",    color: "text-amber-600 bg-amber-700/10 border-amber-700/30" },
+                    { label: "Prata",    sub: "Níveis 10–15",  lp: "900–1499 LP", color: "text-slate-300 bg-slate-400/10 border-slate-400/30" },
+                    { label: "Dourado",  sub: "Níveis 16–20",  lp: "1500–1999 LP",color: "text-yellow-400 bg-yellow-400/10 border-yellow-400/30" },
+                    { label: "Lendário", sub: "Nível 21",      lp: "2000 LP MAX", color: "text-teal-400 bg-teal-400/10 border-teal-400/30" },
                   ].map(t => (
                     <div key={t.label} className={`rounded-md border p-2 ${t.color}`}>
                       <div className="text-xs font-bold">{t.label}</div>
@@ -263,24 +263,24 @@ export default function Rankings() {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-muted-foreground mt-2">Cada nível exige <strong className="text-foreground">30 LP</strong>. O nível máximo é <strong className="text-foreground">21</strong> com 600 LP.</p>
+                <p className="text-xs text-muted-foreground mt-2">Cada nível exige <strong className="text-foreground">100 LP</strong>. O nível máximo é <strong className="text-foreground">21</strong> com 2000+ LP.</p>
               </div>
 
-              {/* Rating Jacarézão */}
+              {/* Rating Inimigos */}
               <div>
                 <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
                   <Zap className="h-4 w-4 text-orange-400" />
-                  Rating Jacarézão (RJ)
+                  Rating Inimigos (RI)
                 </h4>
                 <p className="text-xs text-muted-foreground mb-3">
                   Mede sua performance individual por round. É calculado com 4 componentes:
                 </p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {[
-                    { label: "KPR",     peso: "35%", formula: "Kills ÷ Rounds",                          desc: "Kills por round" },
-                    { label: "ADR",     peso: "35%", formula: "Dano ÷ Rounds ÷ 100",                     desc: "Dano médio por round" },
-                    { label: "Entry",   peso: "15%", formula: "EntryWins ÷ EntryCount",                   desc: "Taxa de first-blood" },
-                    { label: "Utility", peso: "15%", formula: "(UtilDmg + Flash×15) ÷ Rounds",            desc: "Impacto com granadas" },
+                    { label: "KPR",     peso: "35%", formula: "Kills ÷ Rounds",               desc: "Kills por round" },
+                    { label: "ADR",     peso: "35%", formula: "Dano ÷ Rounds ÷ 100",          desc: "Dano médio por round" },
+                    { label: "Entry",   peso: "15%", formula: "EntryWins ÷ EntryCount",        desc: "Taxa de first-blood" },
+                    { label: "Utility", peso: "15%", formula: "(UtilDmg + Flash×15) ÷ Rounds", desc: "Impacto com granadas" },
                   ].map(c => (
                     <div key={c.label} className="flex items-start gap-2 p-2 rounded-md bg-muted/40 border border-border/50">
                       <Badge variant="outline" className="text-orange-400 border-orange-400/40 shrink-0 font-mono text-[10px]">{c.peso}</Badge>
@@ -305,18 +305,18 @@ export default function Rankings() {
                     <thead>
                       <tr className="bg-muted/60 border-b">
                         <th className="text-left px-3 py-2 font-semibold">Resultado</th>
-                        <th className="text-left px-3 py-2 font-semibold">Rating RJ</th>
+                        <th className="text-left px-3 py-2 font-semibold">Rating RI</th>
                         <th className="text-right px-3 py-2 font-semibold">LP</th>
                       </tr>
                     </thead>
                     <tbody>
                       {[
-                        { result: "Vitória", rj: "RJ > 1.3",  lp: "+25", win: true,  strong: true  },
-                        { result: "Vitória", rj: "RJ ≥ 1.0",  lp: "+18", win: true,  strong: false },
-                        { result: "Vitória", rj: "RJ < 1.0",  lp: "+10", win: true,  strong: false },
-                        { result: "Derrota", rj: "RJ > 1.3",  lp: "−2",  win: false, strong: false },
-                        { result: "Derrota", rj: "RJ ≥ 1.0",  lp: "−10", win: false, strong: false },
-                        { result: "Derrota", rj: "RJ < 1.0",  lp: "−20", win: false, strong: true  },
+                        { result: "Vitória", ri: "RI > 1.3",  lp: "+25", win: true  },
+                        { result: "Vitória", ri: "RI ≥ 1.0",  lp: "+18", win: true  },
+                        { result: "Vitória", ri: "RI < 1.0",  lp: "+10", win: true  },
+                        { result: "Derrota", ri: "RI > 1.3",  lp: "−2",  win: false },
+                        { result: "Derrota", ri: "RI ≥ 1.0",  lp: "−10", win: false },
+                        { result: "Derrota", ri: "RI < 1.0",  lp: "−20", win: false },
                       ].map((row, i) => (
                         <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
                           <td className="px-3 py-2">
@@ -325,7 +325,7 @@ export default function Rankings() {
                               : <span className="text-red-400 font-medium flex items-center gap-1"><TrendingDown className="h-3 w-3" />Derrota</span>
                             }
                           </td>
-                          <td className="px-3 py-2 font-mono text-muted-foreground">{row.rj}</td>
+                          <td className="px-3 py-2 font-mono text-muted-foreground">{row.ri}</td>
                           <td className="px-3 py-2 text-right">
                             <span className={`font-mono font-bold ${row.win ? "text-green-400" : "text-red-400"}`}>{row.lp}</span>
                           </td>
@@ -336,21 +336,25 @@ export default function Rankings() {
                 </div>
               </div>
 
-              {/* Clutch bonuses */}
+              {/* Bonuses */}
               <div>
                 <h4 className="text-sm font-semibold mb-2 flex items-center gap-1.5">
-                  <Shield className="h-4 w-4 text-blue-400" />
-                  Bônus de Clutch
+                  <Star className="h-4 w-4 text-yellow-500" />
+                  Bônus por Destaque
                 </h4>
-                <div className="flex gap-3">
-                  <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-md border bg-blue-500/5 border-blue-500/20 text-xs">
-                    <span className="text-muted-foreground">Clutch 1v1 vencido</span>
-                    <span className="font-mono font-bold text-blue-400">+2 LP</span>
-                  </div>
-                  <div className="flex-1 flex items-center justify-between px-3 py-2 rounded-md border bg-blue-500/10 border-blue-500/30 text-xs">
-                    <span className="text-muted-foreground">Clutch 1v2 vencido</span>
-                    <span className="font-mono font-bold text-blue-400">+3 LP</span>
-                  </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  {[
+                    { label: "Clutch 1v1",    value: "+2 LP / clutch", color: "text-blue-400",   border: "border-blue-500/20",   bg: "bg-blue-500/5"    },
+                    { label: "Clutch 1v2",    value: "+3 LP / clutch", color: "text-blue-400",   border: "border-blue-500/30",   bg: "bg-blue-500/10"   },
+                    { label: "MVP",           value: "+5 LP",          color: "text-yellow-400", border: "border-yellow-500/30", bg: "bg-yellow-500/10" },
+                    { label: "ACE (5K)",      value: "+5 LP / ACE",    color: "text-orange-400", border: "border-orange-500/30", bg: "bg-orange-500/10" },
+                    { label: "4K (quad-kill)",value: "+3 LP / 4K",    color: "text-purple-400", border: "border-purple-500/30", bg: "bg-purple-500/10" },
+                  ].map(b => (
+                    <div key={b.label} className={`flex items-center justify-between px-3 py-2 rounded-md border ${b.bg} ${b.border}`}>
+                      <span className="text-muted-foreground">{b.label}</span>
+                      <span className={`font-mono font-bold ${b.color}`}>{b.value}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
@@ -358,12 +362,12 @@ export default function Rankings() {
               <div className="p-3 rounded-md border bg-yellow-500/5 border-yellow-500/20">
                 <p className="text-xs font-semibold text-yellow-400 mb-1">Proteção ao MVP da Derrota</p>
                 <p className="text-xs text-muted-foreground">
-                  Se você foi o melhor jogador mesmo perdendo (RJ &gt; 1.3), perde apenas <strong className="text-foreground">2 LP</strong> em vez de 20. Boas performances são reconhecidas independente do resultado.
+                  Se você foi o melhor jogador mesmo perdendo (RI &gt; 1.3), perde apenas <strong className="text-foreground">2 LP</strong> em vez de 20. Boas performances são reconhecidas independente do resultado.
                 </p>
               </div>
 
               <p className="text-xs text-muted-foreground text-center border-t pt-3">
-                LP mínimo por partida: −20 · LP máximo por partida: +28 (com bônus de clutch)
+                LP mínimo por partida: −20 · LP máximo por partida: +40 (com bônus)
               </p>
             </CardContent>
           </CollapsibleContent>
