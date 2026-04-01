@@ -3262,7 +3262,7 @@ export async function registerRoutes(
 
       // Fetch level_points for each selected player to calculate prices
       const playerRows = await db.execute(
-        sql`SELECT id, level_points FROM users WHERE id = ANY(${playerIds}::varchar[])`
+        sql`SELECT id, level_points FROM users WHERE id IN (${sql.join(playerIds.map((id: string) => sql`${id}`), sql`, `)})`
       );
       const lpMap: Record<string, number> = {};
       for (const row of playerRows.rows as any[]) {
