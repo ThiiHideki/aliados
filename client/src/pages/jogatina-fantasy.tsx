@@ -444,6 +444,12 @@ export default function JogatinaFantasy() {
     queryKey: ["/api/fantasy/rounds"],
   });
 
+  const { data: playersData } = useQuery<{ players: FantasyPlayer[]; budget: number }>({
+    queryKey: ["/api/fantasy/players"],
+    queryFn: () => fetch("/api/fantasy/players", { credentials: "include" }).then(r => r.json()),
+  });
+  const statsMap = Object.fromEntries((playersData?.players ?? []).map(p => [p.id, p]));
+
   const { data: activeRound, isLoading: roundLoading } = useQuery<Round | null>({
     queryKey: ["/api/fantasy/rounds/active"],
     queryFn: () => fetch("/api/fantasy/rounds/active", { credentials: "include" }).then(r => r.json()),
@@ -575,27 +581,47 @@ export default function JogatinaFantasy() {
                 )}
                 {picks.map(pick => {
                   const name = displayName(pick as any);
+                  const ps = statsMap[pick.picked_user_id];
                   return (
-                    <div key={pick.id} className="flex items-center gap-3 p-3 rounded-md bg-muted/30"
+                    <div key={pick.id} className="p-3 rounded-md bg-muted/30 space-y-2"
                       data-testid={`pick-row-${pick.picked_user_id}`}>
-                      <Avatar className="w-9 h-9 shrink-0">
-                        <AvatarImage src={pick.profile_image_url || undefined} />
-                        <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold truncate">{name}</p>
-                        {activeRound.status !== "open" ? (
-                          <p className="text-xs text-muted-foreground">{pick.points.toFixed(1)} pts</p>
-                        ) : (
+                      <div className="flex items-center gap-3">
+                        <Avatar className="w-9 h-9 shrink-0">
+                          <AvatarImage src={pick.profile_image_url || undefined} />
+                          <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-semibold truncate">{name}</p>
                           <p className="text-xs text-muted-foreground flex items-center gap-1">
                             <DollarSign className="w-3 h-3" /> R${pick.price ?? 0}
+                            {ps && <span className="ml-1">· {ps.total_matches} {ps.total_matches === 1 ? "partida" : "partidas"}</span>}
                           </p>
-                        )}
+                        </div>
+                        {activeRound.status !== "open"
+                          ? <span className="text-sm font-bold text-primary shrink-0">{pick.points.toFixed(1)} pts</span>
+                          : <PriceTierBadge price={pick.price ?? 0} />
+                        }
                       </div>
-                      {activeRound.status !== "open"
-                        ? <span className="text-sm font-bold text-primary shrink-0">{pick.points.toFixed(1)} pts</span>
-                        : <PriceTierBadge price={pick.price ?? 0} />
-                      }
+                      {ps && ps.total_matches > 0 && (
+                        <div className="grid grid-cols-4 gap-1 pt-1 border-t border-border/50">
+                          <div className="text-center">
+                            <p className="text-[10px] text-muted-foreground leading-tight">K/D</p>
+                            <p className="text-xs font-bold tabular-nums">{ps.kd_ratio.toFixed(2)}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] text-muted-foreground leading-tight">ADR</p>
+                            <p className="text-xs font-bold tabular-nums">{ps.avg_damage.toFixed(0)}</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] text-muted-foreground leading-tight">HS%</p>
+                            <p className="text-xs font-bold tabular-nums">{ps.hs_pct.toFixed(0)}%</p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] text-muted-foreground leading-tight">Kills/P</p>
+                            <p className="text-xs font-bold tabular-nums">{ps.avg_kills.toFixed(1)}</p>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
