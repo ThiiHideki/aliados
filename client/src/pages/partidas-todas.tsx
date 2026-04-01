@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { Gamepad2, Calendar, MapPin, Trophy, Target, Skull, Crosshair, Star, ChevronDown, ChevronUp, Users, TrendingUp, TrendingDown } from "lucide-react";
-import { Link } from "wouter";
+import { Link, useSearch } from "wouter";
 import type { Match, MatchStats } from "@shared/schema";
 import { calculateMatchLP } from "@/lib/level-utils";
 
@@ -23,13 +23,27 @@ type MatchWithStats = {
 };
 
 export default function PartidasTodas() {
-  const [expandedMatches, setExpandedMatches] = useState<Set<number>>(new Set());
-  
+  const searchString = useSearch();
+  const highlightMatchId = new URLSearchParams(searchString).get('match');
+
+  const [expandedMatches, setExpandedMatches] = useState<Set<string>>(() =>
+    highlightMatchId ? new Set([highlightMatchId]) : new Set()
+  );
+  const matchRefs = useRef<Record<string, HTMLDivElement | null>>({});
+
   const { data: matchesWithStats = [], isLoading } = useQuery<MatchWithStats[]>({
     queryKey: ["/api/matches/with-stats"],
   });
 
-  const toggleExpand = (matchId: number) => {
+  useEffect(() => {
+    if (!highlightMatchId || isLoading) return;
+    const timer = setTimeout(() => {
+      matchRefs.current[highlightMatchId]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [highlightMatchId, isLoading]);
+
+  const toggleExpand = (matchId: string) => {
     setExpandedMatches(prev => {
       const next = new Set(prev);
       if (next.has(matchId)) {
@@ -138,7 +152,8 @@ export default function PartidasTodas() {
                 return (
                   <div
                     key={match.id}
-                    className="p-4 bg-background/50 rounded-lg border space-y-3"
+                    ref={(el) => { matchRefs.current[match.id] = el; }}
+                    className={`p-4 rounded-lg border space-y-3 transition-colors ${highlightMatchId === match.id ? 'bg-primary/5 ring-2 ring-primary/40' : 'bg-background/50'}`}
                     data-testid={`match-card-${match.id}`}
                   >
                     <div className="flex items-center justify-between flex-wrap gap-4">
@@ -230,8 +245,54 @@ export default function PartidasTodas() {
                       </Button>
                     </div>
                     
-                    {isExpanded && sortedStats.length > 0 && (
-                      <div className="pt-2 border-t border-border/50 space-y-2" data-testid={`player-stats-${match.id}`}>
+                    {isExpanded && sortedStats.length > 0 && (() => {
+                      const totalRounds = (match.team1Score ?? 0) + (match.team2Score ?? 0);
+
+                      const renderStatRow = (stat: MatchStats, idx: number, teamWon: boolean) => {
+                        const kd = stat.deaths > 0 ? (stat.kills / stat.deaths).toFixed(2) : stat.kills.toFixed(2);
+                        const isTopKiller = aggregated.topKiller?.id === stat.id;
+                        const isMvp = aggregated.mvpPlayer?.id === stat.id;
+                        const lp = calculateMatchLP(
+                          teamWon, stat.kills, stat.damage ?? 0, totalRounds,
+                          stat.entryWins ?? 0, stat.entryCount ?? 0, stat.utilityDamage ?? 0,
+                          stat.enemiesFlashed ?? 0, stat.v1Wins ?? 0, stat.v2Wins ?? 0,
+                          stat.mvps ?? 0, stat.enemy5ks ?? 0, stat.enemy4ks ?? 0,
+                        );
+                        return (
+                          <div
+                            key={stat.id}
+                            className={`grid grid-cols-8 gap-2 text-sm px-2 py-2 rounded ${idx % 2 === 0 ? 'bg-muted/30' : ''} ${isTopKiller ? 'ring-1 ring-amber-500/50' : ''}`}
+                            data-testid={`player-stat-row-${stat.id}`}
+                          >
+                            <div className="flex items-center gap-2 truncate">
+                              {isMvp && <Star className="h-3 w-3 text-amber-500 flex-shrink-0" />}
+                              {stat.userId ? (
+                                <Link href={`/jogador/${stat.userId}`}>
+                                  <span className="truncate font-medium text-primary hover:underline cursor-pointer" data-testid={`link-player-${stat.id}`}>
+                                    {stat.playerName || 'Jogador'}
+                                  </span>
+                                </Link>
+                              ) : (
+                                <span className="truncate font-medium">{stat.playerName || 'Jogador'}</span>
+                              )}
+                            </div>
+                            <div className="text-center font-mono text-green-500">{stat.kills}</div>
+                            <div className="text-center font-mono text-red-500">{stat.deaths}</div>
+                            <div className="text-center font-mono text-blue-500">{stat.assists}</div>
+                            <div className="text-center font-mono text-purple-500">{kd}</div>
+                            <div className="text-center font-mono text-orange-500">{stat.headshots}</div>
+                            <div className="text-center font-mono text-yellow-500">{stat.damage.toLocaleString('pt-BR')}</div>
+                            <div className="text-center" data-testid={`stat-lp-${stat.id}`}>
+                              <span className={`font-mono font-bold text-xs flex items-center justify-center gap-0.5 ${lp > 0 ? 'text-green-400' : lp < 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
+                                {lp > 0 ? <TrendingUp className="h-3 w-3" /> : lp < 0 ? <TrendingDown className="h-3 w-3" /> : null}
+                                {lp > 0 ? `+${lp}` : `${lp}`}
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      };
+
+                      const colHeaders = (
                         <div className="grid grid-cols-8 gap-2 text-xs font-medium text-muted-foreground px-2 py-1">
                           <div>Jogador</div>
                           <div className="text-center">K</div>
@@ -242,86 +303,47 @@ export default function PartidasTodas() {
                           <div className="text-center">DMG</div>
                           <div className="text-center">LP</div>
                         </div>
-                        {sortedStats.map((stat, idx) => {
-                          const kd = stat.deaths > 0 ? (stat.kills / stat.deaths).toFixed(2) : stat.kills.toFixed(2);
-                          const isTopKiller = aggregated.topKiller?.id === stat.id;
-                          const isMvp = aggregated.mvpPlayer?.id === stat.id;
+                      );
 
-                          // Determinar vitória/derrota do jogador nesta partida
-                          const totalRounds = (match.team1Score ?? 0) + (match.team2Score ?? 0);
-                          const playerTeam = stat.team;
-                          let won = false;
-                          if (match.winnerTeam) {
-                            won = match.winnerTeam === playerTeam;
-                          } else {
-                            const isTeam1 = playerTeam === match.team1Name;
-                            const t1 = match.team1Score ?? 0;
-                            const t2 = match.team2Score ?? 0;
-                            won = isTeam1 ? t1 > t2 : t2 > t1;
-                          }
+                      const teams = [
+                        { key: 'ct', label: 'CT', teamName: match.team1Name, score: match.team1Score, won: ctWon, headerColor: 'text-blue-400', bg: ctWon ? 'bg-blue-500/10' : 'bg-muted/20' },
+                        { key: 'tr', label: 'TR', teamName: match.team2Name, score: match.team2Score, won: trWon, headerColor: 'text-orange-400', bg: trWon ? 'bg-orange-500/10' : 'bg-muted/20' },
+                      ];
 
-                          const lp = playerTeam
-                            ? calculateMatchLP(
-                                won,
-                                stat.kills,
-                                stat.damage ?? 0,
-                                totalRounds,
-                                stat.entryWins ?? 0,
-                                stat.entryCount ?? 0,
-                                stat.utilityDamage ?? 0,
-                                stat.enemiesFlashed ?? 0,
-                                stat.v1Wins ?? 0,
-                                stat.v2Wins ?? 0,
-                                stat.mvps ?? 0,
-                                stat.enemy5ks ?? 0,
-                                stat.enemy4ks ?? 0,
-                              )
-                            : null;
-
-                          return (
-                            <div 
-                              key={stat.id} 
-                              className={`grid grid-cols-8 gap-2 text-sm px-2 py-2 rounded ${idx % 2 === 0 ? 'bg-muted/30' : ''} ${isTopKiller ? 'ring-1 ring-amber-500/50' : ''}`}
-                              data-testid={`player-stat-row-${stat.id}`}
-                            >
-                              <div className="flex items-center gap-2 truncate">
-                                {isMvp && <Star className="h-3 w-3 text-amber-500 flex-shrink-0" />}
-                                {stat.userId ? (
-                                  <Link href={`/jogador/${stat.userId}`}>
-                                    <span className="truncate font-medium text-primary hover:underline cursor-pointer" data-testid={`link-player-${stat.id}`}>
-                                      {stat.playerName || 'Jogador'}
-                                    </span>
-                                  </Link>
-                                ) : (
-                                  <span className="truncate font-medium">{stat.playerName || 'Jogador'}</span>
-                                )}
+                      return (
+                        <div className="pt-2 border-t border-border/50 space-y-4" data-testid={`player-stats-${match.id}`}>
+                          {teams.map(({ key, label, teamName, score, won, headerColor, bg }) => {
+                            const teamStats = sortedStats.filter(s => s.team === teamName);
+                            if (teamStats.length === 0) return null;
+                            return (
+                              <div key={key} className="space-y-1">
+                                <div className={`flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold ${bg}`}>
+                                  <span className={`${headerColor} font-bold`}>{label}</span>
+                                  <span className="text-muted-foreground font-normal truncate">{teamName || '—'}</span>
+                                  <span className={`ml-auto font-mono font-bold text-sm ${won ? 'text-green-400' : 'text-red-400'}`}>{score}</span>
+                                </div>
+                                {colHeaders}
+                                {teamStats.map((stat, idx) => renderStatRow(stat, idx, won))}
                               </div>
-                              <div className="text-center font-mono text-green-500">{stat.kills}</div>
-                              <div className="text-center font-mono text-red-500">{stat.deaths}</div>
-                              <div className="text-center font-mono text-blue-500">{stat.assists}</div>
-                              <div className="text-center font-mono text-purple-500">{kd}</div>
-                              <div className="text-center font-mono text-orange-500">{stat.headshots}</div>
-                              <div className="text-center font-mono text-yellow-500">{stat.damage.toLocaleString('pt-BR')}</div>
-                              <div className="text-center" data-testid={`stat-lp-${stat.id}`}>
-                                {lp !== null ? (
-                                  <span className={`font-mono font-bold text-xs flex items-center justify-center gap-0.5 ${lp > 0 ? 'text-green-400' : lp < 0 ? 'text-red-400' : 'text-muted-foreground'}`}>
-                                    {lp > 0
-                                      ? <TrendingUp className="h-3 w-3" />
-                                      : lp < 0
-                                        ? <TrendingDown className="h-3 w-3" />
-                                        : null
-                                    }
-                                    {lp > 0 ? `+${lp}` : `${lp}`}
-                                  </span>
-                                ) : (
-                                  <span className="text-muted-foreground text-xs">—</span>
-                                )}
+                            );
+                          })}
+                          {(() => {
+                            const knownTeams = [match.team1Name, match.team2Name];
+                            const unknownStats = sortedStats.filter(s => !knownTeams.includes(s.team));
+                            if (unknownStats.length === 0) return null;
+                            return (
+                              <div className="space-y-1">
+                                <div className="flex items-center gap-2 px-3 py-1.5 rounded text-xs font-semibold bg-muted/20">
+                                  <span className="text-muted-foreground">Outros</span>
+                                </div>
+                                {colHeaders}
+                                {unknownStats.map((stat, idx) => renderStatRow(stat, idx, false))}
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                            );
+                          })()}
+                        </div>
+                      );
+                    })()}
                   </div>
                 );
               })}

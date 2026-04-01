@@ -2,9 +2,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
-import { History, Trophy, Target, Skull, Calendar, CheckCircle, XCircle, TrendingUp, Star, TrendingDown } from "lucide-react";
+import { History, Trophy, Target, Skull, Calendar, CheckCircle, XCircle, TrendingUp, Star, TrendingDown, ExternalLink } from "lucide-react";
 import type { MatchStats, Match } from "@shared/schema";
 import { calculateMatchLP } from "@/lib/level-utils";
+import { useLocation } from "wouter";
 
 type MatchStatsWithMatch = {
   stats: MatchStats;
@@ -13,6 +14,7 @@ type MatchStatsWithMatch = {
 
 export default function PartidasMinhas() {
   const { user } = useAuth();
+  const [, setLocation] = useLocation();
   
   const { data: matchData = [], isLoading } = useQuery<MatchStatsWithMatch[]>({
     queryKey: ["/api/users", user?.id, "matches"],
@@ -145,7 +147,8 @@ export default function PartidasMinhas() {
                 return (
                   <div
                     key={stats.id}
-                    className={`flex items-center justify-between p-4 rounded-lg border ${
+                    onClick={() => setLocation(`/partidas/todas?match=${match.id}`)}
+                    className={`flex items-center justify-between p-4 rounded-lg border cursor-pointer hover-elevate ${
                       result === "win" 
                         ? "bg-green-500/5 border-green-500/30" 
                         : result === "loss" 
