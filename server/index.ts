@@ -5,6 +5,15 @@ import { createServer } from "http";
 import { initDiscordBot } from "./discord";
 import { sendInitialNotificationsIfNeeded } from "./initial-notifications";
 
+// Keep the process alive when Neon or other async errors are thrown
+process.on('unhandledRejection', (reason: any) => {
+  console.error('Unhandled promise rejection:', reason?.message ?? reason);
+});
+process.on('uncaughtException', (err: any) => {
+  if (err?.code === '57P01') return; // Neon idle-connection termination — ignore
+  console.error('Uncaught exception:', err?.message ?? err);
+});
+
 const app = express();
 const httpServer = createServer(app);
 
