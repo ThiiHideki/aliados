@@ -1,4 +1,5 @@
 import { getLevel, getLevelTier, TIER_CONFIG, getLPInLevel, LP_PER_LEVEL } from "@/lib/level-utils";
+import { LevelSystemInfoButton } from "@/components/ui/level-system-info";
 import { cn } from "@/lib/utils";
 
 interface LevelBadgeProps {
@@ -84,6 +85,7 @@ export function LevelProgress({ levelPoints, className }: LevelProgressProps) {
         <div className="flex items-center gap-2">
           <LevelBadge levelPoints={levelPoints} size="sm" />
           <span className={cn("text-sm font-medium", cfg.color)}>{cfg.label}</span>
+          <LevelSystemInfoButton />
         </div>
         {isMaxLevel ? (
           <span className="text-xs text-muted-foreground font-mono">MAX</span>

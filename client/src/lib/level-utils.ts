@@ -81,33 +81,67 @@ export function getLevelColor(levelPoints: number): string {
 }
 
 /**
- * Calculate LP earned/lost for a single match.
- * @param result "win" | "loss" | "unknown"
- * @param kills
- * @param deaths
- * @param damage
- * @param rounds total rounds played in the match (team1Score + team2Score)
- * @param aces enemy5ks for the player
- * @param v2Wins clutch 1v2 wins
+ * Calcula o Rating Jacarézão (RJ) de uma partida.
+ * RJ = (KPR × 0.35) + (ADR/100 × 0.35) + (EntrySuccess × 0.15) + (Utility × 0.15)
+ * Utility = (utilityDamage + enemiesFlashed × 15) / rounds
+ *
+ * Vitória: RJ > 1.3 → +25 | RJ ≥ 1.0 → +18 | else → +10
+ * Derrota: RJ > 1.3 → −2  | RJ ≥ 1.0 → −10 | else → −20
+ * Bônus: v1Wins × 2, v2Wins × 3 | Faixa: −20 a +28
  */
 export function calculateMatchLP(
-  result: "win" | "loss" | "unknown",
+  won: boolean,
   kills: number,
-  deaths: number,
   damage: number,
   rounds: number,
-  aces: number,
+  entryWins: number,
+  entryCount: number,
+  utilityDamage: number,
+  enemiesFlashed: number,
+  v1Wins: number,
   v2Wins: number,
 ): number {
-  if (result === "unknown") return 0;
+  const r            = Math.max(rounds, 1);
+  const kpr          = kills / r;
+  const adr          = damage / r;
+  const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
+  const utility      = (utilityDamage + enemiesFlashed * 15) / r;
 
-  const baseLP = result === "win" ? 10 : -5;
-  const kd = deaths > 0 ? kills / deaths : kills;
-  const kdBonus = Math.max(-18, Math.min(18, (kd - 1) * 12));
-  const adr = rounds > 0 ? damage / rounds : 0;
-  const adrBonus = adr >= 95 ? 4 : adr < 45 ? -3 : 0;
-  const aceBonus = aces * 4;
-  const clutchBonus = v2Wins * 2;
+  const rj = (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 
-  return Math.max(-18, Math.min(25, Math.round(baseLP + kdBonus + adrBonus + aceBonus + clutchBonus)));
+  let lp = 0;
+  if (won) {
+    if      (rj > 1.3)  lp = 25;
+    else if (rj >= 1.0) lp = 18;
+    else                lp = 10;
+  } else {
+    if      (rj > 1.3)  lp = -2;
+    else if (rj >= 1.0) lp = -10;
+    else                lp = -20;
+  }
+
+  lp += v1Wins * 2;
+  lp += v2Wins * 3;
+
+  return Math.max(-20, Math.min(28, lp));
+}
+
+/**
+ * Calcula o RJ (Rating Jacarézão) de uma partida — valor puro, sem converter em LP.
+ */
+export function calcRatingJacarezao(
+  kills: number,
+  damage: number,
+  rounds: number,
+  entryWins: number,
+  entryCount: number,
+  utilityDamage: number,
+  enemiesFlashed: number,
+): number {
+  const r            = Math.max(rounds, 1);
+  const kpr          = kills / r;
+  const adr          = damage / r;
+  const entrySuccess = entryCount > 0 ? entryWins / entryCount : 0;
+  const utility      = (utilityDamage + enemiesFlashed * 15) / r;
+  return (kpr * 0.35) + (adr / 100 * 0.35) + (entrySuccess * 0.15) + (utility * 0.15);
 }

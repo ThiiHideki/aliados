@@ -199,17 +199,20 @@ export default function PartidasMinhas() {
                     </div>
                     <div className="flex items-center gap-3 md:gap-6">
                       {(() => {
+                        if (result === "unknown") return null;
                         const totalRounds = (match.team1Score ?? 0) + (match.team2Score ?? 0);
                         const lp = calculateMatchLP(
-                          result,
+                          result === "win",
                           stats.kills,
-                          stats.deaths,
                           stats.damage,
                           totalRounds,
-                          stats.enemy5ks ?? 0,
+                          stats.entryWins ?? 0,
+                          stats.entryCount ?? 0,
+                          stats.utilityDamage ?? 0,
+                          stats.enemiesFlashed ?? 0,
+                          stats.v1Wins ?? 0,
                           stats.v2Wins ?? 0,
                         );
-                        if (result === "unknown") return null;
                         return (
                           <div className="text-center" data-testid={`stat-lp-${stats.id}`}>
                             <div className={`font-mono font-bold text-sm flex items-center gap-0.5 ${lp > 0 ? "text-green-400" : "text-red-400"}`}>
