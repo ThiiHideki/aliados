@@ -620,6 +620,21 @@ export default function Perfil() {
                     </Badge>
                     <LevelBadge levelPoints={user.levelPoints ?? 500} size="sm" showTierLabel />
                   </div>
+                  {(itemsData?.winStreak ?? 0) >= 1 && (
+                    <div className="mt-3 flex items-center gap-2 px-4 py-2 rounded-md bg-orange-500/10 border border-orange-500/30">
+                      <Flame className="h-5 w-5 text-orange-500 flex-shrink-0" />
+                      <div className="text-left">
+                        <p className="text-sm font-bold text-orange-400 leading-tight">
+                          {itemsData!.winStreak} {itemsData!.winStreak === 1 ? 'vitória seguida' : 'vitórias seguidas'}
+                        </p>
+                        {(itemsData?.winStreak ?? 0) >= 3 && (
+                          <p className="text-xs text-muted-foreground leading-tight">
+                            +{(itemsData!.winStreak) >= 10 ? 12 : (itemsData!.winStreak) >= 7 ? 8 : (itemsData!.winStreak) >= 5 ? 5 : 3} LP bônus por vitória
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
                   {user.steamId64 && (
                     <div className="mt-3 flex items-center gap-2 text-sm text-muted-foreground">
                       <Check className="h-4 w-4 text-green-500" />
