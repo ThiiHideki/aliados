@@ -644,6 +644,7 @@ export const fantasyTeams = pgTable("fantasy_teams", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   roundId: integer("round_id").notNull().references(() => fantasyRounds.id, { onDelete: "cascade" }),
   totalPoints: real("total_points").default(0).notNull(),
+  budgetUsed: integer("budget_used").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -652,7 +653,11 @@ export const fantasyPicks = pgTable("fantasy_picks", {
   teamId: integer("team_id").notNull().references(() => fantasyTeams.id, { onDelete: "cascade" }),
   pickedUserId: varchar("picked_user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   points: real("points").default(0).notNull(),
+  price: integer("price").default(0).notNull(),
 });
+
+// Budget for fantasy team selection
+export const FANTASY_BUDGET = 100;
 
 export const insertFantasyRoundSchema = createInsertSchema(fantasyRounds).omit({ id: true, createdAt: true });
 export const insertFantasyTeamSchema = createInsertSchema(fantasyTeams).omit({ id: true, createdAt: true, totalPoints: true });

@@ -16,9 +16,16 @@ import {
   Trophy, Users, Star, TrendingUp, Zap, Target,
   Shield, Calculator, Plus, RefreshCw, Trash2, Info,
   ChevronRight, Crown, Medal, Swords, Lock, PlusCircle,
-  CheckCircle2, Calendar, Clock,
+  CheckCircle2, Calendar, Clock, DollarSign, Wallet,
 } from "lucide-react";
 import type { User } from "@shared/schema";
+
+const FANTASY_BUDGET = 100;
+
+function calcPlayerPrice(skillRating: number): number {
+  const sr = Math.max(0, skillRating || 0);
+  return Math.max(5, Math.min(40, Math.round(5 + (sr / 3000) * 35)));
+}
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 type Round = {
@@ -26,11 +33,15 @@ type Round = {
   start_date: string; end_date: string; created_at: string;
 };
 type Pick = {
-  id: number; team_id: number; picked_user_id: string; points: number;
+  id: number; team_id: number; picked_user_id: string; points: number; price: number;
   nickname?: string; first_name?: string; last_name?: string;
   profile_image_url?: string; steam_id_64?: string;
 };
-type TeamData = { team: { id: number; total_points: number }; picks: Pick[] };
+type TeamData = { team: { id: number; total_points: number; budget_used: number }; picks: Pick[] };
+type FantasyPlayer = {
+  id: string; nickname?: string; first_name?: string; last_name?: string;
+  profile_image_url?: string; skill_rating: number; price: number;
+};
 type RankingEntry = {
   id: number; total_points: number; user_id: string;
   nickname?: string; first_name?: string; last_name?: string;
@@ -168,6 +179,18 @@ function AdminPanel({ rounds, onRefresh }: { rounds: Round[]; onRefresh: () => v
   );
 }
 
+// ─── Tier badge helper ────────────────────────────────────────────────────────
+function PriceTierBadge({ price }: { price: number }) {
+  let label: string, cls: string;
+  if (price >= 35) { label = "Elite"; cls = "bg-yellow-500/20 text-yellow-400 border-yellow-500/40"; }
+  else if (price >= 25) { label = "Alto"; cls = "bg-orange-500/20 text-orange-400 border-orange-500/40"; }
+  else if (price >= 15) { label = "Médio"; cls = "bg-blue-500/20 text-blue-400 border-blue-500/40"; }
+  else { label = "Baixo"; cls = "bg-muted text-muted-foreground border-border"; }
+  return (
+    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${cls}`}>{label}</span>
+  );
+}
+
 // ─── Player selection dialog ──────────────────────────────────────────────────
 function PlayerPickerDialog({
   selected, onConfirm, disabled,
@@ -176,15 +199,32 @@ function PlayerPickerDialog({
   const [search, setSearch] = useState("");
   const [picks, setPicks] = useState<string[]>(selected);
 
-  const { data: allPlayers = [] } = useQuery<User[]>({ queryKey: ["/api/users"] });
+  const { data: playersData } = useQuery<{ players: FantasyPlayer[]; budget: number }>({
+    queryKey: ["/api/fantasy/players"],
+    queryFn: () => fetch("/api/fantasy/players", { credentials: "include" }).then(r => r.json()),
+  });
 
-  const filtered = (allPlayers as User[]).filter(p => {
-    const name = displayName(p as any).toLowerCase();
+  const allPlayers = playersData?.players ?? [];
+
+  const filtered = allPlayers.filter(p => {
+    const name = displayName(p).toLowerCase();
     return name.includes(search.toLowerCase()) || (p.nickname || "").toLowerCase().includes(search.toLowerCase());
   });
 
+  const priceMap = Object.fromEntries(allPlayers.map(p => [p.id, p.price]));
+  const totalCost = picks.reduce((sum, id) => sum + (priceMap[id] ?? 0), 0);
+  const remaining = FANTASY_BUDGET - totalCost;
+  const budgetPct = Math.min(100, (totalCost / FANTASY_BUDGET) * 100);
+  const overBudget = totalCost > FANTASY_BUDGET;
+
   function toggle(id: string) {
-    setPicks(prev => prev.includes(id) ? prev.filter(x => x !== id) : prev.length < 5 ? [...prev, id] : prev);
+    const price = priceMap[id] ?? 0;
+    setPicks(prev => {
+      if (prev.includes(id)) return prev.filter(x => x !== id);
+      if (prev.length >= 5) return prev;
+      if (totalCost + price > FANTASY_BUDGET) return prev; // budget guard
+      return [...prev, id];
+    });
   }
 
   function handleOpen(o: boolean) {
@@ -209,43 +249,66 @@ function PlayerPickerDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5 text-primary" />
-            Escolha até 5 jogadores
+            Escale até 5 jogadores
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-3">
+
+          {/* Budget bar */}
+          <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+            <div className="flex items-center justify-between text-sm">
+              <span className="flex items-center gap-1.5 font-medium">
+                <Wallet className="w-4 h-4 text-primary" />
+                Orçamento
+              </span>
+              <span className={`font-bold tabular-nums ${overBudget ? "text-destructive" : remaining <= 10 ? "text-yellow-400" : "text-green-400"}`}>
+                R${totalCost} / R${FANTASY_BUDGET}
+              </span>
+            </div>
+            <div className="h-2 bg-background rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-200 ${overBudget ? "bg-destructive" : budgetPct > 80 ? "bg-yellow-500" : "bg-primary"}`}
+                style={{ width: `${budgetPct}%` }}
+              />
+            </div>
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>{picks.length}/5 jogadores</span>
+              <span>{remaining >= 0 ? `R$${remaining} disponível` : `R${Math.abs(remaining)} acima do limite`}</span>
+            </div>
+          </div>
+
           <Input placeholder="Buscar jogador..." value={search}
             onChange={e => setSearch(e.target.value)} data-testid="input-search-player" />
 
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary">{picks.length}/5 selecionados</Badge>
-            {picks.length === 5 && (
-              <span className="text-xs text-muted-foreground">Máximo atingido</span>
-            )}
-          </div>
-
           <div className="max-h-72 overflow-y-auto space-y-1">
             {filtered.map(p => {
-              const name = displayName(p as any);
+              const name = displayName(p);
               const isSelected = picks.includes(p.id);
-              const disabled = !isSelected && picks.length >= 5;
+              const wouldExceed = !isSelected && (totalCost + p.price > FANTASY_BUDGET);
+              const atMax = !isSelected && picks.length >= 5;
+              const isDisabled = wouldExceed || atMax;
               return (
-                <button key={p.id} onClick={() => !disabled && toggle(p.id)}
+                <button key={p.id} onClick={() => !isDisabled && toggle(p.id)}
                   data-testid={`pick-player-${p.id}`}
                   className={`w-full flex items-center gap-3 p-2 rounded-md text-left transition-colors
                     ${isSelected ? "bg-primary/20 border border-primary/40" : "hover:bg-muted/60"}
-                    ${disabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
+                    ${isDisabled ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
                   `}>
                   <Avatar className="w-8 h-8 shrink-0">
-                    <AvatarImage src={(p as any).profileImageUrl || undefined} />
+                    <AvatarImage src={p.profile_image_url || undefined} />
                     <AvatarFallback className="text-xs">{initials(name)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{name}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {(p as any).totalMatches || 0} partidas · SR {(p as any).skillRating || 1000}
-                    </p>
+                    <p className="text-xs text-muted-foreground">SR {p.skill_rating || 1000}</p>
                   </div>
-                  {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <PriceTierBadge price={p.price} />
+                    <span className={`text-sm font-bold tabular-nums ${isSelected ? "text-primary" : "text-foreground"}`}>
+                      R${p.price}
+                    </span>
+                    {isSelected && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                  </div>
                 </button>
               );
             })}
@@ -258,8 +321,8 @@ function PlayerPickerDialog({
 
           <div className="flex gap-2">
             <Button className="flex-1" onClick={handleConfirm}
-              disabled={picks.length === 0} data-testid="button-confirm-picks">
-              Confirmar ({picks.length} jogador{picks.length !== 1 ? "es" : ""})
+              disabled={picks.length === 0 || overBudget} data-testid="button-confirm-picks">
+              Confirmar — R${totalCost} ({picks.length} jogador{picks.length !== 1 ? "es" : ""})
             </Button>
             <Button variant="ghost" onClick={() => setOpen(false)}>Cancelar</Button>
           </div>
@@ -371,7 +434,7 @@ export default function JogatinaFantasy() {
         <div className="flex-1 min-w-0">
           <h1 className="text-xl font-bold">Inimigos da Bala Fantasy</h1>
           <p className="text-muted-foreground text-sm">
-            Escale até 5 jogadores e ganhe pontos pelo desempenho deles nos mix e campeonatos.
+            Escale até 5 jogadores com orçamento de <span className="text-primary font-semibold">R${FANTASY_BUDGET}</span>. Jogadores mais fortes custam mais caro — gerencie bem o budget!
           </p>
         </div>
       </div>
@@ -437,6 +500,18 @@ export default function JogatinaFantasy() {
               </div>
             ) : picks.length > 0 ? (
               <div className="space-y-2">
+                {/* Budget summary */}
+                {myTeam && (
+                  <div className="flex items-center justify-between px-3 py-2 rounded-md bg-muted/50 text-sm mb-1">
+                    <span className="flex items-center gap-1.5 text-muted-foreground">
+                      <Wallet className="w-3.5 h-3.5" />
+                      Orçamento usado
+                    </span>
+                    <span className="font-bold text-primary">
+                      R${myTeam.team.budget_used} / R${FANTASY_BUDGET}
+                    </span>
+                  </div>
+                )}
                 {picks.map(pick => {
                   const name = displayName(pick as any);
                   return (
@@ -448,11 +523,18 @@ export default function JogatinaFantasy() {
                       </Avatar>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-semibold truncate">{name}</p>
-                        {activeRound.status !== "open" && (
+                        {activeRound.status !== "open" ? (
                           <p className="text-xs text-muted-foreground">{pick.points.toFixed(1)} pts</p>
+                        ) : (
+                          <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" /> R${pick.price ?? 0}
+                          </p>
                         )}
                       </div>
-                      <Star className="w-4 h-4 text-primary shrink-0" />
+                      {activeRound.status !== "open"
+                        ? <span className="text-sm font-bold text-primary shrink-0">{pick.points.toFixed(1)} pts</span>
+                        : <PriceTierBadge price={pick.price ?? 0} />
+                      }
                     </div>
                   );
                 })}
@@ -513,6 +595,35 @@ export default function JogatinaFantasy() {
                 A pontuação será calculada pelo admin ao fechar a rodada.
               </div>
             )}
+
+            {/* Budget / pricing tiers info */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm flex items-center gap-2">
+                  <Wallet className="w-4 h-4" /> Sistema de Orçamento
+                </CardTitle>
+                <CardDescription className="text-xs">Você tem R${FANTASY_BUDGET} para montar seu time de 5 jogadores</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  {[
+                    { tier: "Elite", range: "SR acima de ~2570", price: "R$35–40", cls: "bg-yellow-500/20 text-yellow-400 border-yellow-500/30" },
+                    { tier: "Alto",  range: "SR acima de ~1710", price: "R$25–34", cls: "bg-orange-500/20 text-orange-400 border-orange-500/30" },
+                    { tier: "Médio", range: "SR acima de ~855",  price: "R$15–24", cls: "bg-blue-500/20 text-blue-400 border-blue-500/30" },
+                    { tier: "Baixo", range: "SR até ~855",       price: "R$5–14",  cls: "bg-muted text-muted-foreground border-border" },
+                  ].map(t => (
+                    <div key={t.tier} className={`p-2 rounded border ${t.cls}`}>
+                      <p className="font-bold">{t.tier} — {t.price}</p>
+                      <p className="opacity-80">{t.range}</p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Preço calculado pelo Skill Rating (SR) de cada jogador. Quanto melhor o SR, mais caro.
+                  Com R${FANTASY_BUDGET}, é impossível escalar os 5 melhores do servidor.
+                </p>
+              </CardContent>
+            </Card>
 
             {/* Scoring rules */}
             <Card>

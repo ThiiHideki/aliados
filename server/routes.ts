@@ -3,7 +3,7 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupSteamAuth } from "./steamAuth";
-import { updateUserStatsSchema, mixPenalties, users } from "@shared/schema";
+import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, sql } from "drizzle-orm";
@@ -2835,6 +2835,15 @@ export async function registerRoutes(
   // ─── Fantasy Routes ─────────────────────────────────────────────────────────
 
   // Point calculation per match stat for fantasy
+  // Calcula o preço de um jogador baseado no SR (escala de R$5 a R$40)
+  // Com budget de R$100, é impossível escalar os 5 melhores (cada um ~R$35+)
+  function calcPlayerPrice(skillRating: number): number {
+    const sr = Math.max(0, skillRating);
+    const MAX_SR = 3000;
+    const price = Math.max(5, Math.min(40, Math.round(5 + (sr / MAX_SR) * 35)));
+    return price;
+  }
+
   function calcFantasyPoints(stat: any): number {
     let pts = 0;
     pts += (stat.kills || 0) * 1.0;
@@ -2852,6 +2861,25 @@ export async function registerRoutes(
     pts += (stat.wonMatch ? 3 : 0);
     return Math.round(pts * 100) / 100;
   }
+
+  // GET /api/fantasy/players — all users with calculated prices
+  app.get("/api/fantasy/players", isAuthenticated, async (req, res) => {
+    try {
+      const result = await db.execute(
+        sql`SELECT id, nickname, first_name, last_name, profile_image_url, steam_id_64, skill_rating
+            FROM users
+            WHERE skill_rating > 0
+            ORDER BY skill_rating DESC`
+      );
+      const players = (result.rows as any[]).map(u => ({
+        ...u,
+        price: calcPlayerPrice(u.skill_rating || 0),
+      }));
+      res.json({ players, budget: FANTASY_BUDGET });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
+  });
 
   // GET /api/fantasy/rounds — list all rounds
   app.get("/api/fantasy/rounds", isAuthenticated, async (req, res) => {
@@ -2914,6 +2942,29 @@ export async function registerRoutes(
       );
       if (!round.rows[0]) return res.status(400).json({ message: "Rodada não está aberta para escalações." });
 
+      // Fetch SR for each selected player to calculate prices
+      const playerRows = await db.execute(
+        sql`SELECT id, skill_rating FROM users WHERE id = ANY(${playerIds}::varchar[])`
+      );
+      const srMap: Record<string, number> = {};
+      for (const row of playerRows.rows as any[]) {
+        srMap[row.id] = row.skill_rating || 0;
+      }
+      const prices: Record<string, number> = {};
+      let totalCost = 0;
+      for (const pid of playerIds) {
+        const price = calcPlayerPrice(srMap[pid] ?? 0);
+        prices[pid] = price;
+        totalCost += price;
+      }
+      if (totalCost > FANTASY_BUDGET) {
+        return res.status(400).json({
+          message: `Orçamento excedido! Total: R$${totalCost} / Limite: R$${FANTASY_BUDGET}`,
+          totalCost,
+          budget: FANTASY_BUDGET,
+        });
+      }
+
       // Upsert team
       const existing = await db.execute(
         sql`SELECT id FROM fantasy_teams WHERE user_id = ${userId} AND round_id = ${roundId} LIMIT 1`
@@ -2922,18 +2973,22 @@ export async function registerRoutes(
       if (existing.rows[0]) {
         teamId = (existing.rows[0] as any).id;
         await db.execute(sql`DELETE FROM fantasy_picks WHERE team_id = ${teamId}`);
+        await db.execute(
+          sql`UPDATE fantasy_teams SET budget_used = ${totalCost} WHERE id = ${teamId}`
+        );
       } else {
         const ins = await db.execute(
-          sql`INSERT INTO fantasy_teams (user_id, round_id, total_points) VALUES (${userId}, ${roundId}, 0) RETURNING id`
+          sql`INSERT INTO fantasy_teams (user_id, round_id, total_points, budget_used) VALUES (${userId}, ${roundId}, 0, ${totalCost}) RETURNING id`
         );
         teamId = (ins.rows[0] as any).id;
       }
       for (const pid of playerIds) {
+        const price = prices[pid];
         await db.execute(
-          sql`INSERT INTO fantasy_picks (team_id, picked_user_id, points) VALUES (${teamId}, ${pid}, 0)`
+          sql`INSERT INTO fantasy_picks (team_id, picked_user_id, points, price) VALUES (${teamId}, ${pid}, 0, ${price})`
         );
       }
-      res.json({ success: true, teamId });
+      res.json({ success: true, teamId, totalCost, budget: FANTASY_BUDGET });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
     }
