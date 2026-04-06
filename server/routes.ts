@@ -2877,6 +2877,38 @@ export async function registerRoutes(
     } catch (e) { res.status(500).json({ message: "Erro ao atualizar status" }); }
   });
 
+  // Admin: edit team info + players
+  app.patch('/api/copa/teams/:id/edit', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims?.sub ?? req.user?.id;
+      const user = await storage.getUser(userId);
+      if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
+      const teamId = Number(req.params.id);
+      const { teamName, leaderName, leaderContact, paymentProof, players } = req.body;
+      const team = await storage.updateCopaTeam(teamId, {
+        teamName, leaderName, leaderContact,
+        ...(paymentProof !== undefined ? { paymentProof } : {}),
+      });
+      let updatedPlayers: any[] = [];
+      if (Array.isArray(players)) {
+        updatedPlayers = await storage.updateCopaPlayers(teamId, players.map((p: any, i: number) => ({
+          playerName: p.playerName,
+          steamProfile: p.steamProfile ?? "",
+          age: Number(p.age) || 0,
+          position: p.position ?? "Rifler",
+          gcLevel: p.gcLevel ? Number(p.gcLevel) : null,
+          faceitLevel: p.faceitLevel ? Number(p.faceitLevel) : null,
+          isLeader: i === 0,
+          playerOrder: i,
+        })));
+      }
+      res.json({ ...team, players: updatedPlayers });
+    } catch (e) {
+      console.error("Erro ao editar time:", e);
+      res.status(500).json({ message: "Erro ao editar time" });
+    }
+  });
+
   // Admin: create match
   app.post('/api/copa/matches', isAuthenticated, async (req: any, res) => {
     try {

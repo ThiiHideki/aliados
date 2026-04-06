@@ -1282,6 +1282,23 @@ export class DatabaseStorage implements IStorage {
     return await db.insert(copaPlayers).values(values).returning();
   }
 
+  async updateCopaTeam(id: number, data: {
+    teamName?: string; leaderName?: string; leaderContact?: string; paymentProof?: string;
+  }): Promise<CopaTeam> {
+    const [team] = await db.update(copaTeams)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(copaTeams.id, id))
+      .returning();
+    return team;
+  }
+
+  async updateCopaPlayers(teamId: number, players: Omit<CopaPlayer, 'id' | 'teamId'>[]): Promise<CopaPlayer[]> {
+    await db.delete(copaPlayers).where(eq(copaPlayers.teamId, teamId));
+    if (players.length === 0) return [];
+    const values = players.map((p, i) => ({ ...p, teamId, playerOrder: i }));
+    return db.insert(copaPlayers).values(values).returning();
+  }
+
   async getCopaMatches(): Promise<(CopaMatch & { team1: CopaTeam | null; team2: CopaTeam | null; winner: CopaTeam | null })[]> {
     const matches = await db.select().from(copaMatches).orderBy(copaMatches.roundNumber, copaMatches.id);
     const teams = await db.select().from(copaTeams);
