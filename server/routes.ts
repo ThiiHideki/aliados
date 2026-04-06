@@ -815,6 +815,51 @@ export async function registerRoutes(
         }
       }
 
+      // Auto-calculate fantasy points for any open/active round covering this match's date
+      try {
+        const matchDateStr = match.date instanceof Date ? match.date.toISOString() : String(match.date);
+        const activeRounds = await db.execute(
+          sql`SELECT * FROM fantasy_rounds
+              WHERE status IN ('open', 'active')
+                AND start_date <= ${matchDateStr}::timestamptz
+                AND end_date   >= ${matchDateStr}::timestamptz`
+        );
+        for (const round of activeRounds.rows as any[]) {
+          const roundStats = await db.execute(
+            sql`SELECT ms.*, m.winner_team, (ms.team_name = m.winner_team) AS won_match
+                FROM match_stats ms
+                JOIN matches m ON ms.match_id = m.id
+                WHERE m.date >= ${round.start_date} AND m.date <= ${round.end_date}`
+          );
+          const ptMap: Record<string, number> = {};
+          for (const st of roundStats.rows as any[]) {
+            if (!st.user_id) continue;
+            const fp = calcFantasyPoints({
+              kills: st.kills, deaths: st.deaths, assists: st.assists,
+              headshots: st.headshots, fiveK: st.enemy_5ks, fourK: st.enemy_4ks,
+              threeK: st.enemy_3ks, twoK: st.enemy_2ks, damage: st.damage,
+              clutch1v1: st.v1_wins, clutch1v2: st.v2_wins, firstKills: st.entry_wins,
+              isMvp: st.mvps > 0,
+              wonMatch: st.won_match === true || st.won_match === "true",
+            });
+            ptMap[st.user_id] = (ptMap[st.user_id] || 0) + fp;
+          }
+          const roundTeams = await db.execute(sql`SELECT id FROM fantasy_teams WHERE round_id = ${round.id}`);
+          for (const ft of roundTeams.rows as any[]) {
+            const picks = await db.execute(sql`SELECT * FROM fantasy_picks WHERE team_id = ${ft.id}`);
+            let total = 0;
+            for (const pick of picks.rows as any[]) {
+              const pts = ptMap[pick.picked_user_id] || 0;
+              await db.execute(sql`UPDATE fantasy_picks SET points = ${pts} WHERE id = ${pick.id}`);
+              total += pts;
+            }
+            await db.execute(sql`UPDATE fantasy_teams SET total_points = ${Math.round(total * 100) / 100} WHERE id = ${ft.id}`);
+          }
+        }
+      } catch (fantasyErr) {
+        console.error("Fantasy auto-calc error (non-fatal):", fantasyErr);
+      }
+
       res.json({ 
         message: "Match imported successfully",
         matchId: match.id,
