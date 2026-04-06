@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import type { Survey } from "@shared/schema";
 import { queryClient, RELOGIN_MESSAGE } from "./lib/queryClient";
@@ -75,6 +76,25 @@ function DiscordGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function PublicCopaLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex flex-col min-h-screen bg-background">
+      <header className="sticky top-0 z-50 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
+        <div className="flex items-center gap-2">
+          <img src={logoUrl} alt="Inimigos da Bala" className="h-8 w-8 rounded object-contain" />
+          <span className="font-semibold text-sm hidden sm:inline">Inimigos da Bala</span>
+        </div>
+        <Button size="sm" onClick={() => window.location.href = "/api/login"}>
+          Entrar
+        </Button>
+      </header>
+      <main className="flex-1 p-4 sm:p-6 max-w-4xl mx-auto w-full">
+        {children}
+      </main>
+    </div>
+  );
+}
+
 function Router() {
   const { user, isAuthenticated, isLoading, isError } = useAuth();
 
@@ -95,6 +115,21 @@ function Router() {
     return (
       <Switch>
         <Route path="/" component={Landing} />
+        <Route path="/copa/tabela">
+          <PublicCopaLayout><CopaTabela /></PublicCopaLayout>
+        </Route>
+        <Route path="/copa/regras">
+          <PublicCopaLayout><CopaRegras /></PublicCopaLayout>
+        </Route>
+        <Route path="/copa/premiacoes">
+          <PublicCopaLayout><CopaPremiacoes /></PublicCopaLayout>
+        </Route>
+        <Route path="/copa/estatisticas">
+          <PublicCopaLayout><CopaEstatisticas /></PublicCopaLayout>
+        </Route>
+        <Route path="/copa/inscricao">
+          <PublicCopaLayout><CopaInscricao /></PublicCopaLayout>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     );

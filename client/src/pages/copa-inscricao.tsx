@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { useAuth } from "@/hooks/useAuth";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -141,6 +142,7 @@ function PlayerCard({
 }
 
 export default function CopaInscricao() {
+  const { isAuthenticated } = useAuth();
   const { toast } = useToast();
   const fileRef = useRef<HTMLInputElement>(null);
   const [copied, setCopied] = useState(false);
@@ -422,17 +424,37 @@ export default function CopaInscricao() {
         </CardContent>
       </Card>
 
-      <Button
-        className="w-full" size="lg"
-        onClick={() => submitMutation.mutate()}
-        disabled={!canSubmit || submitMutation.isPending}
-        data-testid="button-submit-registration"
-      >
-        {submitMutation.isPending
-          ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
-          : <Trophy className="h-4 w-4 mr-2" />}
-        Enviar Inscrição
-      </Button>
+      {!isAuthenticated ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 rounded-md border border-primary/30 bg-primary/5 p-4">
+            <AlertCircle className="h-5 w-5 text-primary flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium">Precisa estar logado para enviar a inscrição</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Faça login com sua conta para concluir o cadastro.</p>
+            </div>
+          </div>
+          <Button
+            className="w-full" size="lg"
+            onClick={() => window.location.href = "/api/login"}
+            data-testid="button-login-to-register"
+          >
+            <UserPlus className="h-4 w-4 mr-2" />
+            Entrar para se inscrever
+          </Button>
+        </div>
+      ) : (
+        <Button
+          className="w-full" size="lg"
+          onClick={() => submitMutation.mutate()}
+          disabled={!canSubmit || submitMutation.isPending}
+          data-testid="button-submit-registration"
+        >
+          {submitMutation.isPending
+            ? <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full mr-2" />
+            : <Trophy className="h-4 w-4 mr-2" />}
+          Enviar Inscrição
+        </Button>
+      )}
     </div>
   );
 }

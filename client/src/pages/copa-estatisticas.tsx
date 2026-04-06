@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -254,11 +255,14 @@ function TeamOverviewTable({ teams }: { teams: AggregatedTeam[] }) {
 
 /* ── Main page ───────────────────────────────────────────────────────────── */
 export default function CopaEstatisticas() {
+  const { isAuthenticated } = useAuth();
   const { data, isLoading } = useQuery<StatsData>({
     queryKey: ["/api/copa/stats"],
+    enabled: isAuthenticated,
   });
   const { data: matches = [] } = useQuery<MatchWithTeams[]>({
     queryKey: ["/api/copa/matches"],
+    enabled: isAuthenticated,
   });
 
   const players = data ? aggregatePlayers(data) : [];
@@ -278,6 +282,27 @@ export default function CopaEstatisticas() {
         </div>
       </div>
 
+      {/* Auth gate */}
+      {!isAuthenticated ? (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="py-12 text-center space-y-4">
+            <Award className="h-12 w-12 mx-auto text-primary/50" />
+            <div>
+              <p className="font-bold text-lg">Precisa estar logado para ver</p>
+              <p className="text-sm text-muted-foreground mt-1">
+                As estatísticas dos jogadores são exclusivas para membros. Faça login para acessar.
+              </p>
+            </div>
+            <button
+              onClick={() => window.location.href = "/api/login"}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-md bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Entrar para ver estatísticas
+            </button>
+          </CardContent>
+        </Card>
+      ) : (
+      <>
       {/* Overview */}
       <div className="grid grid-cols-3 gap-3">
         {[
@@ -356,6 +381,8 @@ export default function CopaEstatisticas() {
             )}
           </TabsContent>
         </Tabs>
+      )}
+      </>
       )}
     </div>
   );

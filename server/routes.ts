@@ -2823,21 +2823,21 @@ export async function registerRoutes(
   });
 
   // Public: get confirmed teams + matches + prizes info
-  app.get('/api/copa/teams', isAuthenticated, async (req, res) => {
+  app.get('/api/copa/teams', async (req, res) => {
     try {
       const teams = await storage.getAllCopaTeams();
       res.json(teams);
     } catch (e) { res.status(500).json({ message: "Erro ao buscar times" }); }
   });
 
-  app.get('/api/copa/matches', isAuthenticated, async (req, res) => {
+  app.get('/api/copa/matches', async (req, res) => {
     try {
       const matches = await storage.getCopaMatches();
       res.json(matches);
     } catch (e) { res.status(500).json({ message: "Erro ao buscar partidas" }); }
   });
 
-  app.get('/api/copa/stats', isAuthenticated, async (req, res) => {
+  app.get('/api/copa/stats', async (req, res) => {
     try {
       const stats = await storage.getAllCopaStats();
       const teams = await storage.getAllCopaTeams();
@@ -2914,7 +2914,7 @@ export async function registerRoutes(
   });
 
   // Get match stats
-  app.get('/api/copa/matches/:id/stats', isAuthenticated, async (req, res) => {
+  app.get('/api/copa/matches/:id/stats', async (req, res) => {
     try {
       const stats = await storage.getCopaMatchStats(Number(req.params.id));
       res.json(stats);
