@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
-  Swords, Trophy, CheckCircle, Clock, Users, Calendar, AlertCircle, Star
+  Swords, Trophy, CheckCircle, Clock, Users, Calendar, AlertCircle, Star,
+  ChevronDown, ChevronUp, User
 } from "lucide-react";
 import type { CopaTeam, CopaMatch } from "@shared/schema";
 import copaImg from "@assets/Gemini_Generated_Image_cwonr5cwonr5cwon_1774910925811.png";
@@ -17,16 +20,80 @@ type MatchWithTeams = CopaMatch & {
 };
 type TeamWithPlayers = CopaTeam & { players: any[] };
 
+/* ── reusable inline player list ───────────────────────────────────────── */
+function PlayerList({ players }: { players: any[] }) {
+  if (!players || players.length === 0) return (
+    <p className="text-xs text-muted-foreground italic px-1">Sem jogadores cadastrados</p>
+  );
+  return (
+    <ul className="space-y-1">
+      {players.map((p, i) => (
+        <li key={i} className="flex items-center gap-2 text-xs">
+          <User className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+          <span className="font-medium truncate">{p.playerName || p.player_name}</span>
+          {(p.position) && (
+            <Badge variant="outline" className="text-[10px] px-1 py-0 h-auto ml-auto flex-shrink-0">
+              {p.position}
+            </Badge>
+          )}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* ── collapsible team panel (used inside match card) ──────────────────── */
+function TeamPanel({
+  teamName, players, isWinner, align = "center"
+}: {
+  teamName: string;
+  players?: any[];
+  isWinner: boolean;
+  align?: "left" | "center" | "right";
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className={`flex-1 rounded-lg transition-all
+      ${isWinner ? "bg-green-500/15 border border-green-500/40" : "bg-muted/30"}`}>
+      <button
+        onClick={() => players && players.length > 0 && setOpen(o => !o)}
+        className={`w-full p-3 text-${align} ${players && players.length > 0 ? "cursor-pointer" : "cursor-default"}`}
+        data-testid={`team-panel-${teamName}`}
+      >
+        <p className={`font-bold text-sm leading-tight ${isWinner ? "text-green-400" : ""}`}>
+          {teamName}
+        </p>
+        {isWinner && <p className="text-xs text-green-400 mt-0.5 font-medium">Vencedor</p>}
+        {players && players.length > 0 && (
+          <span className="text-[10px] text-muted-foreground flex items-center justify-center gap-0.5 mt-1">
+            {open ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            {players.length} jogadores
+          </span>
+        )}
+      </button>
+      {open && players && (
+        <div className="px-3 pb-3 border-t border-border/40 pt-2">
+          <PlayerList players={players} />
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── individual match card inside bracket ─────────────────────────────── */
-function MatchCard({ match }: { match: MatchWithTeams }) {
+function MatchCard({ match, teamsMap }: { match: MatchWithTeams; teamsMap: Map<number, TeamWithPlayers> }) {
   const { team1, team2, winner } = match;
   const t1Win = !!winner && winner.id === team1?.id;
   const t2Win = !!winner && winner.id === team2?.id;
 
+  const t1Players = team1 ? teamsMap.get(team1.id)?.players : undefined;
+  const t2Players = team2 ? teamsMap.get(team2.id)?.players : undefined;
+
   return (
     <Card className="bg-muted/20 border-border/60" data-testid={`match-card-${match.id}`}>
       <CardContent className="pt-4 pb-4">
-        <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
           <span className="text-xs text-muted-foreground font-medium">{match.round}</span>
           <div className="flex items-center gap-2 flex-wrap">
             {match.mapName && (
@@ -49,42 +116,45 @@ function MatchCard({ match }: { match: MatchWithTeams }) {
           </div>
         </div>
 
-        <div className="flex items-stretch gap-2">
+        <div className="flex items-start gap-2">
           {/* Team 1 */}
-          <div className={`flex-1 text-center p-3 rounded-lg
-            ${t1Win ? "bg-green-500/15 border border-green-500/40" : "bg-muted/30"}`}>
-            <p className={`font-bold text-sm leading-tight ${t1Win ? "text-green-400" : ""}`}>
-              {team1?.teamName ?? "A definir"}
-            </p>
-            {match.isFinished && (
-              <p className={`text-3xl font-black mt-1 font-mono
-                ${t1Win ? "text-green-400" : "text-muted-foreground"}`}>
-                {match.team1Score ?? 0}
-              </p>
-            )}
-            {t1Win && <p className="text-xs text-green-400 mt-1 font-medium">Vencedor</p>}
-          </div>
+          {team1 ? (
+            <TeamPanel
+              teamName={team1.teamName}
+              players={t1Players}
+              isWinner={t1Win}
+            />
+          ) : (
+            <div className="flex-1 text-center p-3 rounded-lg bg-muted/30">
+              <p className="font-bold text-sm text-muted-foreground">A definir</p>
+            </div>
+          )}
 
           {/* VS */}
-          <div className="flex flex-col items-center justify-center px-1 gap-1">
+          <div className="flex flex-col items-center justify-start pt-3 px-1 gap-1 flex-shrink-0">
             <Swords className="h-4 w-4 text-primary" />
-            <span className="text-xs text-muted-foreground font-bold">VS</span>
+            {match.isFinished && (
+              <span className="text-xs font-mono font-black text-muted-foreground">
+                {match.team1Score ?? 0} – {match.team2Score ?? 0}
+              </span>
+            )}
+            {!match.isFinished && (
+              <span className="text-xs text-muted-foreground font-bold">VS</span>
+            )}
           </div>
 
           {/* Team 2 */}
-          <div className={`flex-1 text-center p-3 rounded-lg
-            ${t2Win ? "bg-green-500/15 border border-green-500/40" : "bg-muted/30"}`}>
-            <p className={`font-bold text-sm leading-tight ${t2Win ? "text-green-400" : ""}`}>
-              {team2?.teamName ?? "A definir"}
-            </p>
-            {match.isFinished && (
-              <p className={`text-3xl font-black mt-1 font-mono
-                ${t2Win ? "text-green-400" : "text-muted-foreground"}`}>
-                {match.team2Score ?? 0}
-              </p>
-            )}
-            {t2Win && <p className="text-xs text-green-400 mt-1 font-medium">Vencedor</p>}
-          </div>
+          {team2 ? (
+            <TeamPanel
+              teamName={team2.teamName}
+              players={t2Players}
+              isWinner={t2Win}
+            />
+          ) : (
+            <div className="flex-1 text-center p-3 rounded-lg bg-muted/30">
+              <p className="font-bold text-sm text-muted-foreground">A definir</p>
+            </div>
+          )}
         </div>
 
         {match.streamUrl && (
@@ -102,8 +172,8 @@ function MatchCard({ match }: { match: MatchWithTeams }) {
   );
 }
 
-/* ── bracket: groups matches by round and renders columns ─────────────── */
-function BracketView({ matches }: { matches: MatchWithTeams[] }) {
+/* ── bracket: groups matches by round ────────────────────────────────── */
+function BracketView({ matches, teamsMap }: { matches: MatchWithTeams[]; teamsMap: Map<number, TeamWithPlayers> }) {
   const rounds = [...new Set(matches.map(m => m.round))];
 
   return (
@@ -121,12 +191,66 @@ function BracketView({ matches }: { matches: MatchWithTeams[] }) {
               <div className="h-px flex-1 bg-border" />
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
-              {roundMatches.map(m => <MatchCard key={m.id} match={m} />)}
+              {roundMatches.map(m => <MatchCard key={m.id} match={m} teamsMap={teamsMap} />)}
             </div>
           </div>
         );
       })}
     </div>
+  );
+}
+
+/* ── collapsible team card in teams list ─────────────────────────────── */
+function TeamCard({ team, variant }: { team: TeamWithPlayers; variant: "confirmed" | "pending" }) {
+  const [open, setOpen] = useState(false);
+  const isConfirmed = variant === "confirmed";
+
+  return (
+    <Card
+      className={isConfirmed ? "bg-muted/20 border-green-500/25" : "bg-muted/20 border-yellow-500/20"}
+      data-testid={`team-${variant}-${team.id}`}
+    >
+      <CardContent className="pt-3 pb-3">
+        <div className="flex items-center gap-3">
+          <div className={`h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0
+            ${isConfirmed
+              ? "bg-green-500/20 border border-green-500/40"
+              : "bg-yellow-500/20 border border-yellow-500/40"}`}>
+            {isConfirmed
+              ? <CheckCircle className="h-4 w-4 text-green-400" />
+              : <Clock className="h-4 w-4 text-yellow-400" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-sm truncate">{team.teamName}</p>
+            <p className="text-xs text-muted-foreground">
+              Capitão: {team.leaderName} · {team.players.length} jog.
+            </p>
+          </div>
+          {!isConfirmed && (
+            <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-xs flex-shrink-0">
+              Aguardando
+            </Badge>
+          )}
+          {team.players.length > 0 && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="flex-shrink-0"
+              onClick={() => setOpen(o => !o)}
+              data-testid={`toggle-players-${team.id}`}
+            >
+              {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+          )}
+        </div>
+
+        {open && team.players.length > 0 && (
+          <div className="mt-3 pt-3 border-t border-border/40">
+            <PlayerList players={team.players} />
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -149,23 +273,7 @@ function TeamsList({ teams }: { teams: TeamWithPlayers[] }) {
             <div className="h-px flex-1 bg-border" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {confirmed.map(team => (
-              <Card key={team.id} className="bg-muted/20 border-green-500/25"
-                data-testid={`team-confirmed-${team.id}`}>
-                <CardContent className="pt-3 pb-3 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-green-500/20 border border-green-500/40
-                    flex items-center justify-center flex-shrink-0">
-                    <CheckCircle className="h-4 w-4 text-green-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-sm truncate">{team.teamName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Capitão: {team.leaderName} · {team.players.length} jog.
-                    </p>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
+            {confirmed.map(team => <TeamCard key={team.id} team={team} variant="confirmed" />)}
           </div>
         </div>
       )}
@@ -180,26 +288,7 @@ function TeamsList({ teams }: { teams: TeamWithPlayers[] }) {
             <div className="h-px flex-1 bg-border" />
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {pending.map(team => (
-              <Card key={team.id} className="bg-muted/20 border-yellow-500/20"
-                data-testid={`team-pending-${team.id}`}>
-                <CardContent className="pt-3 pb-3 flex items-center gap-3">
-                  <div className="h-8 w-8 rounded-full bg-yellow-500/20 border border-yellow-500/40
-                    flex items-center justify-center flex-shrink-0">
-                    <Clock className="h-4 w-4 text-yellow-400" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-sm truncate">{team.teamName}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Capitão: {team.leaderName} · {team.players.length} jog.
-                    </p>
-                  </div>
-                  <Badge className="bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-xs ml-auto flex-shrink-0">
-                    Aguardando
-                  </Badge>
-                </CardContent>
-              </Card>
-            ))}
+            {pending.map(team => <TeamCard key={team.id} team={team} variant="pending" />)}
           </div>
           <p className="text-xs text-muted-foreground text-center">
             Times aguardando confirmação de pagamento pelos administradores.
@@ -219,11 +308,15 @@ export default function CopaTabela() {
     queryKey: ["/api/copa/teams"],
   });
 
-  const visibleTeams  = teams.filter(t => t.status !== "rejected");
+  const visibleTeams   = teams.filter(t => t.status !== "rejected");
   const confirmedTeams = teams.filter(t => t.status === "confirmed");
-  const finished      = matches.filter(m => m.isFinished).length;
-  const hasBracket    = matches.length > 0;
-  const isLoading     = loadingMatches || loadingTeams;
+  const finished       = matches.filter(m => m.isFinished).length;
+  const hasBracket     = matches.length > 0;
+  const isLoading      = loadingMatches || loadingTeams;
+
+  const teamsMap = new Map<number, TeamWithPlayers>(
+    (teams as TeamWithPlayers[]).map(t => [t.id, t])
+  );
 
   return (
     <div className="space-y-6">
@@ -283,7 +376,7 @@ export default function CopaTabela() {
         </div>
       ) : (
         <>
-          {/* Bracket (when matches exist) */}
+          {/* Bracket */}
           {hasBracket && (
             <div className="space-y-3">
               <div className="flex items-center gap-3">
@@ -293,7 +386,7 @@ export default function CopaTabela() {
                 </h2>
                 <div className="h-px flex-1 bg-border" />
               </div>
-              <BracketView matches={matches} />
+              <BracketView matches={matches} teamsMap={teamsMap} />
             </div>
           )}
 
