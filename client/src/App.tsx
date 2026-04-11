@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
 import { Lock } from "lucide-react";
+import { SiSteam } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import type { Survey } from "@shared/schema";
@@ -85,9 +86,17 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
           <img src={logoUrl} alt="Inimigos da Bala" className="h-8 w-8 rounded object-contain" />
           <span className="font-semibold text-sm hidden sm:inline">Inimigos da Bala</span>
         </div>
-        <Button size="sm" onClick={() => window.location.href = "/api/login"}>
-          Entrar
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="outline" asChild>
+            <a href="/api/auth/steam" className="flex items-center gap-2">
+              <SiSteam className="h-4 w-4" />
+              <span className="hidden sm:inline">Steam</span>
+            </a>
+          </Button>
+          <Button size="sm" asChild>
+            <a href="/api/login">Entrar</a>
+          </Button>
+        </div>
       </header>
       <main className="flex-1 p-4 sm:p-6 max-w-4xl mx-auto w-full">
         {children}
@@ -108,9 +117,17 @@ function LoginRequired() {
           Você precisa estar logado para acessar esta página.
         </p>
       </div>
-      <Button onClick={() => window.location.href = "/api/login"}>
-        Entrar
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-3 justify-center">
+        <Button asChild>
+          <a href="/api/auth/steam" className="flex items-center gap-2">
+            <SiSteam className="h-4 w-4" />
+            Entrar com Steam
+          </a>
+        </Button>
+        <Button variant="outline" asChild>
+          <a href="/api/login">Entrar com Replit</a>
+        </Button>
+      </div>
     </div>
   );
 }
