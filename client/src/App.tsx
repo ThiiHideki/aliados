@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
+import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import type { Survey } from "@shared/schema";
@@ -76,7 +77,7 @@ function DiscordGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-function PublicCopaLayout({ children }: { children: React.ReactNode }) {
+function PublicLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-50 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
@@ -91,6 +92,25 @@ function PublicCopaLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 p-4 sm:p-6 max-w-4xl mx-auto w-full">
         {children}
       </main>
+    </div>
+  );
+}
+
+function LoginRequired() {
+  return (
+    <div className="flex flex-col items-center justify-center py-24 gap-5 text-center">
+      <div className="flex items-center justify-center w-16 h-16 rounded-full bg-muted">
+        <Lock className="h-7 w-7 text-muted-foreground" />
+      </div>
+      <div>
+        <h2 className="text-xl font-semibold mb-1">Acesso restrito</h2>
+        <p className="text-muted-foreground text-sm max-w-xs">
+          Você precisa estar logado para acessar esta página.
+        </p>
+      </div>
+      <Button onClick={() => window.location.href = "/api/login"}>
+        Entrar
+      </Button>
     </div>
   );
 }
@@ -116,21 +136,23 @@ function Router() {
       <Switch>
         <Route path="/" component={Landing} />
         <Route path="/copa/tabela">
-          <PublicCopaLayout><CopaTabela /></PublicCopaLayout>
+          <PublicLayout><CopaTabela /></PublicLayout>
         </Route>
         <Route path="/copa/regras">
-          <PublicCopaLayout><CopaRegras /></PublicCopaLayout>
+          <PublicLayout><CopaRegras /></PublicLayout>
         </Route>
         <Route path="/copa/premiacoes">
-          <PublicCopaLayout><CopaPremiacoes /></PublicCopaLayout>
+          <PublicLayout><CopaPremiacoes /></PublicLayout>
         </Route>
         <Route path="/copa/estatisticas">
-          <PublicCopaLayout><CopaEstatisticas /></PublicCopaLayout>
+          <PublicLayout><CopaEstatisticas /></PublicLayout>
         </Route>
         <Route path="/copa/inscricao">
-          <PublicCopaLayout><CopaInscricao /></PublicCopaLayout>
+          <PublicLayout><CopaInscricao /></PublicLayout>
         </Route>
-        <Route component={NotFound} />
+        <Route>
+          <PublicLayout><LoginRequired /></PublicLayout>
+        </Route>
       </Switch>
     );
   }
