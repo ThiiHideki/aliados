@@ -110,16 +110,27 @@ export async function registerRoutes(
     }
   });
 
-  // Get all users (for rankings, mix, etc - accessible to all authenticated users)
-  app.get('/api/users', isAuthenticated, async (req: any, res) => {
+  // Get active users only (rankings, mix, mural, etc) - never includes banned
+  app.get('/api/users', isAuthenticated, async (_req, res) => {
     try {
-      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
-      const currentUser = await storage.getUser(userId);
-      // Admins see all users (including banned); regular users only see active
-      const users = await storage.getAllUsers(!!currentUser?.isAdmin);
+      const users = await storage.getAllUsers(false);
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
+      res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Admin-only: get ALL users including banned (for user management panel)
+  app.get('/api/admin/users', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser?.isAdmin) return res.status(403).json({ message: "Admin access required" });
+      const users = await storage.getAllUsers(true);
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching all users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
     }
   });

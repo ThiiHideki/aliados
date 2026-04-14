@@ -78,7 +78,7 @@ export default function AdminUsers() {
   const [cheaterBanningUser, setCheaterBanningUser] = useState<User | null>(null);
 
   const { data: allUsers, isLoading } = useQuery<User[]>({
-    queryKey: ["/api/users"],
+    queryKey: ["/api/admin/users"],
     enabled: !!user?.isAdmin,
   });
 
@@ -88,6 +88,7 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({ title: "Usuário atualizado com sucesso!" });
       setEditingUser(null);
     },
@@ -114,6 +115,7 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({ title: "Usuário excluído com sucesso!" });
       setDeletingUser(null);
     },
@@ -141,6 +143,7 @@ export default function AdminUsers() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({ 
         title: "Usuários mesclados com sucesso!",
         description: `Estatísticas transferidas para ${data.user?.nickname || data.user?.firstName || "o usuário de destino"}.`
@@ -165,6 +168,7 @@ export default function AdminUsers() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({ 
         title: "Estatísticas recalculadas!",
         description: data.message || "Todas as estatísticas foram atualizadas."
@@ -185,6 +189,7 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({ title: "Usuário banido com sucesso!" });
       setBanningUser(null);
     },
@@ -199,6 +204,7 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       toast({ title: "Usuário desbanido com sucesso!" });
     },
     onError: (error: Error) => {
@@ -212,10 +218,11 @@ export default function AdminUsers() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/users/cheater-banned"] });
       queryClient.invalidateQueries({ queryKey: ["/api/matches/latest-ace"] });
       queryClient.invalidateQueries({ queryKey: ["/api/matches/latest-mvp"] });
-      toast({ title: "Ban permanente aplicado!", description: "Anúncio publicado no mural." });
+      toast({ title: "Ban permanente aplicado!", description: "Card exibido no mural." });
       setCheaterBanningUser(null);
     },
     onError: (error: Error) => {
