@@ -1148,28 +1148,34 @@ export class DatabaseStorage implements IStorage {
       return (s.mvps || 0) > (best.mvps || 0) ? s : best;
     }, stats[0]);
 
-    const [mvpUser] = await db.select().from(users).where(eq(users.id, mvp.userId));
+    const [mvpUser] = await db.select().from(users).where(
+      and(eq(users.id, mvp.userId), eq(users.isBanned, false), eq(users.isCheaterBanned, false))
+    );
     if (!mvpUser) return undefined;
 
     return { match: latestMatch, mvpStats: mvp, mvpUser };
   }
 
   async getLatestAce(): Promise<{ match: Match; aceStats: MatchStats; aceUser: User } | undefined> {
+    // Fetch candidates and filter out banned users
     const rows = await db.select({
       matchStat: matchStats,
       match: matches,
+      user: users,
     }).from(matchStats)
       .innerJoin(matches, eq(matchStats.matchId, matches.id))
-      .where(sql`${matchStats.enemy5ks} > 0`)
+      .innerJoin(users, eq(matchStats.userId, users.id))
+      .where(and(
+        sql`${matchStats.enemy5ks} > 0`,
+        eq(users.isBanned, false),
+        eq(users.isCheaterBanned, false)
+      ))
       .orderBy(desc(matches.date), desc(matchStats.id))
       .limit(1);
 
     if (rows.length === 0) return undefined;
 
-    const { matchStat, match } = rows[0];
-    const [aceUser] = await db.select().from(users).where(eq(users.id, matchStat.userId));
-    if (!aceUser) return undefined;
-
+    const { matchStat, match, user: aceUser } = rows[0];
     return { match, aceStats: matchStat, aceUser };
   }
 

@@ -213,6 +213,8 @@ export default function AdminUsers() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/users"] });
       queryClient.invalidateQueries({ queryKey: ["/api/news"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/matches/latest-ace"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/matches/latest-mvp"] });
       toast({ title: "Ban permanente aplicado!", description: "Anúncio publicado no mural." });
       setCheaterBanningUser(null);
     },
