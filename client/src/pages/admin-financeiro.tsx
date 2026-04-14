@@ -182,11 +182,19 @@ export default function AdminFinanceiro() {
                     <SelectValue placeholder="Selecione um jogador" />
                   </SelectTrigger>
                   <SelectContent>
-                    {users.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.nickname || u.firstName || u.email || "Jogador"}
-                      </SelectItem>
-                    ))}
+                    {[...users]
+                      .sort((a, b) =>
+                        (a.nickname || a.firstName || a.email || "").localeCompare(
+                          b.nickname || b.firstName || b.email || "",
+                          "pt-BR",
+                          { sensitivity: "base" }
+                        )
+                      )
+                      .map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.nickname || u.firstName || u.email || "Jogador"}
+                        </SelectItem>
+                      ))}
                   </SelectContent>
                 </Select>
               </div>
