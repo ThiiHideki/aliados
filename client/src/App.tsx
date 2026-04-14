@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import { Switch, Route, useLocation, Redirect } from "wouter";
-import { Lock } from "lucide-react";
+import { Lock, Ban, Skull } from "lucide-react";
 import { SiSteam } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -132,6 +132,45 @@ function LoginRequired() {
   );
 }
 
+function BannedScreen() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-background px-4 text-center">
+      <div className="flex items-center justify-center w-20 h-20 rounded-full bg-destructive/10 border-2 border-destructive/30">
+        <Ban className="h-10 w-10 text-destructive" />
+      </div>
+      <div>
+        <h1 className="text-2xl font-bold text-destructive mb-2">Acesso Bloqueado</h1>
+        <p className="text-muted-foreground max-w-sm">
+          Você não está podendo acessar. Contate um administrador para mais informações.
+        </p>
+      </div>
+      <Button variant="outline" asChild>
+        <a href="/api/logout">Sair</a>
+      </Button>
+    </div>
+  );
+}
+
+function CheaterBannedScreen() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-background px-4 text-center">
+      <div className="flex items-center justify-center w-24 h-24 rounded-full bg-red-500/10 border-2 border-red-500/40">
+        <Skull className="h-12 w-12 text-red-500" />
+      </div>
+      <div>
+        <h1 className="text-3xl font-black text-red-500 tracking-widest mb-3">CHEATER</h1>
+        <p className="text-xl font-semibold text-foreground mb-2">Você não é bem-vindo aqui.</p>
+        <p className="text-muted-foreground max-w-sm text-sm">
+          Sua conta foi banida permanentemente por uso de cheats. Este ban não pode ser revertido.
+        </p>
+      </div>
+      <Button variant="outline" asChild>
+        <a href="/api/logout">Sair</a>
+      </Button>
+    </div>
+  );
+}
+
 function Router() {
   const { user, isAuthenticated, isLoading, isError } = useAuth();
 
@@ -257,7 +296,7 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
 }
 
 function AppContent() {
-  const { isAuthenticated, isLoading, isError } = useAuth();
+  const { user, isAuthenticated, isLoading, isError } = useAuth();
 
   if (isLoading) {
     return <Router />;
@@ -265,6 +304,14 @@ function AppContent() {
 
   if (!isAuthenticated || isError) {
     return <Router />;
+  }
+
+  if ((user as any)?.isCheaterBanned) {
+    return <CheaterBannedScreen />;
+  }
+
+  if ((user as any)?.isBanned) {
+    return <BannedScreen />;
   }
 
   return (

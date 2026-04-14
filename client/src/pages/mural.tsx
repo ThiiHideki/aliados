@@ -16,7 +16,7 @@ import {
   Sparkles, Star, Trophy, Users, Calendar, 
   TrendingUp, ArrowRight, User, Gamepad2, 
   CheckCircle, ClipboardList, Megaphone, Award, Target,
-  DollarSign, ExternalLink, Handshake,
+  DollarSign, ExternalLink, Handshake, Skull,
   Newspaper, ChevronDown, ChevronRight, Plus, Trash2, Send
 } from "lucide-react";
 import { SiInstagram, SiDiscord } from "react-icons/si";
@@ -133,6 +133,15 @@ export default function Mural() {
     return configs[type] || configs.best_player;
   };
 
+  const { data: cheaterBannedUsers = [] } = useQuery<UserType[]>({
+    queryKey: ["/api/users/cheater-banned"],
+    queryFn: async () => {
+      const res = await fetch("/api/users/cheater-banned", { credentials: "include" });
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
+
   const { data: mySurvey } = useQuery<Survey | null>({
     queryKey: ["/api/survey"],
   });
@@ -179,6 +188,60 @@ export default function Mural() {
           </p>
         </div>
       </div>
+
+      {cheaterBannedUsers.length > 0 && (
+        <div className="space-y-3" data-testid="section-cheaters">
+          <div className="flex items-center gap-2">
+            <Skull className="h-5 w-5 text-red-500" />
+            <h2 className="text-lg font-bold text-red-500 uppercase tracking-wider">Cheaters Banidos</h2>
+          </div>
+          {cheaterBannedUsers.map((cheater) => (
+            <Card
+              key={cheater.id}
+              className="border-red-500/40 bg-red-500/5 overflow-hidden"
+              data-testid={`card-cheater-${cheater.id}`}
+            >
+              <CardContent className="p-0">
+                <div className="flex flex-col sm:flex-row items-center sm:items-stretch gap-0">
+                  <div className="flex items-center justify-center bg-red-500/15 sm:w-36 py-6 px-6 shrink-0">
+                    <div className="flex flex-col items-center gap-2">
+                      <div className="relative">
+                        <Avatar className="h-16 w-16 border-2 border-red-500/60">
+                          <AvatarImage src={cheater.profileImageUrl ?? undefined} />
+                          <AvatarFallback className="bg-red-500/20 text-red-400 font-bold text-xl">
+                            {(cheater.nickname || cheater.firstName || "?")[0].toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1 flex items-center justify-center w-6 h-6 rounded-full bg-red-500 border-2 border-background">
+                          <Skull className="h-3 w-3 text-white" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-col justify-center p-5 flex-1 gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xl font-bold text-foreground">
+                        {cheater.nickname || cheater.firstName || "Jogador"}
+                      </span>
+                      <Badge variant="destructive" className="text-xs font-black tracking-widest uppercase">
+                        <Skull className="h-3 w-3 mr-1" />
+                        CHEATER
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-red-400 font-semibold">Ban permanente por uso de cheats</p>
+                    <p className="text-xs text-muted-foreground">
+                      Esta conta foi banida permanentemente e não pode participar do servidor.
+                    </p>
+                  </div>
+                  <div className="hidden sm:flex items-center justify-center px-8 bg-red-500/10 border-l border-red-500/20">
+                    <Skull className="h-12 w-12 text-red-500/30" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       <Collapsible open={newsOpen} onOpenChange={setNewsOpen}>
         <Card className="border-primary/20" data-testid="card-news">

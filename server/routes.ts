@@ -6,7 +6,7 @@ import { setupSteamAuth } from "./steamAuth";
 import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, desc } from "drizzle-orm";
 import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
 
 // CSV row schema for validation
@@ -121,6 +121,19 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ message: "Failed to fetch users" });
+    }
+  });
+
+  // Get all cheater-banned users (public list for mural)
+  app.get('/api/users/cheater-banned', async (_req, res) => {
+    try {
+      const allUsers = await db.select().from(users)
+        .where(eq(users.isCheaterBanned, true))
+        .orderBy(desc(users.createdAt));
+      res.json(allUsers);
+    } catch (error) {
+      console.error("Error fetching cheater-banned users:", error);
+      res.status(500).json({ message: "Failed to fetch cheater-banned users" });
     }
   });
 
@@ -1169,15 +1182,6 @@ export async function registerRoutes(
       if (adminId === req.params.id) return res.status(400).json({ message: "Você não pode banir a si mesmo" });
 
       const banned = await storage.cheaterBanUser(req.params.id);
-
-      const playerName = target.nickname || target.firstName || target.email?.split("@")[0] || "Jogador desconhecido";
-
-      // Post mural announcement (fire and forget)
-      storage.createNews(
-        adminId,
-        "Cheater banido",
-        `Cheater banido com sucesso: **${playerName}** foi banido permanentemente do servidor por uso de cheats.`
-      ).catch((err) => console.error("Error creating cheater ban news:", err));
 
       res.json({ message: "Ban permanente aplicado com sucesso", user: banned });
     } catch (error) {
