@@ -53,7 +53,7 @@ import {
   type InsertTrophy,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -61,13 +61,16 @@ export interface IStorage {
   upsertUser(user: UpsertUser): Promise<User>;
   
   // Extended user operations
-  getAllUsers(): Promise<User[]>;
+  getAllUsers(includeAll?: boolean): Promise<User[]>;
   getUserBySteamId(steamId64: string): Promise<User | undefined>;
   getUserByDiscordId(discordUserId: string): Promise<User | undefined>;
   updateUserStats(id: string, stats: UpdateUserStats): Promise<User | undefined>;
   deleteUser(id: string): Promise<boolean>;
   createPlayerFromSteam(steamId64: string, nickname: string): Promise<User>;
   recalculateUserStats(userId: string): Promise<User | undefined>;
+  banUser(id: string): Promise<User | undefined>;
+  unbanUser(id: string): Promise<User | undefined>;
+  cheaterBanUser(id: string): Promise<User | undefined>;
   
   // Match operations
   getMatch(id: string): Promise<Match | undefined>;
@@ -182,8 +185,40 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Extended user operations
-  async getAllUsers(): Promise<User[]> {
-    return await db.select().from(users);
+  async getAllUsers(includeAll = false): Promise<User[]> {
+    if (includeAll) {
+      return await db.select().from(users);
+    }
+    return await db.select().from(users).where(
+      and(eq(users.isBanned, false), eq(users.isCheaterBanned, false))
+    );
+  }
+
+  async banUser(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isBanned: true, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async unbanUser(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isBanned: false, updatedAt: new Date() })
+      .where(and(eq(users.id, id), eq(users.isCheaterBanned, false)))
+      .returning();
+    return user;
+  }
+
+  async cheaterBanUser(id: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isBanned: true, isCheaterBanned: true, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   async getUserBySteamId(steamId64: string): Promise<User | undefined> {

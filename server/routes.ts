@@ -113,7 +113,10 @@ export async function registerRoutes(
   // Get all users (for rankings, mix, etc - accessible to all authenticated users)
   app.get('/api/users', isAuthenticated, async (req: any, res) => {
     try {
-      const users = await storage.getAllUsers();
+      const userId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const currentUser = await storage.getUser(userId);
+      // Admins see all users (including banned); regular users only see active
+      const users = await storage.getAllUsers(!!currentUser?.isAdmin);
       res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
@@ -1112,6 +1115,74 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error merging users:", error);
       res.status(500).json({ message: "Erro ao mesclar usuários" });
+    }
+  });
+
+  // Ban user (admin only, reversible)
+  app.post('/api/users/:id/ban', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const admin = await storage.getUser(adminId);
+      if (!admin?.isAdmin) return res.status(403).json({ message: "Admin access required" });
+
+      const target = await storage.getUser(req.params.id);
+      if (!target) return res.status(404).json({ message: "Usuário não encontrado" });
+      if (target.isCheaterBanned) return res.status(400).json({ message: "Usuário com ban permanente (cheater) não pode ser banido novamente" });
+      if (adminId === req.params.id) return res.status(400).json({ message: "Você não pode banir a si mesmo" });
+
+      const banned = await storage.banUser(req.params.id);
+      res.json({ message: "Usuário banido com sucesso", user: banned });
+    } catch (error) {
+      console.error("Error banning user:", error);
+      res.status(500).json({ message: "Erro ao banir usuário" });
+    }
+  });
+
+  // Unban user (admin only, only works for regular bans)
+  app.post('/api/users/:id/unban', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const admin = await storage.getUser(adminId);
+      if (!admin?.isAdmin) return res.status(403).json({ message: "Admin access required" });
+
+      const target = await storage.getUser(req.params.id);
+      if (!target) return res.status(404).json({ message: "Usuário não encontrado" });
+      if (target.isCheaterBanned) return res.status(400).json({ message: "Ban de cheater é permanente e não pode ser revertido" });
+
+      const unbanned = await storage.unbanUser(req.params.id);
+      res.json({ message: "Usuário desbanido com sucesso", user: unbanned });
+    } catch (error) {
+      console.error("Error unbanning user:", error);
+      res.status(500).json({ message: "Erro ao desbanir usuário" });
+    }
+  });
+
+  // Cheater ban user (admin only, permanent - cannot be undone)
+  app.post('/api/users/:id/cheater-ban', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const admin = await storage.getUser(adminId);
+      if (!admin?.isAdmin) return res.status(403).json({ message: "Admin access required" });
+
+      const target = await storage.getUser(req.params.id);
+      if (!target) return res.status(404).json({ message: "Usuário não encontrado" });
+      if (adminId === req.params.id) return res.status(400).json({ message: "Você não pode banir a si mesmo" });
+
+      const banned = await storage.cheaterBanUser(req.params.id);
+
+      const playerName = target.nickname || target.firstName || target.email?.split("@")[0] || "Jogador desconhecido";
+
+      // Post mural announcement (fire and forget)
+      storage.createNews(
+        adminId,
+        "Cheater banido",
+        `Cheater banido com sucesso: **${playerName}** foi banido permanentemente do servidor por uso de cheats.`
+      ).catch((err) => console.error("Error creating cheater ban news:", err));
+
+      res.json({ message: "Ban permanente aplicado com sucesso", user: banned });
+    } catch (error) {
+      console.error("Error cheater-banning user:", error);
+      res.status(500).json({ message: "Erro ao aplicar ban de cheater" });
     }
   });
 

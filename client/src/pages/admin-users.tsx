@@ -58,6 +58,9 @@ import {
   Link2,
   GitMerge,
   RefreshCw,
+  Ban,
+  ShieldOff,
+  Skull,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -71,6 +74,8 @@ export default function AdminUsers() {
   const [mergeDialogOpen, setMergeDialogOpen] = useState(false);
   const [sourceUserId, setSourceUserId] = useState("");
   const [targetUserId, setTargetUserId] = useState("");
+  const [banningUser, setBanningUser] = useState<User | null>(null);
+  const [cheaterBanningUser, setCheaterBanningUser] = useState<User | null>(null);
 
   const { data: allUsers, isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
@@ -171,6 +176,48 @@ export default function AdminUsers() {
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
+    },
+  });
+
+  const banUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("POST", `/api/users/${id}/ban`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Usuário banido com sucesso!" });
+      setBanningUser(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao banir usuário", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const unbanUserMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("POST", `/api/users/${id}/unban`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      toast({ title: "Usuário desbanido com sucesso!" });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao desbanir usuário", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const cheaterBanMutation = useMutation({
+    mutationFn: async (id: string) => {
+      await apiRequest("POST", `/api/users/${id}/cheater-ban`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/news"] });
+      toast({ title: "Ban permanente aplicado!", description: "Anúncio publicado no mural." });
+      setCheaterBanningUser(null);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao aplicar ban de cheater", description: error.message, variant: "destructive" });
     },
   });
 
@@ -364,11 +411,23 @@ export default function AdminUsers() {
                         </div>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Badge
-                          variant={player.isAdmin ? "default" : "secondary"}
-                        >
-                          {player.isAdmin ? "Admin" : "Jogador"}
-                        </Badge>
+                        <div className="flex flex-col items-center gap-1">
+                          <Badge
+                            variant={player.isAdmin ? "default" : "secondary"}
+                          >
+                            {player.isAdmin ? "Admin" : "Jogador"}
+                          </Badge>
+                          {player.isCheaterBanned && (
+                            <Badge variant="destructive" className="text-xs">
+                              Cheater
+                            </Badge>
+                          )}
+                          {player.isBanned && !player.isCheaterBanned && (
+                            <Badge variant="destructive" className="text-xs">
+                              Banido
+                            </Badge>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="text-right font-mono">{kd}</TableCell>
                       <TableCell className="text-right font-mono">
@@ -381,21 +440,58 @@ export default function AdminUsers() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => openEditDialog(player)}
                             data-testid={`button-edit-${player.id}`}
+                            title="Editar"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
+                          {player.isBanned && !player.isCheaterBanned ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => unbanUserMutation.mutate(player.id)}
+                              disabled={unbanUserMutation.isPending}
+                              data-testid={`button-unban-${player.id}`}
+                              title="Desbanir"
+                            >
+                              <ShieldOff className="h-4 w-4 text-green-500" />
+                            </Button>
+                          ) : !player.isCheaterBanned ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setBanningUser(player)}
+                              disabled={player.id === user.id}
+                              data-testid={`button-ban-${player.id}`}
+                              title="Banir"
+                            >
+                              <Ban className="h-4 w-4 text-orange-500" />
+                            </Button>
+                          ) : null}
+                          {!player.isCheaterBanned && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setCheaterBanningUser(player)}
+                              disabled={player.id === user.id}
+                              data-testid={`button-cheater-ban-${player.id}`}
+                              title="Ban Permanente (Cheater)"
+                            >
+                              <Skull className="h-4 w-4 text-destructive" />
+                            </Button>
+                          )}
                           <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => setDeletingUser(player)}
                             disabled={player.id === user.id}
                             data-testid={`button-delete-${player.id}`}
+                            title="Excluir"
                           >
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -732,6 +828,64 @@ export default function AdminUsers() {
               data-testid="button-confirm-delete"
             >
               {deleteUserMutation.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Ban confirmation dialog */}
+      <AlertDialog open={!!banningUser} onOpenChange={() => setBanningUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-orange-500" />
+              Banir Jogador
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja banir <strong>{banningUser?.nickname || banningUser?.firstName || banningUser?.email}</strong>?
+              O jogador ficará invisível no site, rankings, troféus e seleção de time.
+              Você pode desfazer esta ação a qualquer momento.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => banningUser && banUserMutation.mutate(banningUser.id)}
+              className="bg-orange-500 text-white"
+              data-testid="button-confirm-ban"
+            >
+              {banUserMutation.isPending ? "Banindo..." : "Confirmar Ban"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cheater ban confirmation dialog */}
+      <AlertDialog open={!!cheaterBanningUser} onOpenChange={() => setCheaterBanningUser(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Skull className="h-5 w-5 text-destructive" />
+              Ban Permanente — Cheater
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              <span className="block mb-2">
+                Você está prestes a aplicar um <strong>ban permanente e irreversível</strong> em{" "}
+                <strong>{cheaterBanningUser?.nickname || cheaterBanningUser?.firstName || cheaterBanningUser?.email}</strong> por uso de cheats.
+              </span>
+              <span className="block text-destructive font-medium">
+                Esta ação não pode ser desfeita. Um anúncio público será publicado no Mural expondo o jogador.
+              </span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => cheaterBanningUser && cheaterBanMutation.mutate(cheaterBanningUser.id)}
+              className="bg-destructive text-destructive-foreground"
+              data-testid="button-confirm-cheater-ban"
+            >
+              {cheaterBanMutation.isPending ? "Aplicando..." : "Ban Permanente"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -80,6 +80,9 @@ export const users = pgTable("users", {
   activeModifier: varchar("active_modifier", { length: 20 }),
   itemsUsedToday: integer("items_used_today").default(0).notNull(),
   itemsLastUsedDate: varchar("items_last_used_date", { length: 10 }),
+  // Ban system
+  isBanned: boolean("is_banned").default(false).notNull(),
+  isCheaterBanned: boolean("is_cheater_banned").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
