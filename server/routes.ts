@@ -6,7 +6,7 @@ import { setupSteamAuth } from "./steamAuth";
 import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, sql, desc } from "drizzle-orm";
+import { eq, sql, desc, and } from "drizzle-orm";
 import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
 
 // CSV row schema for validation
