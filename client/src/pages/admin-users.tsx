@@ -61,6 +61,7 @@ import {
   Ban,
   ShieldOff,
   Skull,
+  Zap,
 } from "lucide-react";
 import { Link } from "wouter";
 
@@ -180,6 +181,24 @@ export default function AdminUsers() {
         description: error.message || "Tente novamente mais tarde.",
         variant: "destructive",
       });
+    },
+  });
+
+  const grantDesafioAllMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest("POST", "/api/admin/grant-desafio-all");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/users"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/admin/users"] });
+      toast({
+        title: "Desafio LP concedido!",
+        description: data.message || "Todos os jogadores receberam +1 Desafio LP.",
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Erro ao conceder Desafio LP", description: error.message, variant: "destructive" });
     },
   });
 
@@ -349,6 +368,32 @@ export default function AdminUsers() {
               <RefreshCw className={`h-4 w-4 mr-2 ${recalculateAllStatsMutation.isPending ? 'animate-spin' : ''}`} />
               {recalculateAllStatsMutation.isPending ? "Recalculando..." : "Recalcular Stats"}
             </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  disabled={grantDesafioAllMutation.isPending}
+                  data-testid="button-grant-desafio-all"
+                >
+                  <Zap className="h-4 w-4 mr-2 text-yellow-500" />
+                  {grantDesafioAllMutation.isPending ? "Concedendo..." : "Desafio LP p/ Todos"}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Conceder Desafio LP para todos?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Todos os jogadores ativos receberão +1 item de Desafio LP. Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => grantDesafioAllMutation.mutate()}>
+                    Confirmar
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button 
               variant="outline" 
               onClick={() => setMergeDialogOpen(true)}

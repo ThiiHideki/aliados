@@ -280,6 +280,25 @@ export async function registerRoutes(
     }
   });
 
+  // Grant +1 Desafio LP item to all active (non-banned) players
+  app.post('/api/admin/grant-desafio-all', isAuthenticated, async (req: any, res) => {
+    try {
+      const adminId = (req.user as any)?.claims?.sub ?? (req.user as any)?.id;
+      const admin = await storage.getUser(adminId);
+      if (!admin?.isAdmin) return res.status(403).json({ message: "Admin access required" });
+
+      const result = await db.update(users)
+        .set({ desafioRpCount: sql`${users.desafioRpCount} + 1` })
+        .where(and(eq(users.isBanned, false), eq(users.isCheaterBanned, false)))
+        .returning({ id: users.id });
+
+      res.json({ message: `+1 Desafio LP concedido para ${result.length} jogador(es).`, count: result.length });
+    } catch (error) {
+      console.error("Error granting desafio to all:", error);
+      res.status(500).json({ message: "Erro ao conceder Desafio LP" });
+    }
+  });
+
   // Update current user profile (name, photo, steamId) - MUST be before /api/users/:id
   app.patch('/api/users/me', isAuthenticated, async (req: any, res) => {
     try {
