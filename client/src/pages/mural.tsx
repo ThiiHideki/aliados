@@ -322,6 +322,7 @@ export default function Mural() {
         </CardContent>
       </Card>
 
+      {false && (
       <Collapsible open={newsOpen} onOpenChange={setNewsOpen}>
         <Card className="border-primary/20" data-testid="card-news">
           <CollapsibleTrigger asChild>
@@ -476,6 +477,7 @@ export default function Mural() {
           </CollapsibleContent>
         </Card>
       </Collapsible>
+      )}
 
       <Card className="border-2 border-primary/40 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent" data-testid="card-server-cost">
         <CardHeader>

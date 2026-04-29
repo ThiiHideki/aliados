@@ -336,7 +336,7 @@ function SessionExpiredListener() {
         variant: "destructive",
       });
       setTimeout(() => {
-        window.location.href = "/api/login";
+        window.location.href = "/";
       }, 2500);
     };
     window.addEventListener("auth:session-expired", handler);
