@@ -17,7 +17,8 @@ import {
   TrendingUp, ArrowRight, User, Gamepad2, 
   CheckCircle, ClipboardList, Megaphone, Award, Target,
   DollarSign, ExternalLink, Handshake, Skull,
-  Newspaper, ChevronDown, ChevronRight, Plus, Trash2, Send
+  Newspaper, ChevronDown, ChevronRight, Plus, Trash2, Send,
+  Gift
 } from "lucide-react";
 import { SiInstagram, SiDiscord } from "react-icons/si";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -242,6 +243,84 @@ export default function Mural() {
           ))}
         </div>
       )}
+
+      <Card
+        className="border-2 border-purple-500/50 bg-gradient-to-br from-purple-500/15 via-purple-500/5 to-transparent overflow-hidden"
+        data-testid="card-giveaway-may"
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Gift className="h-6 w-6 text-purple-400" />
+              Sorteio de Maio - Skins Lab
+              <Sparkles className="h-5 w-5 text-purple-400" />
+            </CardTitle>
+            <Badge variant="default" className="bg-purple-600 font-bold">
+              <Calendar className="h-3 w-3 mr-1" />
+              Maio/2026
+            </Badge>
+          </div>
+          <CardDescription className="text-base">
+            Participe do sorteio mensal e concorra a 2 itens da Skins Lab!
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-center p-4 rounded-lg bg-background/60 border">
+            <img
+              src={skinsLabLogo}
+              alt="Skins Lab"
+              className="h-16 object-contain"
+              data-testid="img-skinslab-logo"
+            />
+          </div>
+
+          <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-3">
+            <p className="text-sm leading-relaxed">
+              Em <span className="font-bold text-purple-400">Maio</span> faremos um sorteio de <span className="font-bold text-primary">2 itens</span> do site <span className="font-bold">Skins Lab</span> para os jogadores ativos do servidor!
+            </p>
+            <p className="text-sm leading-relaxed font-medium text-foreground">
+              Quanto mais você joga, mais ajuda a comunidade a ficar viva. Nada melhor do que retribuir com prêmios!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Gift className="h-6 w-6 text-purple-400 mb-1" />
+              <span className="text-lg font-bold font-mono">2</span>
+              <span className="text-xs text-muted-foreground">Itens da Skins Lab</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Gamepad2 className="h-6 w-6 text-primary mb-1" />
+              <span className="text-lg font-bold font-mono">3+</span>
+              <span className="text-xs text-muted-foreground">Partidas no mês</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Calendar className="h-6 w-6 text-purple-400 mb-1" />
+              <span className="text-sm font-bold">Maio</span>
+              <span className="text-xs text-muted-foreground">Sorteio mensal</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+            <p className="text-sm font-semibold text-center text-primary">
+              Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Maio.
+            </p>
+          </div>
+
+          <Button
+            asChild
+            variant="default"
+            className="w-full bg-purple-600 border-purple-700"
+            data-testid="button-skinslab-site"
+          >
+            <a href="https://www.skinslab.com.br" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Conhecer a Skins Lab
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </a>
+          </Button>
+        </CardContent>
+      </Card>
 
       <Collapsible open={newsOpen} onOpenChange={setNewsOpen}>
         <Card className="border-primary/20" data-testid="card-news">

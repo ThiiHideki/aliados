@@ -1,0 +1,20 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "3AcfcqI1GS--Tqn1xnPcy"
+uri = "file://docs/instalar-app.md"
+type = "text"
+title = "Como instalar como app no iPhone e Android"
+
+[[outputs]]
+id = "QEiWKwmsohgSPf5qpO7i0"
+uri = "file://docs/entrar-mix-discord.md"
+type = "text"
+title = "Como entrar na lista do mix pelo Discord"
+
+[[outputs]]
+id = "Ib4jjNKFLKowt9ApmYrHx"
+uri = "file://docs/admin-mix.md"
+type = "text"
+title = "Guia do admin: fechar lista e fechar times do mix"
