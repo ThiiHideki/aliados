@@ -1573,7 +1573,11 @@ export async function registerRoutes(
             }
           }
 
-          const qualified = Object.values(playerStatsForTrophies).filter((s: any) => s.matchesPlayed >= 3);
+          const qualified = Object.values(playerStatsForTrophies).filter((s: any) => {
+            if (s.matchesPlayed < 3) return false;
+            const u = userMap.get(s.userId);
+            return !!u && !u.isBanned && !u.isCheaterBanned;
+          });
           if (qualified.length > 0) {
             await storage.deleteTrophiesByMonthYear(month, year);
             const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -1850,7 +1854,11 @@ export async function registerRoutes(
         }
       }
 
-      const qualifiedStats = Object.values(playerStats).filter((s: any) => s.matchesPlayed >= 3);
+      const qualifiedStats = Object.values(playerStats).filter((s: any) => {
+        if (s.matchesPlayed < 3) return false;
+        const u = userMap.get(s.userId);
+        return !!u && !u.isBanned && !u.isCheaterBanned;
+      });
 
       if (qualifiedStats.length === 0) {
         return res.status(400).json({ message: "Nenhum jogador com 3+ partidas neste mês" });
@@ -1951,7 +1959,11 @@ export async function registerRoutes(
       }
     }
 
-    const qualifiedStats = Object.values(playerStats).filter((s: any) => s.matchesPlayed >= 3);
+    const qualifiedStats = Object.values(playerStats).filter((s: any) => {
+      if (s.matchesPlayed < 3) return false;
+      const u = userMap.get(s.userId);
+      return !!u && !u.isBanned && !u.isCheaterBanned;
+    });
     if (qualifiedStats.length === 0) return [];
 
     await storage.deleteTrophiesByMonthYear(month, year);
