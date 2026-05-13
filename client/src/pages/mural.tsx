@@ -18,7 +18,7 @@ import {
   CheckCircle, ClipboardList, Megaphone, Award, Target,
   DollarSign, ExternalLink, Handshake, Skull,
   Newspaper, ChevronDown, ChevronRight, Plus, Trash2, Send,
-  Gift
+  Gift, Shirt
 } from "lucide-react";
 import { SiInstagram, SiDiscord } from "react-icons/si";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -319,6 +319,71 @@ export default function Mural() {
               <ArrowRight className="h-4 w-4 ml-2" />
             </a>
           </Button>
+        </CardContent>
+      </Card>
+
+      <Card
+        className="border-2 border-green-500/50 bg-gradient-to-br from-green-500/15 via-yellow-500/5 to-transparent overflow-hidden"
+        data-testid="card-giveaway-dukinhas-may"
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Shirt className="h-6 w-6 text-green-500" />
+              Sorteio de Maio - Dukinhas Camisa
+              <Sparkles className="h-5 w-5 text-yellow-400" />
+            </CardTitle>
+            <Badge variant="default" className="bg-green-600 font-bold">
+              <Calendar className="h-3 w-3 mr-1" />
+              Maio/2026
+            </Badge>
+          </div>
+          <CardDescription className="text-base">
+            Em parceria com a Dukinhas Camisa, vamos sortear uma camisa da Seleção Brasileira!
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-center p-4 rounded-lg bg-background/60 border">
+            <img
+              src={dukinhaLogo}
+              alt="Dukinhas Camisa"
+              className="h-16 object-contain rounded-md"
+              data-testid="img-dukinhas-logo"
+            />
+          </div>
+
+          <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 space-y-3">
+            <p className="text-sm leading-relaxed">
+              No mês de <span className="font-bold text-green-500">Maio</span> vamos sortear uma <span className="font-bold text-yellow-500">Camisa da Seleção Brasileira</span> entre os membros ativos do servidor!
+            </p>
+            <p className="text-sm leading-relaxed font-medium text-foreground">
+              Quanto mais você joga, mais ajuda a comunidade a continuar viva. Vamos retribuir com prêmios da nossa parceira Dukinhas Camisa!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Shirt className="h-6 w-6 text-green-500 mb-1" />
+              <span className="text-sm font-bold">Seleção</span>
+              <span className="text-xs text-muted-foreground">Camisa Brasil</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Gamepad2 className="h-6 w-6 text-primary mb-1" />
+              <span className="text-lg font-bold font-mono">3+</span>
+              <span className="text-xs text-muted-foreground">Partidas no mês</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Calendar className="h-6 w-6 text-yellow-500 mb-1" />
+              <span className="text-sm font-bold">Maio</span>
+              <span className="text-xs text-muted-foreground">Sorteio mensal</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+            <p className="text-sm font-semibold text-center text-primary">
+              Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Maio.
+            </p>
+          </div>
         </CardContent>
       </Card>
 
