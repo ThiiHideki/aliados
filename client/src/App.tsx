@@ -51,6 +51,7 @@ import JogatinaFantasy from "@/pages/jogatina-fantasy";
 import Mural from "@/pages/mural";
 import Pesquisa from "@/pages/pesquisa";
 import AdminPesquisa from "@/pages/admin-pesquisa";
+import AdminRelatorio from "@/pages/admin-relatorio";
 import CopaInscricao from "@/pages/copa-inscricao";
 import CopaTabela from "@/pages/copa-tabela";
 import CopaEstatisticas from "@/pages/copa-estatisticas";
@@ -252,6 +253,7 @@ function Router() {
         <Route path="/admin/historico-rankings" component={AdminHistoricoRankings} />
         <Route path="/admin/punicoes" component={AdminPunicoes} />
         <Route path="/admin/pesquisa" component={AdminPesquisa} />
+        <Route path="/admin/relatorio" component={AdminRelatorio} />
         <Route path="/copa/inscricao" component={CopaInscricao} />
         <Route path="/copa/tabela" component={CopaTabela} />
         <Route path="/copa/estatisticas" component={CopaEstatisticas} />

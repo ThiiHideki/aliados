@@ -3288,6 +3288,81 @@ export async function registerRoutes(
     res.json({ success: true, ...result });
   });
 
+  // Admin: aggregated activity report
+  app.get('/api/admin/report', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub ?? req.user?.id;
+      const currentUser = await storage.getUser(userId);
+      if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
+
+      const all = await storage.getAllUsers(true);
+      const subs = await db.select().from(pushSubscriptions);
+      const pushUserIds = new Set(subs.map((s) => s.userId).filter(Boolean) as string[]);
+
+      const slim = (u: typeof all[number]) => ({
+        id: u.id,
+        nickname: u.nickname || u.firstName || u.email || "Sem nome",
+        profileImageUrl: u.profileImageUrl || null,
+        steamId64: u.steamId64 || null,
+        discordUserId: u.discordUserId || null,
+        totalMatches: u.totalMatches || 0,
+        matchesWon: u.matchesWon || 0,
+        isAdmin: !!u.isAdmin,
+        isBanned: !!u.isBanned,
+        createdAt: u.createdAt,
+        lastLoginAt: u.lastLoginAt ?? u.updatedAt ?? null,
+        hasPush: pushUserIds.has(u.id),
+        hasDiscord: !!u.discordUserId,
+      });
+
+      const enriched = all.map(slim);
+
+      const mostActive = [...enriched]
+        .filter((u) => u.totalMatches > 0)
+        .sort((a, b) => b.totalMatches - a.totalMatches)
+        .slice(0, 50);
+
+      const neverPlayed = enriched
+        .filter((u) => u.totalMatches === 0)
+        .sort((a, b) => (a.nickname || "").localeCompare(b.nickname || ""));
+
+      const discordEnabled = enriched
+        .filter((u) => u.hasDiscord)
+        .sort((a, b) => (a.nickname || "").localeCompare(b.nickname || ""));
+
+      const pushEnabled = enriched
+        .filter((u) => u.hasPush)
+        .sort((a, b) => (a.nickname || "").localeCompare(b.nickname || ""));
+
+      const inactive = [...enriched]
+        .filter((u) => !u.isBanned)
+        .sort((a, b) => {
+          const ta = a.lastLoginAt ? new Date(a.lastLoginAt).getTime() : 0;
+          const tb = b.lastLoginAt ? new Date(b.lastLoginAt).getTime() : 0;
+          return ta - tb;
+        })
+        .slice(0, 50);
+
+      res.json({
+        totals: {
+          totalUsers: enriched.length,
+          neverPlayed: neverPlayed.length,
+          discordEnabled: discordEnabled.length,
+          pushEnabled: pushEnabled.length,
+          pushSubscriptions: subs.length,
+        },
+        mostActive,
+        neverPlayed,
+        discordEnabled,
+        pushEnabled,
+        inactive,
+      });
+    } catch (err: any) {
+      console.error("[admin/report] erro:", err);
+      res.status(500).json({ message: err.message || "Erro ao gerar relatório" });
+    }
+  });
+
   app.post('/api/discord/mix-notify', isAuthenticated, async (req: any, res) => {
     const userId = req.user?.claims?.sub;
     const currentUser = await storage.getUser(userId);

@@ -55,6 +55,7 @@ import {
   ShieldAlert,
   ClipboardList,
   ScrollText,
+  Activity,
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -804,6 +805,18 @@ export function AppSidebar() {
                             <Link href="/admin/pesquisa">
                               <ClipboardList className="h-4 w-4" />
                               <span>Pesquisas</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/admin/relatorio"}
+                            data-testid="nav-admin-relatorio"
+                          >
+                            <Link href="/admin/relatorio">
+                              <Activity className="h-4 w-4" />
+                              <span>Relatório</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

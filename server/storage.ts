@@ -164,11 +164,13 @@ export class DatabaseStorage implements IStorage {
     const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
     const isFirstUser = existingUsers.length === 0;
     
+    const now = new Date();
     const [user] = await db
       .insert(users)
       .values({
         ...userData,
         isAdmin: isFirstUser ? true : (userData.isAdmin ?? false),
+        lastLoginAt: now,
       })
       .onConflictDoUpdate({
         target: users.id,
@@ -177,7 +179,8 @@ export class DatabaseStorage implements IStorage {
           firstName: userData.firstName,
           lastName: userData.lastName,
           profileImageUrl: userData.profileImageUrl,
-          updatedAt: new Date(),
+          lastLoginAt: now,
+          updatedAt: now,
         },
       })
       .returning();

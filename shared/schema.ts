@@ -83,6 +83,7 @@ export const users = pgTable("users", {
   // Ban system
   isBanned: boolean("is_banned").default(false).notNull(),
   isCheaterBanned: boolean("is_cheater_banned").default(false).notNull(),
+  lastLoginAt: timestamp("last_login_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
