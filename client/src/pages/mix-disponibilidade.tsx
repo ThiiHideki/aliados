@@ -13,9 +13,10 @@ import { useLocation, Link } from "wouter";
 import {
   Users, Clock, UserPlus, UserMinus, AlertTriangle,
   ChevronLeft, ChevronRight, CalendarDays, Shield, Swords,
-  ShieldAlert, CheckCircle, Ban, X, Bell
+  ShieldAlert, CheckCircle, Ban, X, Bell, BellOff, BellRing, Smartphone
 } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { User as UserType, MixAvailability } from "@shared/schema";
 
 type MixEntry = MixAvailability & { user: UserType };
@@ -168,6 +169,23 @@ export default function MixDisponibilidade() {
     },
     onError: (error: any) => {
       toast({ title: "Erro", description: error.message || "Não foi possível adicionar o jogador", variant: "destructive" });
+    },
+  });
+
+  const push = usePushNotifications();
+
+  const pushNotifyMutation = useMutation({
+    mutationFn: async () =>
+      apiRequest('POST', '/api/mix/push-notify', {}),
+    onSuccess: async (res: any) => {
+      const data = await res.json().catch(() => ({} as any));
+      toast({
+        title: "Push enviado!",
+        description: `Notificação enviada para ${data.sent ?? 0} dispositivo(s)${data.failed ? ` (${data.failed} falha(s))` : ""}.`,
+      });
+    },
+    onError: (error: any) => {
+      toast({ title: "Falha ao enviar push", description: error.message || "Erro desconhecido", variant: "destructive" });
     },
   });
 
@@ -346,9 +364,64 @@ export default function MixDisponibilidade() {
             </Button>
           )}
 
+          {push.supported && push.status !== "subscribed" && (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20" data-testid="push-enable-banner">
+              <Smartphone className="h-5 w-5 text-primary flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium">Receber aviso quando a lista abrir</p>
+                <p className="text-xs text-muted-foreground">
+                  {push.status === "denied"
+                    ? "Notificações bloqueadas. Habilite-as nas configurações do navegador/app."
+                    : "Funciona no navegador e no app instalado."}
+                </p>
+              </div>
+              {push.status !== "denied" && (
+                <Button
+                  size="sm"
+                  onClick={() => push.subscribe().then((ok) => {
+                    if (ok) toast({ title: "Notificações ativadas!", description: "Você receberá um aviso quando a lista do mix abrir." });
+                    else toast({ title: "Não foi possível ativar", description: "Verifique as permissões do navegador.", variant: "destructive" });
+                  })}
+                  disabled={push.loading}
+                  data-testid="button-push-enable"
+                >
+                  <BellRing className="h-4 w-4 mr-2" />
+                  {push.loading ? "Ativando..." : "Ativar"}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {push.supported && push.status === "subscribed" && (
+            <div className="flex items-center gap-2 p-2 rounded-lg bg-muted/40 border" data-testid="push-status-on">
+              <BellRing className="h-4 w-4 text-primary" />
+              <span className="text-xs text-muted-foreground flex-1">Notificações ativas neste dispositivo.</span>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => push.unsubscribe().then(() => toast({ title: "Notificações desativadas" }))}
+                disabled={push.loading}
+                data-testid="button-push-disable"
+              >
+                <BellOff className="h-4 w-4 mr-2" />
+                Desativar
+              </Button>
+            </div>
+          )}
+
           {user?.isAdmin && (
             <div className="border-t pt-3 space-y-2">
               <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Ações Admin</p>
+              <Button
+                variant="default"
+                className="w-full gap-2"
+                onClick={() => pushNotifyMutation.mutate()}
+                disabled={pushNotifyMutation.isPending}
+                data-testid="button-push-mix-notify"
+              >
+                <BellRing className="h-4 w-4" />
+                {pushNotifyMutation.isPending ? "Enviando push..." : "Notificar Lista (Push Web/App)"}
+              </Button>
               <Button
                 variant="outline"
                 className="w-full gap-2"

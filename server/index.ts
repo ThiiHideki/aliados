@@ -4,6 +4,7 @@ import { serveStatic } from "./static";
 import { createServer } from "http";
 import { initDiscordBot } from "./discord";
 import { sendInitialNotificationsIfNeeded } from "./initial-notifications";
+import { initPush } from "./push";
 
 // Keep the process alive when Neon or other async errors are thrown
 process.on('unhandledRejection', (reason: any) => {
@@ -75,6 +76,7 @@ app.use((req, res, next) => {
   await registerRoutes(httpServer, app);
   initDiscordBot().catch((err) => console.error("[Discord] Falha ao iniciar:", err));
   sendInitialNotificationsIfNeeded().catch((err) => console.error("[InitNotif] Erro:", err));
+  initPush().catch((err) => console.error("[Push] Falha ao iniciar:", err));
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

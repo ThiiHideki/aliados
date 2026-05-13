@@ -8,6 +8,8 @@ import { z } from "zod";
 import { db } from "./db";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
+import { getPublicKey as getVapidPublicKey, sendPushToAll, initPush } from "./push";
+import { pushSubscriptions } from "@shared/schema";
 
 // CSV row schema for validation
 const csvRowSchema = z.object({
@@ -3217,6 +3219,75 @@ export async function registerRoutes(
   });
 
   // Send mix notification to Discord (admin only)
+  // ===== Web Push (VAPID) =====
+  app.get('/api/push/vapid-public-key', async (_req, res) => {
+    let key = getVapidPublicKey();
+    if (!key) {
+      await initPush();
+      key = getVapidPublicKey();
+    }
+    res.json({ publicKey: key });
+  });
+
+  app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub ?? req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Não autenticado" });
+
+    const schema = z.object({
+      endpoint: z.string().url(),
+      p256dh: z.string().min(1),
+      auth: z.string().min(1),
+      userAgent: z.string().optional(),
+    });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+
+    const { endpoint, p256dh, auth, userAgent } = parsed.data;
+    await db
+      .insert(pushSubscriptions)
+      .values({ userId, endpoint, p256dh, auth, userAgent: userAgent ?? null })
+      .onConflictDoUpdate({
+        target: pushSubscriptions.endpoint,
+        set: { userId, p256dh, auth, userAgent: userAgent ?? null },
+      });
+    res.json({ success: true });
+  });
+
+  app.post('/api/push/unsubscribe', isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub ?? req.user?.id;
+    if (!userId) return res.status(401).json({ message: "Não autenticado" });
+    const schema = z.object({ endpoint: z.string().url() });
+    const parsed = schema.safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+    await db
+      .delete(pushSubscriptions)
+      .where(and(eq(pushSubscriptions.endpoint, parsed.data.endpoint), eq(pushSubscriptions.userId, userId)));
+    res.json({ success: true });
+  });
+
+  // Admin: send a push notification to ALL subscribers (used for mix list announcements)
+  app.post('/api/mix/push-notify', isAuthenticated, async (req: any, res) => {
+    const userId = req.user?.claims?.sub ?? req.user?.id;
+    const currentUser = await storage.getUser(userId);
+    if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
+
+    const schema = z.object({
+      title: z.string().min(1).max(120).optional(),
+      body: z.string().min(1).max(300).optional(),
+      url: z.string().optional(),
+    });
+    const parsed = schema.safeParse(req.body ?? {});
+    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+
+    const result = await sendPushToAll({
+      title: parsed.data.title ?? "Lista do Mix aberta!",
+      body: parsed.data.body ?? "A lista de hoje está aberta. Garanta sua vaga agora!",
+      url: parsed.data.url ?? "/mix/disponibilidade",
+      tag: "mix-list-open",
+    });
+    res.json({ success: true, ...result });
+  });
+
   app.post('/api/discord/mix-notify', isAuthenticated, async (req: any, res) => {
     const userId = req.user?.claims?.sub;
     const currentUser = await storage.getUser(userId);

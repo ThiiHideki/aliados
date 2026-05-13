@@ -679,3 +679,27 @@ export type FantasyRound = typeof fantasyRounds.$inferSelect;
 export type InsertFantasyRound = z.infer<typeof insertFantasyRoundSchema>;
 export type FantasyTeam = typeof fantasyTeams.$inferSelect;
 export type FantasyPick = typeof fantasyPicks.$inferSelect;
+
+// Web Push subscriptions (VAPID)
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type PushSubscription = typeof pushSubscriptions.$inferSelect;
+export const insertPushSubscriptionSchema = createInsertSchema(pushSubscriptions).omit({ id: true, createdAt: true });
+export type InsertPushSubscription = z.infer<typeof insertPushSubscriptionSchema>;
+
+// Generic key/value app settings (used to persist VAPID keys)
+export const appSettings = pgTable("app_settings", {
+  key: varchar("key").primaryKey(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export type AppSetting = typeof appSettings.$inferSelect;
