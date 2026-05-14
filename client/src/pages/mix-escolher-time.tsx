@@ -5,8 +5,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect, useCallback, memo } from "react";
-import { Swords, Users, Shuffle, Trophy, Target, RefreshCw, Star, TrendingUp, UserCheck, ArrowRight, Crown, Map as MapIcon, X, Check, ArrowUpDown } from "lucide-react";
+import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { Swords, Users, Shuffle, Trophy, Target, RefreshCw, Star, TrendingUp, UserCheck, ArrowRight, Crown, Map as MapIcon, X, Check, ArrowUpDown, Dices } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
@@ -597,7 +597,60 @@ export default function MixEscolherTime() {
     }
   };
 
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingMap, setDrawingMap] = useState<string | null>(null);
+  const drawTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const drawTokenRef = useRef(0);
+
+  const cancelDraw = useCallback(() => {
+    drawTokenRef.current += 1;
+    if (drawTimeoutRef.current !== null) {
+      clearTimeout(drawTimeoutRef.current);
+      drawTimeoutRef.current = null;
+    }
+    setIsDrawing(false);
+    setDrawingMap(null);
+  }, []);
+
+  useEffect(() => () => cancelDraw(), [cancelDraw]);
+
+  const drawRandomMap = () => {
+    if (isDrawing || selectedMap) return;
+    const pool = MAPS.filter(m => !bannedMaps.includes(m.name));
+    if (pool.length === 0) return;
+    drawTokenRef.current += 1;
+    const myToken = drawTokenRef.current;
+    setIsDrawing(true);
+    const totalDuration = 1800;
+    const interval = 90;
+    const startedAt = Date.now();
+    const tick = () => {
+      if (drawTokenRef.current !== myToken) return;
+      const elapsed = Date.now() - startedAt;
+      const random = pool[Math.floor(Math.random() * pool.length)];
+      setDrawingMap(random.name);
+      if (elapsed < totalDuration) {
+        drawTimeoutRef.current = setTimeout(tick, interval);
+      } else {
+        const finalPick = pool[Math.floor(Math.random() * pool.length)];
+        drawTimeoutRef.current = null;
+        setDrawingMap(null);
+        setSelectedMap(finalPick.name);
+        setIsDrawing(false);
+      }
+    };
+    tick();
+  };
+
+  const resetVetoFlow = () => {
+    cancelDraw();
+    setBannedMaps([]);
+    setSelectedMap(null);
+    setCurrentVetoTeam(1);
+  };
+
   const backToBalancing = () => {
+    cancelDraw();
     setStep("balancing");
     setBannedMaps([]);
     setSelectedMap(null);
@@ -647,19 +700,42 @@ export default function MixEscolherTime() {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-3">
               <MapIcon className="h-8 w-8 text-primary" />
-              Veto de Mapas
+              Escolha do Mapa
             </h1>
             <p className="text-muted-foreground mt-1">
               {selectedMap
                 ? "Mapa selecionado!"
-                : `Vez do ${currentVetoTeam === 1 ? "Time 1 (CT)" : "Time 2 (TR)"} banir um mapa`
+                : isDrawing
+                ? "Sorteando mapa..."
+                : `Vez do ${currentVetoTeam === 1 ? "Time 1 (CT)" : "Time 2 (TR)"} banir um mapa — ou sorteie um aleatório`
               }
             </p>
           </div>
-          <Button variant="outline" onClick={backToBalancing} data-testid="button-back-to-balancing">
-            <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
-            Voltar aos Times
-          </Button>
+          <div className="flex gap-2 flex-wrap">
+            <Button
+              variant="default"
+              onClick={drawRandomMap}
+              disabled={isDrawing || !!selectedMap}
+              data-testid="button-draw-map"
+            >
+              <Dices className="h-4 w-4 mr-2" />
+              {isDrawing ? "Sorteando..." : "Sortear Mapa"}
+            </Button>
+            {(selectedMap || bannedMaps.length > 0) && (
+              <Button
+                variant="outline"
+                onClick={resetVetoFlow}
+                data-testid="button-reset-veto-flow"
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Reiniciar
+              </Button>
+            )}
+            <Button variant="outline" onClick={backToBalancing} data-testid="button-back-to-balancing">
+              <ArrowRight className="h-4 w-4 mr-2 rotate-180" />
+              Voltar aos Times
+            </Button>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
@@ -714,7 +790,34 @@ export default function MixEscolherTime() {
           </Card>
         </div>
 
-        {selectedMap ? (
+        {isDrawing ? (
+          <Card className="border-primary/50 bg-primary/5">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-4">
+                <div
+                  className={`h-20 w-20 mx-auto rounded-xl flex items-center justify-center transition-all ${
+                    drawingMap ? MAPS.find(m => m.name === drawingMap)?.bg : "bg-primary/20"
+                  }`}
+                >
+                  <span
+                    className={`text-3xl font-bold ${
+                      drawingMap ? MAPS.find(m => m.name === drawingMap)?.color : "text-primary"
+                    }`}
+                  >
+                    {drawingMap ? MAPS.find(m => m.name === drawingMap)?.abbr : "?"}
+                  </span>
+                </div>
+                <h2 className="text-2xl font-bold text-primary" data-testid="text-drawing-map">
+                  {drawingMap || "Sorteando..."}
+                </h2>
+                <Badge variant="secondary" className="text-base px-4 py-1">
+                  <Dices className="h-4 w-4 mr-2 animate-spin" />
+                  Sorteando
+                </Badge>
+              </div>
+            </CardContent>
+          </Card>
+        ) : selectedMap ? (
           <Card className="border-green-500/50 bg-green-500/5">
             <CardContent className="pt-6">
               <div className="text-center space-y-4">
@@ -723,7 +826,7 @@ export default function MixEscolherTime() {
                     {MAPS.find(m => m.name === selectedMap)?.abbr}
                   </span>
                 </div>
-                <h2 className="text-3xl font-bold text-green-500">{selectedMap}</h2>
+                <h2 className="text-3xl font-bold text-green-500" data-testid="text-selected-map">{selectedMap}</h2>
                 <p className="text-muted-foreground">
                   Mapa selecionado para a partida!
                 </p>
