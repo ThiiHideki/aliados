@@ -6,7 +6,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Checkbox } from "@/components/ui/checkbox";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect, useCallback, useRef, memo } from "react";
-import { Swords, Users, Shuffle, Trophy, Target, RefreshCw, Star, TrendingUp, UserCheck, ArrowRight, Crown, Map as MapIcon, X, Check, ArrowUpDown, Dices } from "lucide-react";
+import { Swords, Users, Shuffle, Trophy, Target, RefreshCw, Star, TrendingUp, UserCheck, ArrowRight, Crown, Map as MapIcon, X, Check, ArrowUpDown, Dices, Server, Copy } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
@@ -361,8 +362,14 @@ const PlayerCard = memo(function PlayerCard({
 });
 
 
+const SERVER_IP = "103.14.27.41:27273";
+const SERVER_PASSWORD = "539102";
+const SERVER_CONNECT_URL = `steam://connect/${SERVER_IP}/${SERVER_PASSWORD}`;
+const SERVER_CONSOLE_COMMAND = `connect ${SERVER_IP}; password ${SERVER_PASSWORD}`;
+
 export default function MixEscolherTime() {
   const { user: currentUser } = useAuth();
+  const { toast } = useToast();
   const { data: users = [], isLoading } = useQuery<User[]>({
     queryKey: ["/api/users"],
   });
@@ -834,6 +841,46 @@ export default function MixEscolherTime() {
                   <Check className="h-5 w-5 mr-2" />
                   Mapa Definido
                 </Badge>
+
+                <div className="pt-4 border-t mt-4 space-y-3">
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Server className="h-4 w-4" />
+                    <span>Servidor: <span className="font-mono">{SERVER_IP}</span></span>
+                  </div>
+                  <div className="flex gap-2 justify-center flex-wrap">
+                    <Button asChild data-testid="button-connect-server">
+                      <a href={SERVER_CONNECT_URL}>
+                        <Server className="h-4 w-4 mr-2" />
+                        Conectar no Servidor
+                      </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(SERVER_CONSOLE_COMMAND);
+                          toast({
+                            title: "Comando copiado!",
+                            description: "Cole no console do CS2 (tecla ~).",
+                          });
+                        } catch {
+                          toast({
+                            title: "Não foi possível copiar",
+                            description: SERVER_CONSOLE_COMMAND,
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      data-testid="button-copy-connect"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      Copiar Comando
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Se o botão não abrir o jogo, copie o comando e cole no console (tecla <span className="font-mono">~</span>).
+                  </p>
+                </div>
               </div>
             </CardContent>
           </Card>
