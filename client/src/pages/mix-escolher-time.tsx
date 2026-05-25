@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useAuth } from "@/hooks/useAuth";
 import type { User } from "@shared/schema";
+import { SERVER_IP, SERVER_CONNECT_URL, SERVER_CONSOLE_COMMAND } from "@/lib/mix-server";
 
 type PlayerWithLevel = User & { mixLevel: number; isCaptain?: boolean };
 
@@ -361,11 +362,6 @@ const PlayerCard = memo(function PlayerCard({
   );
 });
 
-
-const SERVER_IP = "103.14.27.41:27273";
-const SERVER_PASSWORD = "539102";
-const SERVER_CONNECT_URL = `steam://connect/${SERVER_IP}/${SERVER_PASSWORD}`;
-const SERVER_CONSOLE_COMMAND = `connect ${SERVER_IP}; password ${SERVER_PASSWORD}`;
 
 export default function MixEscolherTime() {
   const { user: currentUser } = useAuth();

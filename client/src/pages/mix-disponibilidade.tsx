@@ -13,8 +13,10 @@ import { useLocation, Link } from "wouter";
 import {
   Users, Clock, UserPlus, UserMinus, AlertTriangle,
   ChevronLeft, ChevronRight, CalendarDays, Shield, Swords,
-  ShieldAlert, CheckCircle, Ban, X, Bell, BellOff, BellRing, Smartphone
+  ShieldAlert, CheckCircle, Ban, X, Bell, BellOff, BellRing, Smartphone,
+  Server, Copy
 } from "lucide-react";
+import { SERVER_IP, SERVER_CONNECT_URL, SERVER_CONSOLE_COMMAND } from "@/lib/mix-server";
 import { SiDiscord } from "react-icons/si";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import type { User as UserType, MixAvailability } from "@shared/schema";
@@ -47,6 +49,49 @@ function addDays(dateStr: string, days: number): string {
   const date = new Date(year, month - 1, day);
   date.setDate(date.getDate() + days);
   return date.toISOString().split('T')[0];
+}
+
+function ConnectServerPanel() {
+  const { toast } = useToast();
+  return (
+    <div className="rounded-lg border border-primary/30 bg-primary/5 p-3 space-y-2" data-testid="panel-connect-server">
+      <div className="flex items-center gap-2 text-sm">
+        <Server className="h-4 w-4 text-primary" />
+        <span className="font-medium">Conectar no servidor</span>
+        <span className="text-xs text-muted-foreground font-mono ml-auto">{SERVER_IP}</span>
+      </div>
+      <div className="flex gap-2 flex-wrap">
+        <Button asChild className="flex-1 min-w-[160px]" data-testid="button-connect-server-list">
+          <a href={SERVER_CONNECT_URL}>
+            <Server className="h-4 w-4 mr-2" />
+            Conectar no Jogo
+          </a>
+        </Button>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(SERVER_CONSOLE_COMMAND);
+              toast({ title: "Comando copiado!", description: "Cole no console do CS2 (tecla ~)." });
+            } catch {
+              toast({
+                title: "Não foi possível copiar",
+                description: SERVER_CONSOLE_COMMAND,
+                variant: "destructive",
+              });
+            }
+          }}
+          data-testid="button-copy-connect-list"
+        >
+          <Copy className="h-4 w-4 mr-2" />
+          Copiar
+        </Button>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        Se o botão não abrir o jogo, copie e cole no console (tecla <span className="font-mono">~</span>).
+      </p>
+    </div>
+  );
 }
 
 export default function MixDisponibilidade() {
@@ -352,16 +397,19 @@ export default function MixDisponibilidade() {
               </div>
             )
           ) : (
-            <Button
-              onClick={() => leaveMutation.mutate()}
-              disabled={leaveMutation.isPending}
-              variant="destructive"
-              className="w-full"
-              data-testid="button-leave-list"
-            >
-              <UserMinus className="h-4 w-4 mr-2" />
-              Sair da Lista
-            </Button>
+            <div className="space-y-2">
+              <Button
+                onClick={() => leaveMutation.mutate()}
+                disabled={leaveMutation.isPending}
+                variant="destructive"
+                className="w-full"
+                data-testid="button-leave-list"
+              >
+                <UserMinus className="h-4 w-4 mr-2" />
+                Sair da Lista
+              </Button>
+              <ConnectServerPanel />
+            </div>
           )}
 
           {push.supported && push.status !== "subscribed" && (
