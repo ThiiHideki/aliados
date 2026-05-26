@@ -239,13 +239,15 @@ export class DatabaseStorage implements IStorage {
     const existingUser = await this.getUserBySteamId(steamId64);
     
     if (existingUser) {
-      // Update the nickname/firstName if not already set or if it's a default value
-      if (!existingUser.nickname || existingUser.nickname === existingUser.steamId64) {
+      // Always sync the nickname with the name from the latest match file,
+      // so the player's display name stays up-to-date with what's used in-game.
+      const trimmedName = (playerName ?? "").trim();
+      if (trimmedName && trimmedName !== existingUser.nickname) {
         const [updatedUser] = await db
           .update(users)
           .set({
-            nickname: playerName,
-            firstName: existingUser.firstName || playerName,
+            nickname: trimmedName,
+            firstName: existingUser.firstName || trimmedName,
             updatedAt: new Date(),
           })
           .where(eq(users.id, existingUser.id))

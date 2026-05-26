@@ -689,13 +689,10 @@ export async function registerRoutes(
       const preStateMap: Record<string, PlayerPreState> = {};
 
       for (const row of rows) {
-        // Find or create user by steamId64
-        let user = await storage.getUserBySteamId(row.steamid64);
-        
-        if (!user) {
-          // Create a new user from Steam data
-          user = await storage.createPlayerFromSteam(row.steamid64, row.name);
-        }
+        // Find or create user by steamId64.
+        // createPlayerFromSteam also syncs the nickname with the latest name
+        // from the match file, keeping it up-to-date with what's used in-game.
+        const user = await storage.createPlayerFromSteam(row.steamid64, row.name);
 
         usersToRecalculate.push(user.id);
         preStateMap[row.steamid64] = {
