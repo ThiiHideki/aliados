@@ -61,6 +61,45 @@ export type PushPayload = {
   tag?: string;
 };
 
+export async function sendPushToUser(userId: string, payload: PushPayload): Promise<{ sent: number; failed: number; total: number }> {
+  if (!initialized) await initPush();
+  const subs = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.userId, userId));
+  let sent = 0;
+  let failed = 0;
+  const stale: number[] = [];
+
+  await Promise.all(
+    subs.map(async (s) => {
+      try {
+        await webpush.sendNotification(
+          {
+            endpoint: s.endpoint,
+            keys: { p256dh: s.p256dh, auth: s.auth },
+          },
+          JSON.stringify(payload),
+          { TTL: 60 * 60 * 24 },
+        );
+        sent++;
+      } catch (err: any) {
+        failed++;
+        if (err?.statusCode === 404 || err?.statusCode === 410) {
+          stale.push(s.id);
+        } else {
+          console.error("[Push] Falha ao enviar (user):", err?.statusCode, err?.body || err?.message);
+        }
+      }
+    }),
+  );
+
+  if (stale.length > 0) {
+    for (const id of stale) {
+      await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, id));
+    }
+  }
+
+  return { sent, failed, total: subs.length };
+}
+
 export async function sendPushToAll(payload: PushPayload): Promise<{ sent: number; failed: number; total: number }> {
   if (!initialized) await initPush();
   const subs = await db.select().from(pushSubscriptions);

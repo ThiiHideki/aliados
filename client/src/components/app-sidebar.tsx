@@ -56,6 +56,7 @@ import {
   ClipboardList,
   ScrollText,
   Activity,
+  Gift,
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -817,6 +818,18 @@ export function AppSidebar() {
                             <Link href="/admin/relatorio">
                               <Activity className="h-4 w-4" />
                               <span>Relatório</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/admin/sorteios"}
+                            data-testid="nav-admin-sorteios"
+                          >
+                            <Link href="/admin/sorteios">
+                              <Gift className="h-4 w-4" />
+                              <span>Sorteios</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>

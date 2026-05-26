@@ -704,3 +704,30 @@ export const appSettings = pgTable("app_settings", {
 });
 
 export type AppSetting = typeof appSettings.$inferSelect;
+
+// Raffles / Sorteios
+export const raffles = pgTable("raffles", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  month: integer("month").notNull(),
+  year: integer("year").notNull(),
+  minMatches: integer("min_matches").notNull(),
+  eligibleSnapshot: jsonb("eligible_snapshot").notNull(),
+  winnerUserId: varchar("winner_user_id").references(() => users.id, { onDelete: "set null" }),
+  winnerNickname: varchar("winner_nickname"),
+  seed: varchar("seed").notNull(),
+  randomValue: varchar("random_value").notNull(),
+  winnerIndex: integer("winner_index").notNull(),
+  notifiedAt: timestamp("notified_at"),
+  winnerSeenAt: timestamp("winner_seen_at"),
+  createdById: varchar("created_by_id").references(() => users.id, { onDelete: "set null" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export type Raffle = typeof raffles.$inferSelect;
+export type RaffleEligibleEntry = {
+  userId: string;
+  nickname: string;
+  matchesPlayed: number;
+  profileImageUrl?: string | null;
+};

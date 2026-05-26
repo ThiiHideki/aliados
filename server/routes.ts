@@ -3,13 +3,14 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupSteamAuth } from "./steamAuth";
-import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET } from "@shared/schema";
+import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, sql, desc, and } from "drizzle-orm";
 import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
-import { getPublicKey as getVapidPublicKey, sendPushToAll, initPush } from "./push";
+import { getPublicKey as getVapidPublicKey, sendPushToAll, sendPushToUser, initPush } from "./push";
 import { pushSubscriptions } from "@shared/schema";
+import { randomBytes, createHash } from "crypto";
 
 // CSV row schema for validation
 const csvRowSchema = z.object({
@@ -3852,6 +3853,229 @@ export async function registerRoutes(
       res.json({ success: true });
     } catch (e: any) {
       res.status(500).json({ message: e.message });
+    }
+  });
+
+  // ======== Sorteios (Raffles) ========
+
+  async function getMonthlyMatchCounts(year: number, month: number) {
+    const firstDay = new Date(year, month - 1, 1);
+    const lastDay = new Date(year, month, 0, 23, 59, 59);
+    const allMatches = await storage.getAllMatches();
+    const monthMatches = allMatches.filter((m) => {
+      const d = new Date(m.date);
+      return d >= firstDay && d <= lastDay;
+    });
+    const counts = new Map<string, Set<string>>();
+    for (const match of monthMatches) {
+      const stats = await storage.getMatchStats(match.id);
+      for (const s of stats) {
+        if (!counts.has(s.userId)) counts.set(s.userId, new Set());
+        counts.get(s.userId)!.add(match.id);
+      }
+    }
+    const map = new Map<string, number>();
+    Array.from(counts.entries()).forEach(([uid, set]) => map.set(uid, set.size));
+    return map;
+  }
+
+  async function buildEligibleList(year: number, month: number, minMatches: number): Promise<RaffleEligibleEntry[]> {
+    const counts = await getMonthlyMatchCounts(year, month);
+    const allUsers = await storage.getAllUsers();
+    const userMap = new Map(allUsers.map((u) => [u.id, u]));
+    const list: RaffleEligibleEntry[] = [];
+    for (const [userId, matchesPlayed] of Array.from(counts.entries())) {
+      if (matchesPlayed < minMatches) continue;
+      const u = userMap.get(userId);
+      if (!u) continue;
+      if (u.isBanned || u.isCheaterBanned) continue;
+      list.push({
+        userId,
+        nickname: u.nickname || u.firstName || u.email || u.id,
+        matchesPlayed,
+        profileImageUrl: u.profileImageUrl ?? null,
+      });
+    }
+    list.sort((a, b) => a.userId.localeCompare(b.userId));
+    return list;
+  }
+
+  function deriveRandom(seed: string): { value: string; valueNumber: number } {
+    const hash = createHash("sha256").update(seed).digest();
+    // Use first 6 bytes (48 bits) as unsigned int / 2^48 to stay in safe integer range
+    let intVal = 0;
+    for (let i = 0; i < 6; i++) {
+      intVal = intVal * 256 + hash[i];
+    }
+    const denom = Math.pow(2, 48);
+    const num = intVal / denom;
+    return { value: num.toFixed(18), valueNumber: num };
+  }
+
+  async function ensureAdmin(req: any, res: any) {
+    const userId = req.user?.claims?.sub;
+    if (!userId) {
+      res.status(401).json({ message: "Não autenticado" });
+      return null;
+    }
+    const u = await storage.getUser(userId);
+    if (!u?.isAdmin) {
+      res.status(403).json({ message: "Acesso restrito a administradores" });
+      return null;
+    }
+    return u;
+  }
+
+  app.get("/api/admin/raffles/eligible", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await ensureAdmin(req, res);
+      if (!admin) return;
+      const now = new Date();
+      const year = Number(req.query.year) || now.getFullYear();
+      const month = Number(req.query.month) || now.getMonth() + 1;
+      const minMatches = Math.max(1, Number(req.query.minMatches) || 3);
+      const list = await buildEligibleList(year, month, minMatches);
+      res.json({ year, month, minMatches, eligible: list });
+    } catch (err) {
+      console.error("[Raffles] eligible error:", err);
+      res.status(500).json({ message: "Erro ao listar elegíveis" });
+    }
+  });
+
+  const createRaffleSchema = z.object({
+    title: z.string().min(1).max(120),
+    year: z.number().int().min(2020).max(2100),
+    month: z.number().int().min(1).max(12),
+    minMatches: z.number().int().min(1).max(50),
+  });
+
+  app.post("/api/admin/raffles", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await ensureAdmin(req, res);
+      if (!admin) return;
+      const parsed = createRaffleSchema.parse(req.body);
+      const eligible = await buildEligibleList(parsed.year, parsed.month, parsed.minMatches);
+      if (eligible.length === 0) {
+        return res.status(400).json({ message: "Não há jogadores elegíveis para o sorteio." });
+      }
+      const seed = randomBytes(32).toString("hex");
+      const { value, valueNumber } = deriveRandom(seed);
+      const winnerIndex = Math.floor(valueNumber * eligible.length);
+      const winner = eligible[winnerIndex];
+
+      const [created] = await db
+        .insert(raffles)
+        .values({
+          title: parsed.title,
+          year: parsed.year,
+          month: parsed.month,
+          minMatches: parsed.minMatches,
+          eligibleSnapshot: eligible,
+          winnerUserId: winner.userId,
+          winnerNickname: winner.nickname,
+          seed,
+          randomValue: value,
+          winnerIndex,
+          createdById: admin.id,
+        })
+        .returning();
+
+      res.json(created);
+    } catch (err: any) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: "Dados inválidos", errors: err.errors });
+      console.error("[Raffles] create error:", err);
+      res.status(500).json({ message: "Erro ao criar sorteio" });
+    }
+  });
+
+  app.get("/api/admin/raffles", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await ensureAdmin(req, res);
+      if (!admin) return;
+      const list = await db.select().from(raffles).orderBy(desc(raffles.createdAt));
+      res.json(list);
+    } catch (err) {
+      console.error("[Raffles] list error:", err);
+      res.status(500).json({ message: "Erro ao listar sorteios" });
+    }
+  });
+
+  app.get("/api/admin/raffles/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await ensureAdmin(req, res);
+      if (!admin) return;
+      const [r] = await db.select().from(raffles).where(eq(raffles.id, req.params.id));
+      if (!r) return res.status(404).json({ message: "Sorteio não encontrado" });
+      res.json(r);
+    } catch (err) {
+      console.error("[Raffles] get error:", err);
+      res.status(500).json({ message: "Erro ao buscar sorteio" });
+    }
+  });
+
+  app.post("/api/admin/raffles/:id/notify", isAuthenticated, async (req: any, res) => {
+    try {
+      const admin = await ensureAdmin(req, res);
+      if (!admin) return;
+      const [r] = await db.select().from(raffles).where(eq(raffles.id, req.params.id));
+      if (!r) return res.status(404).json({ message: "Sorteio não encontrado" });
+      if (!r.winnerUserId) return res.status(400).json({ message: "Sorteio sem vencedor" });
+
+      const pushResult = await sendPushToUser(r.winnerUserId, {
+        title: "Você ganhou um sorteio!",
+        body: `Parabéns! Você foi sorteado em: ${r.title}`,
+        url: "/",
+        tag: `raffle-${r.id}`,
+      }).catch((e) => {
+        console.error("[Raffles] push error:", e);
+        return { sent: 0, failed: 0, total: 0 };
+      });
+
+      const [updated] = await db
+        .update(raffles)
+        .set({ notifiedAt: new Date(), winnerSeenAt: null })
+        .where(eq(raffles.id, r.id))
+        .returning();
+
+      res.json({ raffle: updated, push: pushResult });
+    } catch (err) {
+      console.error("[Raffles] notify error:", err);
+      res.status(500).json({ message: "Erro ao notificar vencedor" });
+    }
+  });
+
+  // For the winner: get unseen wins, mark as seen
+  app.get("/api/raffles/my-unseen-wins", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Não autenticado" });
+      const rows = await db
+        .select()
+        .from(raffles)
+        .where(and(eq(raffles.winnerUserId, userId), sql`${raffles.notifiedAt} is not null`, sql`${raffles.winnerSeenAt} is null`))
+        .orderBy(desc(raffles.notifiedAt));
+      res.json(rows);
+    } catch (err) {
+      console.error("[Raffles] my-unseen error:", err);
+      res.status(500).json({ message: "Erro ao buscar sorteios" });
+    }
+  });
+
+  app.post("/api/raffles/:id/mark-seen", isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Não autenticado" });
+      const [r] = await db.select().from(raffles).where(eq(raffles.id, req.params.id));
+      if (!r || r.winnerUserId !== userId) return res.status(404).json({ message: "Sorteio não encontrado" });
+      const [updated] = await db
+        .update(raffles)
+        .set({ winnerSeenAt: new Date() })
+        .where(eq(raffles.id, r.id))
+        .returning();
+      res.json(updated);
+    } catch (err) {
+      console.error("[Raffles] mark-seen error:", err);
+      res.status(500).json({ message: "Erro ao confirmar" });
     }
   });
 
