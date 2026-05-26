@@ -25,6 +25,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import type { User as UserType, Match, MatchStats, News, Trophy as TrophyType, Survey } from "@shared/schema";
 import skinsLabLogo from "@assets/skins_lab_logo1_1771007653832.png";
+import awpCrakowImg from "@assets/image_1779807707665.png";
 import thomaziniLogo from "@assets/thomazini_logo_1771007598394.jpeg";
 import dukinhaLogo from "@assets/WhatsApp_Image_2026-02-13_at_15.40.31_1771008050723.jpeg";
 import zenthorLogo from "@assets/zenthor_logo_1771007572398.png";
@@ -245,19 +246,84 @@ export default function Mural() {
       )}
 
       <Card
+        className="border-2 border-pink-500/50 bg-gradient-to-br from-pink-500/15 via-pink-500/5 to-transparent overflow-hidden"
+        data-testid="card-giveaway-crakow-may"
+      >
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <CardTitle className="flex items-center gap-2 text-xl">
+              <Gift className="h-6 w-6 text-pink-400" />
+              Sorteio de Maio - AWP | Crakow!
+              <Sparkles className="h-5 w-5 text-pink-400" />
+            </CardTitle>
+            <Badge variant="default" className="bg-pink-600 font-bold">
+              <Calendar className="h-3 w-3 mr-1" />
+              Maio/2026
+            </Badge>
+          </div>
+          <CardDescription className="text-base">
+            Concorra a uma skin <span className="font-bold">AWP | Crakow!</span> (Classified Sniper Rifle, Field-Tested).
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-center p-4 rounded-lg bg-background/60 border">
+            <img
+              src={awpCrakowImg}
+              alt="AWP | Crakow!"
+              className="h-56 object-contain"
+              data-testid="img-awp-crakow"
+            />
+          </div>
+
+          <div className="p-4 rounded-lg bg-pink-500/10 border border-pink-500/30 space-y-3">
+            <p className="text-sm leading-relaxed">
+              Em <span className="font-bold text-pink-400">Maio</span> vamos sortear uma skin <span className="font-bold text-primary">AWP | Crakow!</span> entre os jogadores ativos do servidor!
+            </p>
+            <p className="text-sm leading-relaxed font-medium text-foreground">
+              Quanto mais você joga, mais ajuda a comunidade a ficar viva. Boa sorte!
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Gift className="h-6 w-6 text-pink-400 mb-1" />
+              <span className="text-sm font-bold">AWP</span>
+              <span className="text-xs text-muted-foreground">Crakow! (FT)</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Gamepad2 className="h-6 w-6 text-primary mb-1" />
+              <span className="text-lg font-bold font-mono">3+</span>
+              <span className="text-xs text-muted-foreground">Partidas no mês</span>
+            </div>
+            <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
+              <Calendar className="h-6 w-6 text-pink-400 mb-1" />
+              <span className="text-sm font-bold">Maio</span>
+              <span className="text-xs text-muted-foreground">Sorteio mensal</span>
+            </div>
+          </div>
+
+          <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
+            <p className="text-sm font-semibold text-center text-primary">
+              Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Maio.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card
         className="border-2 border-purple-500/50 bg-gradient-to-br from-purple-500/15 via-purple-500/5 to-transparent overflow-hidden"
-        data-testid="card-giveaway-may"
+        data-testid="card-giveaway-skinslab-july"
       >
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Gift className="h-6 w-6 text-purple-400" />
-              Sorteio de Maio - Skins Lab
+              Sorteio de Julho - Skins Lab
               <Sparkles className="h-5 w-5 text-purple-400" />
             </CardTitle>
             <Badge variant="default" className="bg-purple-600 font-bold">
               <Calendar className="h-3 w-3 mr-1" />
-              Maio/2026
+              Julho/2026
             </Badge>
           </div>
           <CardDescription className="text-base">
@@ -276,7 +342,7 @@ export default function Mural() {
 
           <div className="p-4 rounded-lg bg-purple-500/10 border border-purple-500/30 space-y-3">
             <p className="text-sm leading-relaxed">
-              Em <span className="font-bold text-purple-400">Maio</span> faremos um sorteio de <span className="font-bold text-primary">2 itens</span> do site <span className="font-bold">Skins Lab</span> para os jogadores ativos do servidor!
+              Em <span className="font-bold text-purple-400">Julho</span> faremos um sorteio de <span className="font-bold text-primary">2 itens</span> do site <span className="font-bold">Skins Lab</span> para os jogadores ativos do servidor!
             </p>
             <p className="text-sm leading-relaxed font-medium text-foreground">
               Quanto mais você joga, mais ajuda a comunidade a ficar viva. Nada melhor do que retribuir com prêmios!
@@ -296,14 +362,14 @@ export default function Mural() {
             </div>
             <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
               <Calendar className="h-6 w-6 text-purple-400 mb-1" />
-              <span className="text-sm font-bold">Maio</span>
+              <span className="text-sm font-bold">Julho</span>
               <span className="text-xs text-muted-foreground">Sorteio mensal</span>
             </div>
           </div>
 
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
             <p className="text-sm font-semibold text-center text-primary">
-              Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Maio.
+              Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Julho.
             </p>
           </div>
 
@@ -330,12 +396,12 @@ export default function Mural() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Shirt className="h-6 w-6 text-green-500" />
-              Sorteio de Maio - Dukinhas Camisa
+              Sorteio de Junho - Dukinhas Camisa
               <Sparkles className="h-5 w-5 text-yellow-400" />
             </CardTitle>
             <Badge variant="default" className="bg-green-600 font-bold">
               <Calendar className="h-3 w-3 mr-1" />
-              Maio/2026
+              Junho/2026
             </Badge>
           </div>
           <CardDescription className="text-base">
@@ -354,7 +420,7 @@ export default function Mural() {
 
           <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/30 space-y-3">
             <p className="text-sm leading-relaxed">
-              No mês de <span className="font-bold text-green-500">Maio</span> vamos sortear uma <span className="font-bold text-yellow-500">Camisa da Seleção Brasileira</span> entre os membros ativos do servidor!
+              No mês de <span className="font-bold text-green-500">Junho</span> vamos sortear uma <span className="font-bold text-yellow-500">Camisa da Seleção Brasileira</span> entre os membros ativos do servidor!
             </p>
             <p className="text-sm leading-relaxed font-medium text-foreground">
               Quanto mais você joga, mais ajuda a comunidade a continuar viva. Vamos retribuir com prêmios da nossa parceira Dukinhas Camisa!
@@ -374,14 +440,14 @@ export default function Mural() {
             </div>
             <div className="flex flex-col items-center p-3 rounded-lg bg-muted/50 text-center">
               <Calendar className="h-6 w-6 text-yellow-500 mb-1" />
-              <span className="text-sm font-bold">Maio</span>
+              <span className="text-sm font-bold">Junho</span>
               <span className="text-xs text-muted-foreground">Sorteio mensal</span>
             </div>
           </div>
 
           <div className="p-3 rounded-lg bg-primary/10 border border-primary/30">
             <p className="text-sm font-semibold text-center text-primary">
-              Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Maio.
+              Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Junho.
             </p>
           </div>
         </CardContent>
