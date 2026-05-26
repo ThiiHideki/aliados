@@ -450,6 +450,19 @@ export default function Mural() {
               Para participar é necessário ter no mínimo 3 partidas registradas no servidor durante o mês de Junho.
             </p>
           </div>
+
+          <Button
+            asChild
+            variant="default"
+            className="w-full bg-green-600 border-green-700"
+            data-testid="button-dukinha-site"
+          >
+            <a href="https://www.dukinhacamisas.com.br" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Conhecer a Dukinha Camisas
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </a>
+          </Button>
         </CardContent>
       </Card>
 
