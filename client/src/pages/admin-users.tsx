@@ -47,6 +47,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { User, UpdateUserStats } from "@shared/schema";
 import {
   Users,
@@ -65,6 +76,86 @@ import {
   Zap,
 } from "lucide-react";
 import { Link } from "wouter";
+
+function userLabel(u: User) {
+  return u.nickname || u.firstName || u.email || u.id;
+}
+
+interface UserComboboxProps {
+  users: User[];
+  value: string;
+  onChange: (id: string) => void;
+  placeholder: string;
+  testId: string;
+}
+
+function UserCombobox({ users, value, onChange, placeholder, testId }: UserComboboxProps) {
+  const [open, setOpen] = useState(false);
+  const sorted = [...users].sort((a, b) =>
+    userLabel(a).localeCompare(userLabel(b), "pt-BR", { sensitivity: "base" })
+  );
+  const selected = users.find((u) => u.id === value);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+          data-testid={testId}
+        >
+          <span className={cn("truncate", !selected && "text-muted-foreground")}>
+            {selected ? userLabel(selected) : placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+        <Command
+          filter={(itemValue, search) =>
+            itemValue.toLowerCase().includes(search.toLowerCase()) ? 1 : 0
+          }
+        >
+          <CommandInput placeholder="Buscar usuário..." data-testid={`${testId}-search`} />
+          <CommandList>
+            <CommandEmpty>Nenhum usuário encontrado.</CommandEmpty>
+            <CommandGroup>
+              {sorted.map((u) => {
+                const label = userLabel(u);
+                const searchValue = `${label} ${u.steamId64 ?? ""} ${u.email ?? ""}`;
+                return (
+                  <CommandItem
+                    key={u.id}
+                    value={searchValue}
+                    onSelect={() => {
+                      onChange(u.id);
+                      setOpen(false);
+                    }}
+                    data-testid={`${testId}-option-${u.id}`}
+                  >
+                    <Check
+                      className={cn(
+                        "mr-2 h-4 w-4",
+                        value === u.id ? "opacity-100" : "opacity-0"
+                      )}
+                    />
+                    <span className="truncate">
+                      {label}
+                      {u.steamId64 && (
+                        <span className="text-muted-foreground"> ({u.steamId64})</span>
+                      )}
+                    </span>
+                  </CommandItem>
+                );
+              })}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function AdminUsers() {
   const { user } = useAuth();
@@ -961,21 +1052,13 @@ export default function AdminUsers() {
           <div className="space-y-4">
             <div className="space-y-2">
               <Label>Usuário de Origem (será excluído)</Label>
-              <Select value={sourceUserId} onValueChange={setSourceUserId}>
-                <SelectTrigger data-testid="select-source-user">
-                  <SelectValue placeholder="Selecione o usuário de origem" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users
-                    .filter((u) => u.id !== targetUserId)
-                    .map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.nickname || u.firstName || u.email || u.id}
-                        {u.steamId64 && ` (${u.steamId64})`}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <UserCombobox
+                users={users.filter((u) => u.id !== targetUserId)}
+                value={sourceUserId}
+                onChange={setSourceUserId}
+                placeholder="Selecione o usuário de origem"
+                testId="select-source-user"
+              />
               {sourceUserId && (
                 <p className="text-xs text-muted-foreground">
                   Stats: {users.find((u) => u.id === sourceUserId)?.totalKills || 0} kills, {" "}
@@ -986,21 +1069,13 @@ export default function AdminUsers() {
 
             <div className="space-y-2">
               <Label>Usuário de Destino (receberá as stats)</Label>
-              <Select value={targetUserId} onValueChange={setTargetUserId}>
-                <SelectTrigger data-testid="select-target-user">
-                  <SelectValue placeholder="Selecione o usuário de destino" />
-                </SelectTrigger>
-                <SelectContent>
-                  {users
-                    .filter((u) => u.id !== sourceUserId)
-                    .map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.nickname || u.firstName || u.email || u.id}
-                        {u.steamId64 && ` (${u.steamId64})`}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+              <UserCombobox
+                users={users.filter((u) => u.id !== sourceUserId)}
+                value={targetUserId}
+                onChange={setTargetUserId}
+                placeholder="Selecione o usuário de destino"
+                testId="select-target-user"
+              />
               {targetUserId && (
                 <p className="text-xs text-muted-foreground">
                   Stats: {users.find((u) => u.id === targetUserId)?.totalKills || 0} kills, {" "}
