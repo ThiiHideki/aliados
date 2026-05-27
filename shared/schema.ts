@@ -731,3 +731,55 @@ export type RaffleEligibleEntry = {
   matchesPlayed: number;
   profileImageUrl?: string | null;
 };
+
+// Torneio 2x2
+export const tournament2x2Teams = pgTable("tournament_2x2_teams", {
+  id: serial("id").primaryKey(),
+  teamName: varchar("team_name", { length: 100 }).notNull(),
+  player1Name: varchar("player1_name", { length: 100 }).notNull(),
+  player1SteamId: varchar("player1_steam_id", { length: 200 }).notNull(),
+  player1Discord: varchar("player1_discord", { length: 100 }),
+  player2Name: varchar("player2_name", { length: 100 }).notNull(),
+  player2SteamId: varchar("player2_steam_id", { length: 200 }).notNull(),
+  player2Discord: varchar("player2_discord", { length: 100 }),
+  contactPhone: varchar("contact_phone", { length: 50 }).notNull(),
+  paymentMethod: varchar("payment_method", { length: 50 }).notNull(),
+  paymentProof: text("payment_proof"),
+  notes: text("notes"),
+  isConfirmed: boolean("is_confirmed").default(false).notNull(),
+  seed: integer("seed"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const tournament2x2Matches = pgTable("tournament_2x2_matches", {
+  id: serial("id").primaryKey(),
+  round: integer("round").notNull(),
+  position: integer("position").notNull(),
+  team1Id: integer("team1_id").references(() => tournament2x2Teams.id, { onDelete: "set null" }),
+  team2Id: integer("team2_id").references(() => tournament2x2Teams.id, { onDelete: "set null" }),
+  score1: integer("score1"),
+  score2: integer("score2"),
+  winnerId: integer("winner_id").references(() => tournament2x2Teams.id, { onDelete: "set null" }),
+  scheduledAt: timestamp("scheduled_at"),
+});
+
+export const insertTournament2x2TeamSchema = createInsertSchema(tournament2x2Teams).omit({
+  id: true,
+  isConfirmed: true,
+  seed: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export const updateTournament2x2TeamSchema = createInsertSchema(tournament2x2Teams).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+}).partial();
+export const insertTournament2x2MatchSchema = createInsertSchema(tournament2x2Matches).omit({ id: true });
+
+export type Tournament2x2Team = typeof tournament2x2Teams.$inferSelect;
+export type InsertTournament2x2Team = z.infer<typeof insertTournament2x2TeamSchema>;
+export type UpdateTournament2x2Team = z.infer<typeof updateTournament2x2TeamSchema>;
+export type Tournament2x2Match = typeof tournament2x2Matches.$inferSelect;
+export type InsertTournament2x2Match = z.infer<typeof insertTournament2x2MatchSchema>;

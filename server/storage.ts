@@ -51,6 +51,13 @@ import {
   type News,
   type Trophy,
   type InsertTrophy,
+  tournament2x2Teams,
+  tournament2x2Matches,
+  type Tournament2x2Team,
+  type InsertTournament2x2Team,
+  type UpdateTournament2x2Team,
+  type Tournament2x2Match,
+  type InsertTournament2x2Match,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, and } from "drizzle-orm";
@@ -150,6 +157,16 @@ export interface IStorage {
   getTrophiesByMonthYear(month: number, year: number): Promise<Trophy[]>;
   createTrophy(trophy: InsertTrophy): Promise<Trophy>;
   deleteTrophiesByMonthYear(month: number, year: number): Promise<boolean>;
+
+  // Tournament 2x2
+  listTournament2x2Teams(): Promise<Tournament2x2Team[]>;
+  getTournament2x2Team(id: number): Promise<Tournament2x2Team | undefined>;
+  createTournament2x2Team(team: InsertTournament2x2Team): Promise<Tournament2x2Team>;
+  updateTournament2x2Team(id: number, data: UpdateTournament2x2Team): Promise<Tournament2x2Team | undefined>;
+  deleteTournament2x2Team(id: number): Promise<boolean>;
+  listTournament2x2Matches(): Promise<Tournament2x2Match[]>;
+  replaceTournament2x2Bracket(matches: InsertTournament2x2Match[]): Promise<Tournament2x2Match[]>;
+  updateTournament2x2Match(id: number, data: Partial<InsertTournament2x2Match>): Promise<Tournament2x2Match | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1386,6 +1403,53 @@ export class DatabaseStorage implements IStorage {
 
   async getAllCopaStats(): Promise<CopaMatchStats[]> {
     return db.select().from(copaMatchStats);
+  }
+
+  // Tournament 2x2
+  async listTournament2x2Teams(): Promise<Tournament2x2Team[]> {
+    return db.select().from(tournament2x2Teams).orderBy(desc(tournament2x2Teams.createdAt));
+  }
+
+  async getTournament2x2Team(id: number): Promise<Tournament2x2Team | undefined> {
+    const [t] = await db.select().from(tournament2x2Teams).where(eq(tournament2x2Teams.id, id));
+    return t;
+  }
+
+  async createTournament2x2Team(team: InsertTournament2x2Team): Promise<Tournament2x2Team> {
+    const [created] = await db.insert(tournament2x2Teams).values(team).returning();
+    return created;
+  }
+
+  async updateTournament2x2Team(id: number, data: UpdateTournament2x2Team): Promise<Tournament2x2Team | undefined> {
+    const [updated] = await db
+      .update(tournament2x2Teams)
+      .set({ ...data, updatedAt: new Date() })
+      .where(eq(tournament2x2Teams.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteTournament2x2Team(id: number): Promise<boolean> {
+    await db.delete(tournament2x2Matches).where(
+      sql`${tournament2x2Matches.team1Id} = ${id} OR ${tournament2x2Matches.team2Id} = ${id} OR ${tournament2x2Matches.winnerId} = ${id}`
+    );
+    const result = await db.delete(tournament2x2Teams).where(eq(tournament2x2Teams.id, id)).returning();
+    return result.length > 0;
+  }
+
+  async listTournament2x2Matches(): Promise<Tournament2x2Match[]> {
+    return db.select().from(tournament2x2Matches).orderBy(tournament2x2Matches.round, tournament2x2Matches.position);
+  }
+
+  async replaceTournament2x2Bracket(matches: InsertTournament2x2Match[]): Promise<Tournament2x2Match[]> {
+    await db.delete(tournament2x2Matches);
+    if (matches.length === 0) return [];
+    return db.insert(tournament2x2Matches).values(matches).returning();
+  }
+
+  async updateTournament2x2Match(id: number, data: Partial<InsertTournament2x2Match>): Promise<Tournament2x2Match | undefined> {
+    const [updated] = await db.update(tournament2x2Matches).set(data).where(eq(tournament2x2Matches.id, id)).returning();
+    return updated;
   }
 }
 

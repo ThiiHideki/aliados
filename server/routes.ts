@@ -3,7 +3,7 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupSteamAuth } from "./steamAuth";
-import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry } from "@shared/schema";
+import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry, insertTournament2x2TeamSchema, updateTournament2x2TeamSchema } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, sql, desc, and } from "drizzle-orm";
@@ -4079,6 +4079,8 @@ export async function registerRoutes(
     }
   });
 
+  registerTournament2x2Routes(app, isAuthenticated);
+
   return httpServer;
 }
 
@@ -4140,4 +4142,252 @@ function generateRandomSkin(rarity: string): { name: string; weapon: string; ski
     weapon,
     skin,
   };
+}
+
+function sanitizeTournament2x2Team(team: any, isAdmin: boolean) {
+  if (isAdmin) return team;
+  // Esconde dados sensíveis para usuários públicos
+  const { contactPhone, paymentMethod, paymentProof, notes, ...rest } = team;
+  return rest;
+}
+
+export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
+  // PÚBLICO: listar times (sem dados sensíveis)
+  app.get("/api/tournament-2x2/teams", async (req: any, res: any) => {
+    try {
+      const teams = await storage.listTournament2x2Teams();
+      const isAuth = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
+      let isAdmin = false;
+      if (isAuth && req.user?.claims?.sub) {
+        const u = await storage.getUser(req.user.claims.sub);
+        isAdmin = !!u?.isAdmin;
+      }
+      res.json(teams.map((t) => sanitizeTournament2x2Team(t, isAdmin)));
+    } catch (e) {
+      console.error("[t2x2] list teams", e);
+      res.status(500).json({ message: "Erro ao listar times" });
+    }
+  });
+
+  // PÚBLICO: cadastro (sem login)
+  app.post("/api/tournament-2x2/teams", async (req: any, res: any) => {
+    try {
+      const parsed = insertTournament2x2TeamSchema.parse(req.body);
+      const all = await storage.listTournament2x2Teams();
+      if (all.length >= 32) {
+        return res.status(400).json({ message: "Limite de 32 duplas atingido" });
+      }
+      const created = await storage.createTournament2x2Team(parsed);
+      res.json({ id: created.id, teamName: created.teamName });
+    } catch (e: any) {
+      if (e?.name === "ZodError") return res.status(400).json({ message: "Dados inválidos", errors: e.errors });
+      console.error("[t2x2] create team", e);
+      res.status(500).json({ message: "Erro ao cadastrar dupla" });
+    }
+  });
+
+  // ADMIN: editar
+  app.patch("/api/tournament-2x2/teams/:id", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const u = await storage.getUser(req.user.claims.sub);
+      if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
+      const parsed = updateTournament2x2TeamSchema.parse(req.body);
+      const updated = await storage.updateTournament2x2Team(Number(req.params.id), parsed);
+      if (!updated) return res.status(404).json({ message: "Não encontrado" });
+      res.json(updated);
+    } catch (e: any) {
+      if (e?.name === "ZodError") return res.status(400).json({ message: "Dados inválidos", errors: e.errors });
+      console.error("[t2x2] update team", e);
+      res.status(500).json({ message: "Erro ao atualizar" });
+    }
+  });
+
+  // ADMIN: confirmar
+  app.post("/api/tournament-2x2/teams/:id/confirm", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const u = await storage.getUser(req.user.claims.sub);
+      if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
+      const { confirmed } = req.body as { confirmed: boolean };
+      const updated = await storage.updateTournament2x2Team(Number(req.params.id), { isConfirmed: !!confirmed });
+      if (!updated) return res.status(404).json({ message: "Não encontrado" });
+      res.json(updated);
+    } catch (e) {
+      console.error("[t2x2] confirm", e);
+      res.status(500).json({ message: "Erro" });
+    }
+  });
+
+  // ADMIN: excluir
+  app.delete("/api/tournament-2x2/teams/:id", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const u = await storage.getUser(req.user.claims.sub);
+      if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
+      const ok = await storage.deleteTournament2x2Team(Number(req.params.id));
+      res.json({ ok });
+    } catch (e) {
+      console.error("[t2x2] delete", e);
+      res.status(500).json({ message: "Erro" });
+    }
+  });
+
+  // PÚBLICO: chaveamento (com nomes dos times)
+  app.get("/api/tournament-2x2/bracket", async (_req: any, res: any) => {
+    try {
+      const matches = await storage.listTournament2x2Matches();
+      const teams = await storage.listTournament2x2Teams();
+      const byId = new Map(teams.map((t) => [t.id, t.teamName]));
+      res.json(matches.map((m) => ({
+        ...m,
+        team1Name: m.team1Id ? byId.get(m.team1Id) ?? null : null,
+        team2Name: m.team2Id ? byId.get(m.team2Id) ?? null : null,
+      })));
+    } catch (e) {
+      console.error("[t2x2] bracket", e);
+      res.status(500).json({ message: "Erro" });
+    }
+  });
+
+  // ADMIN: sortear chaveamento (apenas times confirmados)
+  app.post("/api/tournament-2x2/bracket/draw", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const u = await storage.getUser(req.user.claims.sub);
+      if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
+      const all = await storage.listTournament2x2Teams();
+      const confirmed = all.filter((t) => t.isConfirmed);
+      if (confirmed.length < 2) return res.status(400).json({ message: "Pelo menos 2 duplas confirmadas" });
+
+      // Embaralhar
+      const shuffled = [...confirmed];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      // Encontrar próxima potência de 2 (até 32)
+      let bracketSize = 2;
+      while (bracketSize < shuffled.length) bracketSize *= 2;
+      if (bracketSize > 32) bracketSize = 32;
+
+      // Round 1 (R32): bracketSize/2 partidas
+      const matches: { round: number; position: number; team1Id: number | null; team2Id: number | null }[] = [];
+      const firstRoundMatches = bracketSize / 2;
+      for (let i = 0; i < firstRoundMatches; i++) {
+        const t1 = shuffled[i * 2] ?? null;
+        const t2 = shuffled[i * 2 + 1] ?? null;
+        matches.push({
+          round: 1,
+          position: i + 1,
+          team1Id: t1?.id ?? null,
+          team2Id: t2?.id ?? null,
+        });
+      }
+      // Rounds subsequentes vazios
+      let cur = firstRoundMatches / 2;
+      let round = 2;
+      while (cur >= 1) {
+        for (let i = 0; i < cur; i++) {
+          matches.push({ round, position: i + 1, team1Id: null, team2Id: null });
+        }
+        cur = Math.floor(cur / 2);
+        round++;
+      }
+
+      const created = await storage.replaceTournament2x2Bracket(matches as any);
+
+      // Auto-avança byes (times sem oponente na rodada 1)
+      const allMatches = await storage.listTournament2x2Matches();
+      for (const m of allMatches.filter((x) => x.round === 1)) {
+        const lone = m.team1Id && !m.team2Id ? m.team1Id : !m.team1Id && m.team2Id ? m.team2Id : null;
+        if (lone) {
+          await storage.updateTournament2x2Match(m.id, { winnerId: lone });
+          await propagateWinner(m.round, m.position, lone);
+        }
+      }
+
+      res.json(await storage.listTournament2x2Matches());
+    } catch (e) {
+      console.error("[t2x2] draw", e);
+      res.status(500).json({ message: "Erro ao sortear" });
+    }
+  });
+
+  // ADMIN: registrar resultado de partida
+  app.patch("/api/tournament-2x2/matches/:id", isAuthenticated, async (req: any, res: any) => {
+    try {
+      const u = await storage.getUser(req.user.claims.sub);
+      if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
+
+      const matchId = Number(req.params.id);
+      const all = await storage.listTournament2x2Matches();
+      const current = all.find((m) => m.id === matchId);
+      if (!current) return res.status(404).json({ message: "Partida não encontrada" });
+
+      const { score1, score2, winnerId } = req.body;
+      const newWinnerId = winnerId != null ? Number(winnerId) : null;
+
+      // Validação: winnerId deve ser null ou um dos participantes da partida
+      if (newWinnerId !== null && newWinnerId !== current.team1Id && newWinnerId !== current.team2Id) {
+        return res.status(400).json({ message: "Vencedor inválido para esta partida" });
+      }
+
+      const updated = await storage.updateTournament2x2Match(matchId, {
+        score1: score1 != null ? Number(score1) : null,
+        score2: score2 != null ? Number(score2) : null,
+        winnerId: newWinnerId,
+      });
+      if (!updated) return res.status(404).json({ message: "Partida não encontrada" });
+
+      // Se vencedor mudou, limpa propagações antigas (cascata) e propaga o novo
+      if (current.winnerId !== newWinnerId) {
+        if (current.winnerId != null) {
+          await clearDownstream(updated.round, updated.position, current.winnerId);
+        }
+        if (newWinnerId !== null) {
+          await propagateWinner(updated.round, updated.position, newWinnerId);
+        }
+      }
+
+      res.json(updated);
+    } catch (e) {
+      console.error("[t2x2] match update", e);
+      res.status(500).json({ message: "Erro" });
+    }
+  });
+}
+
+async function propagateWinner(fromRound: number, fromPosition: number, winnerId: number) {
+  const all = await storage.listTournament2x2Matches();
+  const next = all.find((m) => m.round === fromRound + 1 && m.position === Math.ceil(fromPosition / 2));
+  if (!next) return;
+  const isTeam1Slot = fromPosition % 2 === 1;
+  await storage.updateTournament2x2Match(next.id, {
+    [isTeam1Slot ? "team1Id" : "team2Id"]: winnerId,
+  } as any);
+}
+
+async function clearDownstream(fromRound: number, fromPosition: number, oldWinnerId: number) {
+  const all = await storage.listTournament2x2Matches();
+  let curRound = fromRound + 1;
+  let curPosition = Math.ceil(fromPosition / 2);
+  let isTeam1Slot = fromPosition % 2 === 1;
+  while (true) {
+    const next = all.find((m) => m.round === curRound && m.position === curPosition);
+    if (!next) return;
+    const fieldHadOld = isTeam1Slot ? next.team1Id === oldWinnerId : next.team2Id === oldWinnerId;
+    if (!fieldHadOld) return;
+    // Limpa slot e qualquer resultado dessa partida (e segue cascateando se já tinha winner)
+    await storage.updateTournament2x2Match(next.id, {
+      [isTeam1Slot ? "team1Id" : "team2Id"]: null,
+      score1: null,
+      score2: null,
+      winnerId: null,
+    } as any);
+    if (next.winnerId == null) return;
+    // próxima cascata: se a partida next tinha esse winner como seu próprio winner, limpa adiante
+    const propagatedWinner = next.winnerId;
+    isTeam1Slot = curPosition % 2 === 1;
+    curPosition = Math.ceil(curPosition / 2);
+    curRound++;
+    oldWinnerId = propagatedWinner;
+  }
 }

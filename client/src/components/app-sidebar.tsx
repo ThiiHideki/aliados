@@ -439,6 +439,19 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   asChild
+                  isActive={location === "/torneio-2x2"}
+                  data-testid="nav-torneio-2x2"
+                >
+                  <Link href="/torneio-2x2">
+                    <Swords className="h-4 w-4" />
+                    <span>Copa: Torneio 2x2</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
                   isActive={location === "/patrocinadores"}
                   data-testid="nav-patrocinadores"
                 >
