@@ -77,6 +77,7 @@ function InfoTab() {
               <li className="flex gap-2"><Badge variant="secondary">Limite</Badge> Máximo de 32 duplas</li>
               <li className="flex gap-2"><Badge variant="secondary">Servidor</Badge> Privado</li>
               <li className="flex gap-2"><Badge variant="secondary">Transmissão</Badge> Canal oficial</li>
+              <li className="flex gap-2"><Badge variant="secondary">Inscrição</Badge> R$ 20,00 por dupla</li>
             </ul>
           </section>
 
