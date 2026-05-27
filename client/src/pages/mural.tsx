@@ -466,7 +466,7 @@ export default function Mural() {
         </CardContent>
       </Card>
 
-      {false && (
+      {user?.isAdmin && (
       <Collapsible open={newsOpen} onOpenChange={setNewsOpen}>
         <Card className="border-primary/20" data-testid="card-news">
           <CollapsibleTrigger asChild>

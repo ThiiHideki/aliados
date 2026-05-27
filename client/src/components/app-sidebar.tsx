@@ -57,6 +57,7 @@ import {
   ScrollText,
   Activity,
   Gift,
+  EyeOff,
 } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -434,132 +435,6 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               </Collapsible>
 
-              <Collapsible className="group/collapsible" defaultOpen={location.startsWith("/cassino") || location.startsWith("/jogatina")}>
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton data-testid="nav-jogatina">
-                      <Sparkles className="h-4 w-4" />
-                      <span>Jogatina</span>
-                      <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton
-                          asChild
-                          isActive={location === "/jogatina/fantasy"}
-                          data-testid="nav-jogatina-fantasy"
-                        >
-                          <Link href="/jogatina/fantasy">
-                            <Trophy className="h-4 w-4" />
-                            <span>Fantasy</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton
-                          asChild
-                          isActive={location === "/cassino/apostas"}
-                          data-testid="nav-cassino-apostas"
-                        >
-                          <Link href="/cassino/apostas">
-                            <Target className="h-4 w-4" />
-                            <span>Apostas</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton
-                          asChild
-                          isActive={location === "/cassino/jogos"}
-                          data-testid="nav-cassino-jogos"
-                        >
-                          <Link href="/cassino/jogos">
-                            <Box className="h-4 w-4" />
-                            <span>Caixas & Tigrinho</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
-
-              {user?.isAdmin && (
-                <SidebarMenuItem>
-                  <SidebarMenuButton
-                    asChild
-                    isActive={location === "/campeonato"}
-                    data-testid="nav-campeonato"
-                  >
-                    <Link href="/campeonato">
-                      <Trophy className="h-4 w-4" />
-                      <span>Campeonato Interno Inimigos da Bala</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              )}
-
-              {/* Copa Inimigos da Bala */}
-              <Collapsible className="group/collapsible">
-                <SidebarMenuItem>
-                  <CollapsibleTrigger asChild>
-                    <SidebarMenuButton
-                      data-testid="nav-copa"
-                      isActive={location.startsWith("/copa")}
-                    >
-                      <Swords className="h-4 w-4" />
-                      <span>Copa Inimigos da Bala</span>
-                      <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
-                    </SidebarMenuButton>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent>
-                    <SidebarMenuSub>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location === "/copa/inscricao"} data-testid="nav-copa-inscricao">
-                          <Link href="/copa/inscricao">
-                            <UserCheck className="h-4 w-4" />
-                            <span>Inscrição</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location === "/copa/tabela"} data-testid="nav-copa-tabela">
-                          <Link href="/copa/tabela">
-                            <Target className="h-4 w-4" />
-                            <span>Tabela / Chaveamento</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location === "/copa/estatisticas"} data-testid="nav-copa-estatisticas">
-                          <Link href="/copa/estatisticas">
-                            <BarChart3 className="h-4 w-4" />
-                            <span>Estatísticas</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location === "/copa/premiacoes"} data-testid="nav-copa-premiacoes">
-                          <Link href="/copa/premiacoes">
-                            <DollarSign className="h-4 w-4" />
-                            <span>Premiações</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                      <SidebarMenuSubItem>
-                        <SidebarMenuSubButton asChild isActive={location === "/copa/regras"} data-testid="nav-copa-regras">
-                          <Link href="/copa/regras">
-                            <ScrollText className="h-4 w-4" />
-                            <span>Regras</span>
-                          </Link>
-                        </SidebarMenuSubButton>
-                      </SidebarMenuSubItem>
-                    </SidebarMenuSub>
-                  </CollapsibleContent>
-                </SidebarMenuItem>
-              </Collapsible>
 
               <SidebarMenuItem>
                 <SidebarMenuButton
@@ -688,6 +563,137 @@ export function AppSidebar() {
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+
+              {user?.isAdmin && (
+                <Collapsible className="group/collapsible" defaultOpen={
+                  location.startsWith("/jogatina") ||
+                  location.startsWith("/cassino") ||
+                  location.startsWith("/copa") ||
+                  location === "/campeonato"
+                }>
+                  <SidebarMenuItem>
+                    <CollapsibleTrigger asChild>
+                      <SidebarMenuButton data-testid="nav-funcionalidades-ocultas">
+                        <EyeOff className="h-4 w-4" />
+                        <span>Funcionalidades ocultas</span>
+                        <ChevronRight className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      </SidebarMenuButton>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/jogatina/fantasy"}
+                            data-testid="nav-hidden-jogatina-fantasy"
+                          >
+                            <Link href="/jogatina/fantasy">
+                              <Trophy className="h-4 w-4" />
+                              <span>Jogatina · Fantasy</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/cassino/apostas"}
+                            data-testid="nav-hidden-jogatina-apostas"
+                          >
+                            <Link href="/cassino/apostas">
+                              <Target className="h-4 w-4" />
+                              <span>Jogatina · Apostas</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/cassino/jogos"}
+                            data-testid="nav-hidden-jogatina-jogos"
+                          >
+                            <Link href="/cassino/jogos">
+                              <Box className="h-4 w-4" />
+                              <span>Jogatina · Caixas & Tigrinho</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/campeonato"}
+                            data-testid="nav-hidden-campeonato"
+                          >
+                            <Link href="/campeonato">
+                              <Trophy className="h-4 w-4" />
+                              <span>Campeonato Interno</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/copa/inscricao"}
+                            data-testid="nav-hidden-copa-inscricao"
+                          >
+                            <Link href="/copa/inscricao">
+                              <UserCheck className="h-4 w-4" />
+                              <span>Copa · Inscrição</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/copa/tabela"}
+                            data-testid="nav-hidden-copa-tabela"
+                          >
+                            <Link href="/copa/tabela">
+                              <Swords className="h-4 w-4" />
+                              <span>Copa · Tabela</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/copa/estatisticas"}
+                            data-testid="nav-hidden-copa-estatisticas"
+                          >
+                            <Link href="/copa/estatisticas">
+                              <BarChart3 className="h-4 w-4" />
+                              <span>Copa · Estatísticas</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/copa/premiacoes"}
+                            data-testid="nav-hidden-copa-premiacoes"
+                          >
+                            <Link href="/copa/premiacoes">
+                              <DollarSign className="h-4 w-4" />
+                              <span>Copa · Premiações</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                        <SidebarMenuSubItem>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={location === "/copa/regras"}
+                            data-testid="nav-hidden-copa-regras"
+                          >
+                            <Link href="/copa/regras">
+                              <ScrollText className="h-4 w-4" />
+                              <span>Copa · Regras</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </SidebarMenuItem>
+                </Collapsible>
+              )}
 
               {user?.isAdmin && (
                 <Collapsible className="group/collapsible">

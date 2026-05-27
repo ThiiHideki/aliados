@@ -4,7 +4,6 @@ import { Lock, Ban, Skull } from "lucide-react";
 import { SiSteam } from "react-icons/si";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
-import type { Survey } from "@shared/schema";
 import { queryClient, RELOGIN_MESSAGE } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -49,7 +48,6 @@ import Apostas from "@/pages/apostas";
 import Cassino from "@/pages/cassino";
 import JogatinaFantasy from "@/pages/jogatina-fantasy";
 import Mural from "@/pages/mural";
-import Pesquisa from "@/pages/pesquisa";
 import AdminPesquisa from "@/pages/admin-pesquisa";
 import AdminRelatorio from "@/pages/admin-relatorio";
 import CopaInscricao from "@/pages/copa-inscricao";
@@ -64,16 +62,7 @@ import VincularDiscord from "@/pages/vincular-discord";
 import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
 
 function SurveyGuard({ children }: { children: React.ReactNode }) {
-  const [location] = useLocation();
-  const { isAuthenticated } = useAuth();
-  const { data: survey, isLoading } = useQuery<Survey | null>({
-    queryKey: ["/api/survey"],
-    enabled: isAuthenticated,
-  });
-  if (!isAuthenticated || isLoading) return <>{children}</>;
-  if (survey === null && location !== "/pesquisa") {
-    return <Redirect to="/pesquisa" />;
-  }
+  // Pesquisa não é mais obrigatória — admins podem consultar respostas em /admin/pesquisa.
   return <>{children}</>;
 }
 
@@ -224,7 +213,6 @@ function Router() {
         <Route path="/" component={Mural} />
         <Route path="/dashboard" component={user?.isAdmin ? AdminDashboard : Dashboard} />
         <Route path="/perfil" component={Perfil} />
-        <Route path="/pesquisa" component={Pesquisa} />
         <Route path="/mix/escolher-time" component={MixEscolherTime} />
         <Route path="/mix/veto-mapas" component={MixVetoMapas} />
         <Route path="/mix/disponibilidade" component={MixDisponibilidade} />
