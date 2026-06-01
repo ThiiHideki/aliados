@@ -252,8 +252,8 @@ export default function Mural() {
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2 text-xl">
-              <Gift className="h-6 w-6 text-pink-400" />
-              Sorteio de Maio - AWP | Crakow!
+              <Trophy className="h-6 w-6 text-pink-400" />
+              Parabéns ao ganhador - VTX | GB!
               <Sparkles className="h-5 w-5 text-pink-400" />
             </CardTitle>
             <Badge variant="default" className="bg-pink-600 font-bold">
@@ -262,7 +262,7 @@ export default function Mural() {
             </Badge>
           </div>
           <CardDescription className="text-base">
-            Concorra a uma skin <span className="font-bold">AWP | Crakow!</span> (Classified Sniper Rifle, Field-Tested).
+            <span className="font-bold">VTX | GB</span> foi o grande vencedor do Sorteio de Maio e levou a skin <span className="font-bold">AWP | Crakow!</span> (Classified Sniper Rifle, Field-Tested).
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
