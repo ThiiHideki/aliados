@@ -3,10 +3,10 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupSteamAuth } from "./steamAuth";
-import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry, insertTournament2x2TeamSchema, updateTournament2x2TeamSchema } from "@shared/schema";
+import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry, insertTournament2x2TeamSchema, updateTournament2x2TeamSchema, matches, matchStats } from "@shared/schema";
 import { z } from "zod";
 import { db } from "./db";
-import { eq, sql, desc, and } from "drizzle-orm";
+import { eq, sql, desc, and, gte, lt } from "drizzle-orm";
 import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
 import { getPublicKey as getVapidPublicKey, sendPushToAll, sendPushToUser, initPush } from "./push";
 import { pushSubscriptions } from "@shared/schema";
@@ -3341,6 +3341,33 @@ export async function registerRoutes(
         })
         .slice(0, 50);
 
+      // Dias jogados no mês anterior (dias distintos com partida registrada)
+      const now = new Date();
+      const startPrev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const startCurr = new Date(now.getFullYear(), now.getMonth(), 1);
+      const prevMonthLabel = startPrev.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+
+      const daysRows = await db
+        .select({
+          userId: matchStats.userId,
+          daysPlayed: sql<number>`count(distinct date_trunc('day', ${matches.date}))`,
+          matchesPlayed: sql<number>`count(distinct ${matches.id})`,
+        })
+        .from(matchStats)
+        .innerJoin(matches, eq(matchStats.matchId, matches.id))
+        .where(and(gte(matches.date, startPrev), lt(matches.date, startCurr)))
+        .groupBy(matchStats.userId);
+
+      const userById = new Map(enriched.map((u) => [u.id, u]));
+      const daysPlayedPrevMonth = daysRows
+        .map((r) => {
+          const u = userById.get(r.userId);
+          if (!u) return null;
+          return { ...u, daysPlayed: Number(r.daysPlayed), matchesPlayed: Number(r.matchesPlayed) };
+        })
+        .filter((x): x is NonNullable<typeof x> => x !== null)
+        .sort((a, b) => b.daysPlayed - a.daysPlayed || b.matchesPlayed - a.matchesPlayed);
+
       res.json({
         totals: {
           totalUsers: enriched.length,
@@ -3354,6 +3381,8 @@ export async function registerRoutes(
         discordEnabled,
         pushEnabled,
         inactive,
+        prevMonthLabel,
+        daysPlayedPrevMonth,
       });
     } catch (err: any) {
       console.error("[admin/report] erro:", err);

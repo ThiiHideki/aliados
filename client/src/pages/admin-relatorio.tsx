@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ShieldAlert, Activity, UserX, BellRing, Clock, Users as UsersIcon } from "lucide-react";
+import { ShieldAlert, Activity, UserX, BellRing, Clock, Users as UsersIcon, CalendarDays } from "lucide-react";
 import { SiDiscord } from "react-icons/si";
 import { formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -40,6 +40,8 @@ type ReportData = {
   discordEnabled: ReportUser[];
   pushEnabled: ReportUser[];
   inactive: ReportUser[];
+  prevMonthLabel: string;
+  daysPlayedPrevMonth: (ReportUser & { daysPlayed: number; matchesPlayed: number })[];
 };
 
 function formatRelative(date: string | null) {
@@ -214,6 +216,9 @@ export default function AdminRelatorio() {
           <TabsTrigger value="inactive" data-testid="tab-inactive">
             <Clock className="h-4 w-4 mr-2" /> Sem login há mais tempo
           </TabsTrigger>
+          <TabsTrigger value="daysplayed" data-testid="tab-daysplayed">
+            <CalendarDays className="h-4 w-4 mr-2" /> Dias jogados (mês anterior)
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="active">
@@ -368,6 +373,47 @@ export default function AdminRelatorio() {
                             {formatRelative(u.lastLoginAt)}
                           </div>
                           <div className="text-[10px] text-muted-foreground">último login</div>
+                        </div>
+                      }
+                    />
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="daysplayed">
+          <Card>
+            <CardHeader>
+              <CardTitle className="capitalize">
+                Dias jogados em {data?.prevMonthLabel ?? "mês anterior"}
+              </CardTitle>
+              <CardDescription>
+                Quantidade de dias distintos em que cada jogador disputou ao menos uma partida no mês anterior (
+                {data?.daysPlayedPrevMonth.length ?? 0} jogadores).
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-2">
+              {isLoading ? (
+                <Skeleton className="h-64 w-full" />
+              ) : !data?.daysPlayedPrevMonth.length ? (
+                <EmptyState>Nenhuma partida registrada no mês anterior.</EmptyState>
+              ) : (
+                <div className="divide-y">
+                  {data.daysPlayedPrevMonth.map((u, i) => (
+                    <UserRow
+                      key={u.id}
+                      user={u}
+                      index={i}
+                      rightSlot={
+                        <div className="text-right">
+                          <div className="font-bold text-sm" data-testid={`stat-days-${u.id}`}>
+                            {u.daysPlayed} {u.daysPlayed === 1 ? "dia" : "dias"}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {u.matchesPlayed} {u.matchesPlayed === 1 ? "partida" : "partidas"}
+                          </div>
                         </div>
                       }
                     />
