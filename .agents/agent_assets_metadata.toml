@@ -1,5 +1,34 @@
 uploads = []
-generated = []
+
+[[generated]]
+id = "k6Son8f-PoghVLqi_VsJ5"
+uri = "file://attached_assets/instagram/01_recrutamento.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "_iDTBD3bhCdm2kk21bX9E"
+uri = "file://attached_assets/instagram/02_ranking.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "zWEdjcXUuw2b2Dq60uiqi"
+uri = "file://attached_assets/instagram/03_cassino.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "kJj9ODW1kbUAXLF-zyd8Y"
+uri = "file://attached_assets/instagram/04_copa_mix.png"
+type = "image"
+title = "generated_image"
+
+[[generated]]
+id = "kAIxvhkDdDhpuE_vOh2mK"
+uri = "file://attached_assets/instagram/05_story.png"
+type = "image"
+title = "generated_image"
 
 [[outputs]]
 id = "3AcfcqI1GS--Tqn1xnPcy"
@@ -18,3 +47,33 @@ id = "Ib4jjNKFLKowt9ApmYrHx"
 uri = "file://docs/admin-mix.md"
 type = "text"
 title = "Guia do admin: fechar lista e fechar times do mix"
+
+[[outputs]]
+id = "WWvznKvHmYF86B6AnbdO3"
+uri = "file://attached_assets/instagram/01_recrutamento.png"
+type = "image"
+title = "Post 1 - Recrutamento (feed 1:1)"
+
+[[outputs]]
+id = "aNtRBLfnaxLLsaissuCuk"
+uri = "file://attached_assets/instagram/05_story.png"
+type = "image"
+title = "Story - Chamada (9:16)"
+
+[[outputs]]
+id = "7N0chfqyCsuDV1sR9mSbp"
+uri = "file://attached_assets/instagram/02_ranking.png"
+type = "image"
+title = "Post 2 - Ranking e Niveis (feed 1:1)"
+
+[[outputs]]
+id = "v96Fsp2mlPaep2dZ5s1nE"
+uri = "file://attached_assets/instagram/03_cassino.png"
+type = "image"
+title = "Post 3 - Cassino Virtual (feed 1:1)"
+
+[[outputs]]
+id = "QWdTdGzRKFNyyBAdXDSE8"
+uri = "file://attached_assets/instagram/04_copa_mix.png"
+type = "image"
+title = "Post 4 - Copa 2x2 e MIX (feed 1:1)"
