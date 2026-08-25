@@ -58,7 +58,7 @@ import {
   type UpdateTournament2x2Team,
   type Tournament2x2Match,
   type InsertTournament2x2Match,
-} from "@shared/schema";
+} from "../shared/schema";
 import { db } from "./db";
 import { eq, sql, desc, and } from "drizzle-orm";
 

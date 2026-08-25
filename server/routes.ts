@@ -3,13 +3,13 @@ import { type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { setupSteamAuth } from "./steamAuth";
-import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry, insertTournament2x2TeamSchema, updateTournament2x2TeamSchema, matches, matchStats } from "@shared/schema";
+import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry, insertTournament2x2TeamSchema, updateTournament2x2TeamSchema, matches, matchStats } from "../shared/schema";
 import { z } from "zod";
 import { db } from "./db";
 import { eq, sql, desc, and, gte, lt } from "drizzle-orm";
 import { sendMixNotification, sendNewsNotification, isDiscordReady, getLastError, getBotInviteUrl, getNewsChannelId } from "./discord";
 import { getPublicKey as getVapidPublicKey, sendPushToAll, sendPushToUser, initPush } from "./push";
-import { pushSubscriptions } from "@shared/schema";
+import { pushSubscriptions } from "../shared/schema";
 import { randomBytes, createHash } from "crypto";
 
 // CSV row schema for validation

@@ -1,5 +1,5 @@
 import { db } from "./db";
-import { appSettings, pushSubscriptions } from "@shared/schema";
+import { appSettings, pushSubscriptions } from "../shared/schema";
 import { eq } from "drizzle-orm";
 
 let webpush: any;
