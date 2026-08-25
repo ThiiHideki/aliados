@@ -5,10 +5,10 @@ import passport from "passport";
 import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
-import connectPg from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import { storage } from "./storage";
 
-import { pool } from "./db";
+const MemorySessionStore = MemoryStore(session);
 
 const getOidcConfig = memoize(
   async () => {
@@ -23,27 +23,16 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    pool,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-    pruneSessionInterval: false,
-  });
-
-  sessionStore.on("error", (err: any) => {
-    console.error("[SessionStore Error]:", err?.message || err);
-  });
-
   return session({
     secret: process.env.SESSION_SECRET || "aliados_inimigosdabala_secret_key_2026",
-    store: sessionStore,
+    store: new MemorySessionStore({
+      checkPeriod: 86400000,
+    }),
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: false,
       maxAge: sessionTtl,
     },
   });
