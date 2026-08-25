@@ -18,10 +18,8 @@ app.use(
 
 app.use(express.urlencoded({ extended: false, limit: "15mb" }));
 
-// Register routes synchronously/at module load
-registerRoutes(httpServer, app).catch((err) => {
-  console.error("[Fatal Routes Error]:", err);
-});
+// Register routes synchronously at module load time
+registerRoutes(httpServer, app);
 
 // Global error handler middleware
 app.use((err: any, _req: any, res: any, _next: any) => {

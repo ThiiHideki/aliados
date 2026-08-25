@@ -86,16 +86,16 @@ function parseCSV(csvContent: string): CsvRow[] {
   return rows;
 }
 
-export async function registerRoutes(
+export function registerRoutes(
   httpServer: Server,
   app: Express
-): Promise<Server> {
+): Server {
   // Auth middleware
-  await setupAuth(app);
+  setupAuth(app);
   setupSteamAuth(app);
 
   // Auth routes - Get current user (public endpoint - returns user if logged in, 401 if not)
-  app.get('/api/auth/user', async (req: any, res) => {
+  const handleGetUser = async (req: any, res: any) => {
     try {
       const isAuth = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
       if (!isAuth || !req.user?.claims?.sub) {
@@ -111,7 +111,10 @@ export async function registerRoutes(
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });
     }
-  });
+  };
+
+  app.get('/api/auth/user', handleGetUser);
+  app.get('/auth/user', handleGetUser);
 
   // Get active users only (rankings, mix, mural, etc) - never includes banned
   app.get('/api/users', isAuthenticated, async (_req, res) => {
@@ -2044,9 +2047,10 @@ export async function registerRoutes(
     }
   }
 
-  setTimeout(() => checkAndGenerateMonthlyTrophies(), 5000);
-
-  setInterval(() => checkAndGenerateMonthlyTrophies(), 24 * 60 * 60 * 1000);
+  if (!process.env.VERCEL) {
+    setTimeout(() => checkAndGenerateMonthlyTrophies(), 5000);
+    setInterval(() => checkAndGenerateMonthlyTrophies(), 24 * 60 * 60 * 1000);
+  }
 
   // ============ CASINO ROUTES ============
 

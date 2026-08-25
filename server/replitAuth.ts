@@ -25,9 +25,6 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   return session({
     secret: process.env.SESSION_SECRET || "aliados_inimigosdabala_secret_key_2026",
-    store: new MemorySessionStore({
-      checkPeriod: 86400000,
-    }),
     resave: false,
     saveUninitialized: false,
     cookie: {
