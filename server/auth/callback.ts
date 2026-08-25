@@ -134,14 +134,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
     const token = signToken({ userId, steamId64, expiresAt });
 
-    const isProd = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
-    const cookieHeader = `${COOKIE_NAME}=${token}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${isProd ? "; Secure" : ""}`;
+    const cookieHeader = `${COOKIE_NAME}=${token}; Path=/; Max-Age=2592000; HttpOnly; Secure; SameSite=None`;
 
-    res.writeHead(302, {
-      "Set-Cookie": cookieHeader,
-      Location: "/",
-    });
-    res.end();
+    res.setHeader("Set-Cookie", cookieHeader);
+    res.setHeader("Location", `/?token=${token}&login=success`);
+    res.status(302).end();
   } catch (err) {
     console.error("[SteamAuth Callback Error]:", err);
     res.redirect("/?auth_error=callback_error");

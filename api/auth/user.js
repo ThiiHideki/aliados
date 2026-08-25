@@ -787,14 +787,24 @@ function verifyToken(token) {
 }
 async function handler(req, res) {
   try {
-    const rawCookie = req.headers?.cookie || "";
-    const cookies = Object.fromEntries(
-      rawCookie.split(";").map((c) => {
-        const [k, ...v] = c.trim().split("=");
-        return [k, v.join("=")];
-      })
-    );
-    const token = cookies[COOKIE_NAME];
+    let token;
+    const authHeader = req.headers?.authorization || req.headers?.Authorization;
+    if (typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      token = authHeader.substring(7).trim();
+    }
+    if (!token && typeof req.query?.token === "string") {
+      token = req.query.token;
+    }
+    if (!token) {
+      const rawCookie = req.headers?.cookie || req.headers?.Cookie || "";
+      const cookies = Object.fromEntries(
+        rawCookie.split(";").map((c) => {
+          const [k, ...v] = c.trim().split("=");
+          return [k, v.join("=")];
+        })
+      );
+      token = cookies[COOKIE_NAME];
+    }
     if (!token) {
       return res.status(401).json({ message: "Unauthorized" });
     }
