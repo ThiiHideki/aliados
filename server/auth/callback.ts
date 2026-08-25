@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createHmac } from "crypto";
 import { db } from "../db";
 import { users } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 const SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 const COOKIE_NAME = "aliados_session";
@@ -93,16 +93,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let userId = steamAccountId;
 
     try {
-      const existing = await db.select().from(users).where(eq(users.steamId64, steamId64));
-      if (existing.length > 0) {
-        userId = existing[0].id;
+      const existingBySteam = await db.select().from(users).where(eq(users.steamId64, steamId64));
+      const existingById = await db.select().from(users).where(eq(users.id, steamAccountId));
+      const existingUser = existingBySteam[0] || existingById[0];
+
+      if (existingUser) {
+        userId = existingUser.id;
         await db
           .update(users)
           .set({
+            steamId64: steamId64,
             firstName: nickname,
-            nickname: nickname,
-            profileImageUrl: avatar || existing[0].profileImageUrl,
-            isAdmin: isHardcodedAdmin ? true : existing[0].isAdmin,
+            nickname: existingUser.nickname || nickname,
+            profileImageUrl: avatar || existingUser.profileImageUrl,
+            isAdmin: isHardcodedAdmin ? true : existingUser.isAdmin,
             lastLoginAt: now,
             updatedAt: now,
           })
@@ -122,16 +126,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           isAdmin: isFirst || isHardcodedAdmin,
           lastLoginAt: now,
           updatedAt: now,
-        }).onConflictDoUpdate({
-          target: users.id,
-          set: {
-            firstName: nickname,
-            nickname: nickname,
-            profileImageUrl: avatar,
-            isAdmin: isHardcodedAdmin ? true : undefined,
-            lastLoginAt: now,
-            updatedAt: now,
-          },
         });
       }
     } catch (dbErr) {

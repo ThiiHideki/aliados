@@ -68,8 +68,32 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const userObj = rows[0];
         if (isHardcodedAdmin && !userObj.isAdmin) {
           userObj.isAdmin = true;
+          await db.update(users).set({ isAdmin: true }).where(eq(users.id, userObj.id)).catch(() => {});
         }
         return res.status(200).json(userObj);
+      } else {
+        // Auto-create missing database user record so user appears in user lists!
+        const steamAccountId = payload.userId;
+        const nickname = `Jogador_${rawSteamId.slice(-6)}`;
+        const avatar = `https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg`;
+        const now = new Date();
+
+        const [createdUser] = await db.insert(users).values({
+          id: steamAccountId,
+          email: null,
+          firstName: nickname,
+          nickname: nickname,
+          lastName: null,
+          profileImageUrl: avatar,
+          steamId64: rawSteamId,
+          isAdmin: isHardcodedAdmin,
+          lastLoginAt: now,
+          updatedAt: now,
+        }).returning().catch(() => []);
+
+        if (createdUser) {
+          return res.status(200).json(createdUser);
+        }
       }
     } catch (dbErr) {
       console.error("[Auth User DB Fetch Warning]:", dbErr);

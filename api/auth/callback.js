@@ -845,14 +845,17 @@ async function handler(req, res) {
     const isHardcodedAdmin = ADMIN_STEAM_IDS.includes(steamId64);
     let userId = steamAccountId;
     try {
-      const existing = await db.select().from(users).where(eq(users.steamId64, steamId64));
-      if (existing.length > 0) {
-        userId = existing[0].id;
+      const existingBySteam = await db.select().from(users).where(eq(users.steamId64, steamId64));
+      const existingById = await db.select().from(users).where(eq(users.id, steamAccountId));
+      const existingUser = existingBySteam[0] || existingById[0];
+      if (existingUser) {
+        userId = existingUser.id;
         await db.update(users).set({
+          steamId64,
           firstName: nickname,
-          nickname,
-          profileImageUrl: avatar || existing[0].profileImageUrl,
-          isAdmin: isHardcodedAdmin ? true : existing[0].isAdmin,
+          nickname: existingUser.nickname || nickname,
+          profileImageUrl: avatar || existingUser.profileImageUrl,
+          isAdmin: isHardcodedAdmin ? true : existingUser.isAdmin,
           lastLoginAt: now,
           updatedAt: now
         }).where(eq(users.id, userId));
@@ -870,16 +873,6 @@ async function handler(req, res) {
           isAdmin: isFirst || isHardcodedAdmin,
           lastLoginAt: now,
           updatedAt: now
-        }).onConflictDoUpdate({
-          target: users.id,
-          set: {
-            firstName: nickname,
-            nickname,
-            profileImageUrl: avatar,
-            isAdmin: isHardcodedAdmin ? true : void 0,
-            lastLoginAt: now,
-            updatedAt: now
-          }
         });
       }
     } catch (dbErr) {
