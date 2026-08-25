@@ -8,11 +8,14 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
+import { pool } from "./db";
+
 const getOidcConfig = memoize(
   async () => {
+    if (!process.env.REPL_ID) return null;
     return await client.discovery(
       new URL(process.env.ISSUER_URL ?? "https://replit.com/oidc"),
-      process.env.REPL_ID!
+      process.env.REPL_ID
     );
   },
   { maxAge: 3600 * 1000 }
@@ -22,13 +25,13 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   const pgStore = connectPg(session);
   const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
+    pool,
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
   });
   return session({
-    secret: process.env.SESSION_SECRET!,
+    secret: process.env.SESSION_SECRET || "fallback_session_secret_2026",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
@@ -66,7 +69,34 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
-  const config = await getOidcConfig();
+  passport.serializeUser((user: Express.User, cb) => cb(null, user));
+  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
+
+  if (!process.env.REPL_ID) {
+    console.log("[Auth] REPL_ID não configurado. Replit OIDC desativado, Steam Auth pronta.");
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => {
+        res.redirect("/");
+      });
+    });
+    return;
+  }
+
+  let config;
+  try {
+    config = await getOidcConfig();
+  } catch (err) {
+    console.error("[Auth] Falha na descoberta do OIDC Replit:", err);
+  }
+
+  if (!config) {
+    app.get("/api/logout", (req, res) => {
+      req.logout(() => {
+        res.redirect("/");
+      });
+    });
+    return;
+  }
 
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
@@ -96,9 +126,6 @@ export async function setupAuth(app: Express) {
       registeredStrategies.add(strategyName);
     }
   };
-
-  passport.serializeUser((user: Express.User, cb) => cb(null, user));
-  passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
     ensureStrategy(req.hostname);

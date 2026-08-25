@@ -52,8 +52,8 @@ async function fetchSteamProfile(
 
 export function setupSteamAuth(app: Express) {
   app.get("/api/auth/steam", (req, res) => {
-    const scheme = req.headers["x-forwarded-proto"] || req.protocol;
-    const host = req.hostname;
+    const scheme = (req.headers["x-forwarded-proto"] as string) || req.protocol;
+    const host = (req.headers["x-forwarded-host"] as string) || req.headers.host || req.hostname;
     const returnUrl = `${scheme}://${host}/api/auth/steam/callback`;
     const realm = `${scheme}://${host}/`;
 
