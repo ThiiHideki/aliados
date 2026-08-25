@@ -76,8 +76,8 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
     <div className="flex flex-col min-h-screen bg-background">
       <header className="sticky top-0 z-50 flex items-center justify-between gap-2 px-4 py-3 border-b border-border bg-background/95 backdrop-blur">
         <div className="flex items-center gap-2">
-          <img src={logoUrl} alt="Inimigos da Bala" className="h-8 w-8 rounded object-contain" />
-          <span className="font-semibold text-sm hidden sm:inline">Inimigos da Bala</span>
+          <img src={logoUrl} alt="Aliados" className="h-8 w-8 rounded object-contain" />
+          <span className="font-semibold text-sm hidden sm:inline">Aliados</span>
         </div>
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" asChild>
@@ -172,7 +172,7 @@ function Router() {
       <div className="flex flex-col items-center justify-center h-screen gap-4">
         <img 
           src={logoUrl} 
-          alt="Inimigos da Bala" 
+          alt="Aliados" 
           className="h-24 w-24 rounded-lg object-contain animate-pulse"
         />
         <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
@@ -279,10 +279,10 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
             <div className="flex items-center gap-2">
               <img 
                 src={logoUrl} 
-                alt="Inimigos da Bala" 
+                alt="Aliados" 
                 className="h-8 w-8 rounded object-contain"
               />
-              <span className="font-semibold hidden sm:inline">Inimigos da Bala</span>
+              <span className="font-semibold hidden sm:inline">Aliados</span>
             </div>
             <ThemeToggle />
           </header>

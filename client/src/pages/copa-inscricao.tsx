@@ -242,10 +242,9 @@ export default function CopaInscricao() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Hero */}
       <div className="relative rounded-xl overflow-hidden h-40">
-        <img src={copaImg} alt="Copa Inimigos da Bala" className="w-full h-full object-cover object-top" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        <div className="absolute bottom-0 left-0 right-0 p-4">
-          <h1 className="text-2xl font-black text-white">Copa Inimigos da Bala</h1>
+        <img src={copaImg} alt="Copa Aliados" className="w-full h-full object-cover object-top" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent flex items-end p-6">
+          <h1 className="text-2xl font-black text-white">Copa Aliados</h1>
           <p className="text-blue-300 text-sm font-medium">Inscrição de Times</p>
         </div>
       </div>

@@ -54,7 +54,7 @@ export function ServerCostPopup() {
             Ajude a Manter Nossa Comunidade
           </DialogTitle>
           <DialogDescription>
-            O Inimigos da Bala precisa da sua ajuda para continuar funcionando!
+            O Aliados precisa da sua ajuda para continuar funcionando!
           </DialogDescription>
         </DialogHeader>
         
@@ -128,7 +128,7 @@ export function ServerCostPopup() {
           </div>
           
           <p className="text-xs text-center text-muted-foreground">
-            Obrigado por fazer parte da família Inimigos da Bala.
+            Obrigado por fazer parte da família Aliados.
           </p>
         </div>
         

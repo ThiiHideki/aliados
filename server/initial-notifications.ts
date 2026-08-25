@@ -20,9 +20,9 @@ const notifications = [
     ].join("\n"),
   },
   {
-    title: "Copa Inimigos da Bala — Inscrições Abertas!",
+    title: "Copa Aliados — Inscrições Abertas!",
     body: [
-      "A primeira edição da **Copa Inimigos da Bala** está chegando! Forme seu time e venha competir!",
+      "A primeira edição da **Copa Aliados** está chegando! Forme seu time e venha competir!",
       "",
       "**💰 Taxa de inscrição:** R$ 50,00 por time (via PIX)",
       "**🏅 Premiação:** 80% do valor arrecadado",
@@ -30,7 +30,7 @@ const notifications = [
       "   • 🥈 2º lugar — 20% do prêmio total",
       "",
       "**📋 Como se inscrever:**",
-      "1. Site → Copa Inimigos da Bala → Inscrição",
+      "1. Site → Copa Aliados → Inscrição",
       "2. Preencha os dados do time",
       "3. Pague via PIX e envie o comprovante",
       "4. Aguarde a aprovação da organização",

@@ -562,7 +562,7 @@ export default function CopaTabela() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 p-4">
           <h1 className="text-2xl font-black text-white">Tabela e Chaveamento</h1>
-          <p className="text-blue-300 text-sm">Copa Inimigos da Bala · Mata-Mata</p>
+          <p className="text-blue-300 text-sm">Copa Aliados · Mata-Mata</p>
         </div>
       </div>
 

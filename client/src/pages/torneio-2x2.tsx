@@ -50,7 +50,7 @@ function InfoTab() {
       <Card className="overflow-hidden">
         <img
           src={bannerImg}
-          alt="Copa Inimigos da Bala — Torneio 2x2"
+          alt="Copa Aliados — Torneio 2x2"
           className="w-full h-auto object-cover"
           data-testid="img-banner"
         />
@@ -60,10 +60,10 @@ function InfoTab() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-2xl">
             <Trophy className="h-6 w-6 text-primary" />
-            Copa Inimigos da Bala: Torneio 2x2
+            Copa Aliados: Torneio 2x2
           </CardTitle>
           <CardDescription className="text-base">
-            Bem-vindos ao torneio oficial da comunidade Inimigos da Bala. Preparem suas miras, pois apenas uma dupla será a campeã!
+            Bem-vindos ao torneio oficial da comunidade Aliados. Preparem suas miras, pois apenas uma dupla será a campeã!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -621,7 +621,7 @@ export default function Torneio2x2() {
         <Trophy className="h-7 w-7 text-primary" />
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold" data-testid="text-page-title">
-            Copa Inimigos da Bala: Torneio 2x2
+            Copa Aliados: Torneio 2x2
           </h1>
           <p className="text-sm text-muted-foreground">
             Cadastro de duplas, lista de inscritos e chaveamento do torneio.

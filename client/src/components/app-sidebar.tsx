@@ -138,11 +138,11 @@ export function AppSidebar() {
         <div className="flex items-center gap-3">
           <img 
             src={logoUrl} 
-            alt="Inimigos da Bala" 
+            alt="Aliados" 
             className="h-12 w-12 rounded-md object-contain"
           />
           <div className="flex flex-col">
-            <span className="text-lg font-bold tracking-tight">Inimigos da Bala</span>
+            <span className="text-lg font-bold tracking-tight">Aliados</span>
             <span className="text-xs text-muted-foreground">Counter-Strike 2</span>
           </div>
         </div>

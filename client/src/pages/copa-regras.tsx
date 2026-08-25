@@ -47,7 +47,7 @@ const rules: Rule[] = [
       "O uso de qualquer software de trapaça (aimbot, wallhack, ESP, scripts, macros que concedam vantagem indevida etc.) é estritamente proibido.",
       "Jogadores identificados com ban ativo no VAC, FACEIT AC, ou qualquer outro sistema anti-cheat reconhecido não poderão participar do torneio.",
       "Suspeitas de trapaça devem ser reportadas à organização com evidências (POV, demo, timestamps). Denúncias sem fundamento serão ignoradas.",
-      "Confirmada a trapaça, o jogador é banido permanentemente de todas as edições da Copa Inimigos da Bala, e o time poderá ser desclassificado conforme avaliação da organização.",
+      "Confirmada a trapaça, o jogador é banido permanentemente de todas as edições da Copa Aliados, e o time poderá ser desclassificado conforme avaliação da organização.",
     ],
   },
   {
@@ -135,7 +135,7 @@ export default function CopaRegras() {
     <div className="min-h-screen bg-background">
       {/* Header image */}
       <div className="relative h-44 overflow-hidden">
-        <img src={copaImg} alt="Copa Inimigos da Bala" className="w-full h-full object-cover object-top" />
+        <img src={copaImg} alt="Copa Aliados" className="w-full h-full object-cover object-top" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-background" />
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-center px-4">
           <div className="flex items-center gap-2">
@@ -143,7 +143,7 @@ export default function CopaRegras() {
             <h1 className="text-3xl font-black text-white tracking-tight">Regras do Campeonato</h1>
           </div>
           <p className="text-white/80 text-sm max-w-md">
-            Copa Inimigos da Bala — Leia com atenção antes de se inscrever.
+            Copa Aliados — Leia com atenção antes de se inscrever.
           </p>
         </div>
       </div>
@@ -203,7 +203,7 @@ export default function CopaRegras() {
               <div className="space-y-1">
                 <p className="font-semibold text-sm">Decisões da Organização são finais</p>
                 <p className="text-xs text-muted-foreground">
-                  Em situações não previstas nestas regras, a organização da Copa Inimigos da Bala tomará a decisão que julgar mais justa para o torneio,
+                  Em situações não previstas nestas regras, a organização da Copa Aliados tomará a decisão que julgar mais justa para o torneio,
                   comunicando as partes envolvidas. Não cabe recurso após decisão definitiva.
                 </p>
               </div>

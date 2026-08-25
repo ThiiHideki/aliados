@@ -45,7 +45,7 @@ export default function Campeonato() {
       <div className="text-center space-y-2">
         <div className="flex items-center justify-center gap-3">
           <Trophy className="h-10 w-10 text-yellow-500" />
-          <h1 className="text-4xl font-bold">Campeonato Inimigos da Bala</h1>
+          <h1 className="text-4xl font-bold">Campeonato Aliados</h1>
           <Trophy className="h-10 w-10 text-yellow-500" />
         </div>
         <Badge variant="secondary" className="text-lg px-4 py-1">
@@ -60,7 +60,7 @@ export default function Campeonato() {
             Primeiro Campeonato Oficial
           </CardTitle>
           <CardDescription className="text-base">
-            Estamos nos preparando para realizar o primeiro campeonato oficial da comunidade Inimigos da Bala!
+            Estamos nos preparando para realizar o primeiro campeonato oficial da comunidade Aliados!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

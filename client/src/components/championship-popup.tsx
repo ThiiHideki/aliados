@@ -36,7 +36,7 @@ export function ChampionshipPopup() {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
             <Trophy className="h-6 w-6 text-yellow-500" />
-            Campeonato Inimigos da Bala
+            Campeonato Aliados
           </DialogTitle>
           <DialogDescription>
             O primeiro campeonato oficial da comunidade está chegando!

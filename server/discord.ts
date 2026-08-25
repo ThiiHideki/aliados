@@ -162,7 +162,7 @@ export async function sendMixNotification(date: string, extraMessage?: string): 
           ? extraMessage
           : `A lista do Mix de **${displayDate}** está aberta!\nClique no botão abaixo para reservar sua vaga direto pelo Discord.`
       )
-      .setFooter({ text: "Inimigos da Bala • CS2" })
+      .setFooter({ text: "Aliados • CS2" })
       .setTimestamp();
 
     const button = new ButtonBuilder()
@@ -216,7 +216,7 @@ export async function sendNewsNotification(
       .setColor(0xff6b00)
       .setTitle(`📢  ${title}`)
       .setDescription(description)
-      .setFooter({ text: "Inimigos da Bala • CS2" })
+      .setFooter({ text: "Aliados • CS2" })
       .setTimestamp();
 
     const content = mentionEveryone ? "@everyone" : undefined;

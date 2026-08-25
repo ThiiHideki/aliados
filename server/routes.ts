@@ -2874,7 +2874,7 @@ export async function registerRoutes(
     }
   });
 
-  // ── Copa Inimigos da Bala routes ────────────────────────────────────────────
+  // ── Copa Aliados routes ───────────────────────────────────────────────────
 
   let registrationClosed = false;
 

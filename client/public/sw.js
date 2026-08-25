@@ -1,4 +1,4 @@
-/* Service Worker — Inimigos da Bala
+/* Service Worker — Aliados
    Handles Web Push notifications. */
 
 self.addEventListener("install", (event) => {
@@ -14,15 +14,15 @@ self.addEventListener("push", (event) => {
   try {
     data = event.data ? event.data.json() : {};
   } catch (e) {
-    data = { title: "Inimigos da Bala", body: event.data ? event.data.text() : "" };
+    data = { title: "Aliados", body: event.data ? event.data.text() : "" };
   }
 
-  const title = data.title || "Inimigos da Bala";
+  const title = data.title || "Aliados";
   const options = {
     body: data.body || "",
     icon: "/favicon.png",
     badge: "/favicon.png",
-    tag: data.tag || "inimigos-da-bala",
+    tag: data.tag || "aliados-cs2",
     renotify: true,
     requireInteraction: false,
     data: {

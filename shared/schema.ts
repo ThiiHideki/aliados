@@ -514,7 +514,7 @@ export const insertSurveySchema = createInsertSchema(surveys).omit({
   updatedAt: true,
 });
 
-// ── Copa Inimigos da Bala ────────────────────────────────────────────────────
+// ── Copa Aliados ─────────────────────────────────────────────────────────────
 
 export const copaTeams = pgTable("copa_teams", {
   id: serial("id").primaryKey(),
@@ -641,7 +641,7 @@ export type InsertMixAvailability = z.infer<typeof insertMixAvailabilitySchema>;
 export type MixPenalty = typeof mixPenalties.$inferSelect;
 export type InsertMixPenalty = z.infer<typeof insertMixPenaltySchema>;
 
-// ─── Inimigos da Bala Fantasy ────────────────────────────────────────────────
+// ─── Aliados Fantasy ─────────────────────────────────────────────────────────
 
 export const fantasyRounds = pgTable("fantasy_rounds", {
   id: serial("id").primaryKey(),

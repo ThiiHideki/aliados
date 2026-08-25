@@ -1305,7 +1305,7 @@ export class DatabaseStorage implements IStorage {
     return survey;
   }
 
-  // ── Copa Inimigos da Bala ─────────────────────────────────────────────────
+  // ── Copa Aliados ──────────────────────────────────────────────────────────
 
   async createCopaTeam(data: {
     teamName: string; leaderName: string; leaderContact: string; paymentProof?: string;

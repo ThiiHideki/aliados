@@ -313,7 +313,7 @@ export default function MixDisponibilidade() {
         <CardHeader className="pb-3">
           <CardTitle className="flex items-center gap-2 text-xl">
             <Shield className="h-5 w-5 text-primary" />
-            Mix 19 horas - Inimigos da Bala
+            Mix 19 horas - Aliados
           </CardTitle>
           <CardDescription>
             {mainPlayers.length}/10 jogadores confirmados

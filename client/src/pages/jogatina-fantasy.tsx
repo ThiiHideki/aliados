@@ -499,7 +499,7 @@ export default function JogatinaFantasy() {
           <Trophy className="w-6 h-6 text-primary" />
         </div>
         <div className="flex-1 min-w-0">
-          <h1 className="text-xl font-bold">Inimigos da Bala Fantasy</h1>
+          <h1 className="text-xl font-bold">Aliados Fantasy</h1>
           <p className="text-muted-foreground text-sm">
             Escale até 5 jogadores com orçamento de <span className="text-primary font-semibold">FP {FANTASY_BUDGET}</span> Fantasy Points. Jogadores mais fortes custam mais caro — gerencie bem o saldo!
           </p>

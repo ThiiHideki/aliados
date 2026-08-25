@@ -1,7 +1,7 @@
 {
-  "name": "Inimigos da Bala",
-  "short_name": "Inimigos",
-  "description": "Comunidade CS2 — Inimigos da Bala",
+  "name": "Aliados",
+  "short_name": "Aliados",
+  "description": "Comunidade CS2 — Aliados",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

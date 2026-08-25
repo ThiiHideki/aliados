@@ -47,11 +47,11 @@ export default function Landing() {
           <div className="flex items-center gap-3">
             <img
               src={logoUrl}
-              alt="Inimigos da Bala"
+              alt="Aliados"
               className="h-12 w-12 rounded-md object-contain"
             />
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight">Inimigos da Bala</span>
+              <span className="text-xl font-bold tracking-tight">Aliados</span>
               <span className="text-xs text-muted-foreground">Counter-Strike 2</span>
             </div>
           </div>
@@ -76,7 +76,7 @@ export default function Landing() {
             <div className="flex justify-center mb-8">
               <img
                 src={logoUrl}
-                alt="Inimigos da Bala"
+                alt="Aliados"
                 className="h-32 w-32 rounded-lg object-contain"
               />
             </div>
@@ -87,8 +87,8 @@ export default function Landing() {
               </span>
             </div>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Bem-vindo aos{" "}
-              <span className="text-primary">Inimigos da Bala</span>
+              Bem-vindo ao{" "}
+              <span className="text-primary">Aliados</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
               Acompanhe estatísticas, balance times para o mix, veja rankings
@@ -190,11 +190,11 @@ export default function Landing() {
         <div className="container mx-auto text-center">
           <img
             src={logoUrl}
-            alt="Inimigos da Bala"
+            alt="Aliados"
             className="h-16 w-16 mx-auto mb-4 rounded-md object-contain"
           />
           <p className="text-sm text-muted-foreground">
-            Inimigos da Bala - Counter-Strike 2
+            Aliados - Counter-Strike 2
           </p>
         </div>
       </footer>

@@ -508,7 +508,7 @@ export default function AdminCopa() {
           <div className="flex items-center gap-3">
             <Trophy className="h-8 w-8 text-primary" />
             <div>
-              <h1 className="text-2xl font-bold">Admin — Copa Inimigos da Bala</h1>
+              <h1 className="text-2xl font-bold">Admin — Copa Aliados</h1>
               <p className="text-muted-foreground text-sm">Gerenciar inscrições e partidas</p>
             </div>
           </div>

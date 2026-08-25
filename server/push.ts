@@ -8,7 +8,7 @@ let privateKey = "";
 let initialized = false;
 let initPromise: Promise<void> | null = null;
 
-const SUBJECT = "mailto:admin@inimigosdabala.local";
+const SUBJECT = "mailto:admin@aliados.local";
 
 async function loadOrCreateKeys() {
   const rows = await db.select().from(appSettings);

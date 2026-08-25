@@ -117,7 +117,7 @@ export default function Patrocinadores() {
 
       <p className="text-muted-foreground">
         Agradecemos a todos os patrocinadores que ajudam a manter a comunidade
-        Inimigos da Bala ativa e funcionando!
+        Aliados ativa e funcionando!
       </p>
 
       <Card className="border-primary/20 bg-primary/5">

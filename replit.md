@@ -1,8 +1,8 @@
-# Inimigos da Bala
+# Aliados
 
 ## Overview
 
-Inimigos da Bala is a Counter-Strike 2 community management system for friend groups. It tracks player performance, manages user profiles, provides player rankings, facilitates team balancing (MIX), and offers administrative dashboards. The application is a full-stack TypeScript project with a React frontend and an Express backend, utilizing PostgreSQL for data and Replit's OpenID Connect for authentication, all presented in Portuguese. Key features include player statistics, a virtual casino with betting and games, and a fantasy league.
+Aliados is a Counter-Strike 2 community management system for friend groups. It tracks player performance, manages user profiles, provides player rankings, facilitates team balancing (MIX), and offers administrative dashboards. The application is a full-stack TypeScript project with a React frontend and an Express backend, utilizing PostgreSQL for data and Replit's OpenID Connect for authentication, all presented in Portuguese. Key features include player statistics, a virtual casino with betting and games, and a fantasy league.
 
 ## User Preferences
 
@@ -32,7 +32,7 @@ The backend is an Express.js application with TypeScript. It uses session-based 
 -   **Streak System:** Tracks consecutive wins and applies bonus LP for streaks of 3 or more, displayed with a "Fire" icon.
 -   **Modifier Items:** Players can earn and use `desafio_rp` (doubles LP change) and `freeze_rp` (zeroes LP change) items, with daily activation limits.
 -   **Trophies:** Monthly award medals are generated and displayed on user profiles.
--   **Copa Inimigos da Bala:** Tournament system with team registration, bracket management, player leaderboards, prize calculation, and rules.
+-   **Copa Aliados:** Tournament system with team registration, bracket management, player leaderboards, prize calculation, and rules.
 -   **Virtual Casino:** Includes betting on player stats, a slot machine, and case opening games, using a virtual currency.
 -   **Fantasy League:** A "Cartola FC"-style fantasy game where users pick players, and scores are based on real match performance.
 

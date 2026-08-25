@@ -6,7 +6,7 @@ Você não precisa abrir o site para entrar na lista do mix do dia. Pode reserva
 
 ## Pré-requisitos
 
-- Estar no servidor do Discord do **Inimigos da Bala**.
+- Estar no servidor do Discord do **Aliados**.
 - Ter sua conta do Discord **vinculada** ao seu perfil do site.
   - Se ainda não vinculou, faça isso uma única vez:
     1. Entre no site.
@@ -19,7 +19,7 @@ Você não precisa abrir o site para entrar na lista do mix do dia. Pode reserva
 ## Passo a passo para entrar na lista
 
 1. Abra o **Discord** (no celular ou computador).
-2. Entre no servidor do **Inimigos da Bala**.
+2. Entre no servidor do **Aliados**.
 3. Vá no canal **#🔫-lista-mix🔫**.
 4. Quando o admin abrir a lista do dia, o bot publica uma mensagem com **@everyone** assim:
 

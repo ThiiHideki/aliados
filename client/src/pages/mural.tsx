@@ -465,7 +465,7 @@ export default function Mural() {
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <CardTitle className="flex items-center gap-2 text-xl">
                   <Newspaper className="h-6 w-6 text-primary" />
-                  Jornal Inimigos da Bala
+                  Jornal Aliados
                 </CardTitle>
                 <div className="flex items-center gap-2">
                   {allNews.length > 0 && (
@@ -901,7 +901,7 @@ export default function Mural() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-yellow-500" />
-              Campeonato Inimigos da Bala
+              Campeonato Aliados
             </CardTitle>
             <CardDescription>O primeiro campeonato oficial está chegando!</CardDescription>
           </CardHeader>
@@ -946,7 +946,7 @@ export default function Mural() {
           <div className="flex items-center justify-between flex-wrap gap-2">
             <CardTitle className="flex items-center gap-2 text-xl">
               <Trophy className="h-6 w-6 text-green-500" />
-              Representantes Inimigos da Bala
+              Representantes Aliados
               <Trophy className="h-6 w-6 text-green-500" />
             </CardTitle>
             <Badge variant="default" className="bg-green-600">
@@ -961,13 +961,13 @@ export default function Mural() {
         <CardContent className="space-y-4">
           <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 space-y-3">
             <p className="text-sm leading-relaxed">
-              A partir do mês de <span className="font-bold text-green-500">Março</span>, os <span className="font-bold text-primary">5 melhores jogadores do mês</span> no ranking mensal serão convidados a representar o time <span className="font-bold">Inimigos da Bala</span> em campeonatos da <span className="font-bold text-green-500">Gamers Club</span>!
+              A partir do mês de <span className="font-bold text-green-500">Março</span>, os <span className="font-bold text-primary">5 melhores jogadores do mês</span> no ranking mensal serão convidados a representar o time <span className="font-bold">Aliados</span> em campeonatos da <span className="font-bold text-green-500">Gamers Club</span>!
             </p>
             <p className="text-sm leading-relaxed">
               Essa é a oportunidade que muitos estavam esperando. Se você sempre quis jogar em um nível mais alto, se provar contra outros times e mostrar do que é capaz, agora é a hora. Dê o seu máximo em cada partida, cada round conta. O ranking mensal vai definir quem vai entrar em campo representando a nossa comunidade.
             </p>
             <p className="text-sm leading-relaxed font-medium text-primary">
-              Não importa se você é veterano ou se está chegando agora. O ranking é atualizado todo mês e todos partem do zero. Mostre consistência, dedicação e habilidade. Os 5 melhores vão carregar o nome Inimigos da Bala nos campeonatos!
+              Não importa se você é veterano ou se está chegando agora. O ranking é atualizado todo mês e todos partem do zero. Mostre consistência, dedicação e habilidade. Os 5 melhores vão carregar o nome Aliados nos campeonatos!
             </p>
           </div>
 
@@ -1052,7 +1052,7 @@ export default function Mural() {
             <Handshake className="h-5 w-5 text-primary" />
             Apoiadores
           </CardTitle>
-          <CardDescription>Marcas que apoiam a comunidade Inimigos da Bala</CardDescription>
+          <CardDescription>Marcas que apoiam a comunidade Aliados</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 sm:grid-cols-3">
