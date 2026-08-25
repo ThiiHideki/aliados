@@ -60,7 +60,7 @@ import AdminSorteios from "@/pages/admin-sorteios";
 import Torneio2x2 from "@/pages/torneio-2x2";
 import { RaffleWinnerAlert } from "@/components/raffle-winner-alert";
 import VincularDiscord from "@/pages/vincular-discord";
-import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
+import logoUrl from "/aliados_logo.png";
 
 function SurveyGuard({ children }: { children: React.ReactNode }) {
   // Pesquisa não é mais obrigatória — admins podem consultar respostas em /admin/pesquisa.
@@ -271,15 +271,15 @@ function AuthenticatedLayout({ children }: { children: React.ReactNode }) {
       <div className="flex h-screen w-full">
         <AppSidebar />
         <div className="flex flex-col flex-1 min-w-0">
-          <header className="flex items-center justify-between gap-2 p-3 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <header className="flex items-center justify-between gap-2 p-3 border-b border-purple-900/30 bg-background/80 backdrop-blur-md">
             <SidebarTrigger data-testid="button-sidebar-toggle" />
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5">
               <img 
                 src={logoUrl} 
-                alt="Aliados" 
-                className="h-8 w-8 rounded object-contain"
+                alt="Aliados Gaming" 
+                className="h-8 w-8 rounded-lg object-contain drop-shadow-[0_0_8px_rgba(118,224,38,0.5)]"
               />
-              <span className="font-semibold hidden sm:inline">Aliados</span>
+              <span className="font-black tracking-wider uppercase hidden sm:inline text-white drop-shadow">ALIADOS <span className="text-primary text-xs font-bold">GAMING</span></span>
             </div>
             <ThemeToggle />
           </header>

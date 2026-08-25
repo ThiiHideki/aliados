@@ -10,7 +10,7 @@ import {
   Swords,
 } from "lucide-react";
 import { SiSteam } from "react-icons/si";
-import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
+import logoUrl from "/aliados_logo.png";
 
 export default function Landing() {
   const features = [
@@ -41,25 +41,28 @@ export default function Landing() {
   ];
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border">
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      {/* Glow background effects */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[500px] bg-gradient-to-b from-purple-900/20 via-primary/10 to-transparent blur-3xl pointer-events-none -z-10" />
+
+      <header className="border-b border-purple-900/30 bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between flex-wrap gap-3">
           <div className="flex items-center gap-3">
             <img
               src={logoUrl}
-              alt="Aliados"
-              className="h-12 w-12 rounded-md object-contain"
+              alt="Aliados Gaming"
+              className="h-12 w-12 rounded-lg object-contain drop-shadow-[0_0_10px_rgba(118,224,38,0.4)]"
             />
             <div className="flex flex-col">
-              <span className="text-xl font-bold tracking-tight">Aliados</span>
-              <span className="text-xs text-muted-foreground">Counter-Strike 2</span>
+              <span className="text-xl font-black tracking-wider uppercase text-white drop-shadow">ALIADOS</span>
+              <span className="text-xs text-primary font-bold tracking-widest uppercase">Gaming Community</span>
             </div>
           </div>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-3 flex-wrap">
             <ThemeToggle />
-            <Button variant="outline" asChild data-testid="button-login-steam-header">
-              <a href="/api/auth/steam" className="flex items-center gap-2">
-                <SiSteam className="h-4 w-4" />
+            <Button variant="default" className="font-bold gap-2 shadow-[0_0_15px_rgba(118,224,38,0.3)] hover:shadow-[0_0_25px_rgba(118,224,38,0.5)] transition-all" asChild data-testid="button-login-steam-header">
+              <a href="/api/auth/steam">
+                <SiSteam className="h-5 w-5" />
                 Entrar com Steam
               </a>
             </Button>
@@ -70,33 +73,35 @@ export default function Landing() {
       <main>
         <section className="py-20 px-4">
           <div className="container mx-auto max-w-4xl text-center">
-            <div className="flex justify-center mb-8">
+            <div className="flex justify-center mb-8 relative">
+              <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full scale-110 pointer-events-none" />
               <img
                 src={logoUrl}
-                alt="Aliados"
-                className="h-32 w-32 rounded-lg object-contain"
+                alt="Aliados Gaming"
+                className="h-44 w-44 rounded-2xl object-contain drop-shadow-[0_0_25px_rgba(118,224,38,0.5)] transition-transform hover:scale-105 duration-300"
               />
             </div>
-            <div className="inline-flex items-center gap-2 mb-6 px-4 py-2 bg-primary/10 rounded-full">
-              <Target className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">
-                Comunidade Counter-Strike 2
+            <div className="inline-flex items-center gap-2 mb-6 px-5 py-2 bg-purple-950/60 border border-primary/40 rounded-full shadow-[0_0_15px_rgba(118,224,38,0.15)]">
+              <Target className="h-4 w-4 text-primary animate-pulse" />
+              <span className="text-sm font-bold tracking-wide text-primary uppercase">
+                Comunidade CS2 • Aliados Gaming
               </span>
             </div>
-            <h1 className="text-4xl md:text-6xl font-bold tracking-tight mb-6">
-              Bem-vindo ao{" "}
-              <span className="text-primary">Aliados</span>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tight mb-6 uppercase">
+              BEM-VINDO AO{" "}
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary via-lime-300 to-purple-400 drop-shadow-[0_0_20px_rgba(118,224,38,0.3)]">
+                ALIADOS GAMING
+              </span>
             </h1>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Acompanhe estatísticas, balance times para o mix, veja rankings
-              e muito mais. O sistema completo para gerenciar suas partidas
-              de Counter-Strike 2 com os amigos.
+            <p className="text-lg md:text-xl text-muted-foreground mb-10 max-w-2xl mx-auto leading-relaxed">
+              Estatísticas avançadas, balanceamento automático de mix, rankings competitivos
+              e fantasy league. Tudo que o seu squad precisa em um só lugar.
             </p>
             <div className="flex gap-4 justify-center flex-wrap">
-              <Button size="lg" asChild data-testid="button-get-started-steam">
-                <a href="/api/auth/steam" className="flex items-center gap-2">
-                  <SiSteam className="h-5 w-5" />
-                  Entrar com Steam
+              <Button size="lg" className="text-base font-bold px-8 py-6 gap-3 shadow-[0_0_20px_rgba(118,224,38,0.4)] hover:shadow-[0_0_30px_rgba(118,224,38,0.6)] transition-all" asChild data-testid="button-get-started-steam">
+                <a href="/api/auth/steam">
+                  <SiSteam className="h-6 w-6" />
+                  ENTRAR COM A STEAM
                 </a>
               </Button>
             </div>

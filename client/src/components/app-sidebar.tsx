@@ -63,7 +63,7 @@ import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { SiDiscord } from "react-icons/si";
-import logoUrl from "@assets/WhatsApp_Image_2025-11-17_at_01.47.14_(1)_1764723428520.jpeg";
+import logoUrl from "/aliados_logo.png";
 
 export function AppSidebar() {
   const { user } = useAuth();
@@ -134,16 +134,16 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="border-b border-sidebar-border p-4">
+      <SidebarHeader className="border-b border-purple-900/30 p-4 bg-purple-950/20">
         <div className="flex items-center gap-3">
           <img 
             src={logoUrl} 
-            alt="Aliados" 
-            className="h-12 w-12 rounded-md object-contain"
+            alt="Aliados Gaming" 
+            className="h-12 w-12 rounded-lg object-contain drop-shadow-[0_0_12px_rgba(118,224,38,0.5)] transition-transform hover:scale-110"
           />
           <div className="flex flex-col">
-            <span className="text-lg font-bold tracking-tight">Aliados</span>
-            <span className="text-xs text-muted-foreground">Counter-Strike 2</span>
+            <span className="text-lg font-black tracking-wider text-white uppercase drop-shadow">ALIADOS</span>
+            <span className="text-xs font-bold text-primary tracking-widest uppercase">Gaming CS2</span>
           </div>
         </div>
       </SidebarHeader>
