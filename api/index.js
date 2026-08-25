@@ -32434,12 +32434,12 @@ var require_memorystore2 = __commonJS({
   }
 });
 
-// api/index.ts
-var index_exports = {};
-__export(index_exports, {
-  default: () => index_default
+// server/vercel.ts
+var vercel_exports = {};
+__export(vercel_exports, {
+  default: () => vercel_default
 });
-module.exports = __toCommonJS(index_exports);
+module.exports = __toCommonJS(vercel_exports);
 var import_express = __toESM(require_express2(), 1);
 var import_http = require("http");
 
@@ -49278,7 +49278,7 @@ async function clearDownstream(fromRound, fromPosition, oldWinnerId) {
   }
 }
 
-// api/index.ts
+// server/vercel.ts
 var app = (0, import_express.default)();
 var httpServer = (0, import_http.createServer)(app);
 app.set("trust proxy", 1);
@@ -49306,7 +49306,7 @@ app.use((err, _req, res, _next) => {
     res.status(status).json({ message });
   }
 });
-var index_default = app;
+var vercel_default = app;
 /*! Bundled license information:
 
 depd/index.js:
