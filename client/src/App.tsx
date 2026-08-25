@@ -57,7 +57,6 @@ import CopaPremiacoes from "@/pages/copa-premiacoes";
 import CopaRegras from "@/pages/copa-regras";
 import AdminCopa from "@/pages/admin-copa";
 import AdminSorteios from "@/pages/admin-sorteios";
-import Torneio2x2 from "@/pages/torneio-2x2";
 import { RaffleWinnerAlert } from "@/components/raffle-winner-alert";
 import VincularDiscord from "@/pages/vincular-discord";
 import logoUrl from "/aliados_logo.png";
@@ -196,9 +195,7 @@ function Router() {
         <Route path="/copa/inscricao">
           <PublicLayout><CopaInscricao /></PublicLayout>
         </Route>
-        <Route path="/torneio-2x2">
-          <PublicLayout><Torneio2x2 /></PublicLayout>
-        </Route>
+
         <Route>
           <PublicLayout><LoginRequired /></PublicLayout>
         </Route>
@@ -252,7 +249,6 @@ function Router() {
         <Route path="/copa/regras" component={CopaRegras} />
         <Route path="/admin/copa" component={AdminCopa} />
         <Route path="/admin/sorteios" component={AdminSorteios} />
-        <Route path="/torneio-2x2" component={Torneio2x2} />
         <Route component={NotFound} />
       </Switch>
       </DiscordGuard>

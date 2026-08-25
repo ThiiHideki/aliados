@@ -53,6 +53,19 @@ export default function Mural() {
     queryKey: ["/api/news"],
   });
 
+  const generateHumorNewsMutation = useMutation({
+    mutationFn: async () => {
+      return apiRequest('POST', '/api/news/generate-humor');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/news"] });
+      toast({ title: "Notícia de Humor gerada!", description: "Analisamos as estatísticas dos últimos jogos e publicamos no Jornal Aliados!" });
+    },
+    onError: (error: any) => {
+      toast({ title: "Erro", description: error.message || "Erro ao gerar notícia", variant: "destructive" });
+    },
+  });
+
   const createNewsMutation = useMutation({
     mutationFn: async () => {
       return apiRequest('POST', '/api/news', { title: newsTitle, content: newsContent, notifyDiscord, mentionEveryone });
@@ -273,18 +286,29 @@ export default function Mural() {
             <CardContent className="space-y-4">
               {user?.isAdmin && (
                 <div className="space-y-3">
-                  {!showNewsForm ? (
+                  <div className="flex gap-2">
                     <Button
-                      onClick={() => setShowNewsForm(true)}
-                      variant="outline"
-                      className="w-full"
-                      data-testid="button-new-news"
+                      onClick={() => generateHumorNewsMutation.mutate()}
+                      disabled={generateHumorNewsMutation.isPending}
+                      variant="default"
+                      className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-semibold shadow-md hover:from-purple-700 hover:to-indigo-700"
+                      data-testid="button-publish-news"
                     >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Publicar Notícia
+                      <Sparkles className={`h-4 w-4 mr-2 ${generateHumorNewsMutation.isPending ? "animate-spin" : ""}`} />
+                      {generateHumorNewsMutation.isPending ? "Analisando Jogos & Gerando Zoeira..." : "Publicar Notícia (Gerar com Humor & Stats)"}
                     </Button>
-                  ) : (
-                    <Card className="border-primary/30">
+                    <Button
+                      onClick={() => setShowNewsForm(!showNewsForm)}
+                      variant="outline"
+                      data-testid="button-toggle-manual-news"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      {showNewsForm ? "Fechar Texto" : "Texto Manual"}
+                    </Button>
+                  </div>
+
+                  {showNewsForm && (
+                    <Card className="border-primary/30 mt-3">
                       <CardContent className="pt-4 space-y-3">
                         <Input
                           placeholder="Título da notícia..."
@@ -332,14 +356,20 @@ export default function Mural() {
                           <Button
                             onClick={() => createNewsMutation.mutate()}
                             disabled={!newsTitle.trim() || !newsContent.trim() || createNewsMutation.isPending}
-                            data-testid="button-publish-news"
+                            data-testid="button-publish-manual-news"
                           >
                             <Send className="h-4 w-4 mr-2" />
-                            {createNewsMutation.isPending ? "Publicando..." : "Publicar"}
+                            {createNewsMutation.isPending ? "Publicando..." : "Publicar Notícia Manual"}
                           </Button>
                           <Button
                             variant="outline"
-                            onClick={() => { setShowNewsForm(false); setNewsTitle(""); setNewsContent(""); setNotifyDiscord(true); setMentionEveryone(false); }}
+                            onClick={() => {
+                              setShowNewsForm(false);
+                              setNewsTitle("");
+                              setNewsContent("");
+                              setNotifyDiscord(true);
+                              setMentionEveryone(false);
+                            }}
                             data-testid="button-cancel-news"
                           >
                             Cancelar

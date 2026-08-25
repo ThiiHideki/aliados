@@ -2801,6 +2801,35 @@ export function registerRoutes(
     }
   });
 
+  app.post('/api/news/generate-humor', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const currentUser = await storage.getUser(String(userId));
+      if (!currentUser?.isAdmin) {
+        return res.status(403).json({ message: "Apenas admins podem gerar notícias" });
+      }
+
+      const { generateHumorousNews } = await import("./newsHumorGenerator");
+      const generated = await generateHumorousNews();
+
+      const item = await storage.createNews(String(userId), generated.title, generated.content);
+
+      try {
+        const newsChannelId = getNewsChannelId();
+        sendNewsNotification(generated.title, generated.content, true, newsChannelId || undefined)
+          .then((r) => { if (!r.ok) console.warn("[Discord] Notificação de humor falhou:", r.error); })
+          .catch(() => {});
+      } catch (dErr) {
+        console.error("Discord news notify warning:", dErr);
+      }
+
+      res.status(201).json(item);
+    } catch (error: any) {
+      console.error("Error generating humor news:", error);
+      res.status(500).json({ message: "Falha ao gerar notícia automatizada", detail: error?.message || String(error) });
+    }
+  });
+
   app.post('/api/news', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
