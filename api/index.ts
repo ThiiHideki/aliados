@@ -7,6 +7,14 @@ const httpServer = createServer(app);
 
 app.set("trust proxy", 1);
 
+// Route rewrite helper for Vercel Serverless
+app.use((req: any, _res: any, next: any) => {
+  if (req.url && !req.url.startsWith("/api")) {
+    req.url = "/api" + (req.url.startsWith("/") ? "" : "/") + req.url;
+  }
+  next();
+});
+
 app.use(
   express.json({
     limit: "15mb",
