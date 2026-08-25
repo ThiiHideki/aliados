@@ -92,7 +92,15 @@ export function registerRoutes(
   // Auth middleware (Native Steam OpenID + JWT Cookie)
   setupNativeSteamAuth(app);
 
-  // Auth routes - Get current user (public endpoint - returns user if logged in, 401 if not)
+  const handleLogout = (_req: any, res: any) => {
+    res.setHeader("Set-Cookie", "aliados_session=; Path=/; Max-Age=0; HttpOnly; SameSite=None; Secure");
+    if (typeof res.redirect === "function") {
+      return res.redirect("/");
+    }
+    return res.status(200).json({ message: "Logged out" });
+  };
+  app.all("/api/logout", handleLogout);
+  app.all("/api/auth/logout", handleLogout);
 
 
   // Get active users only (rankings, mix, mural, etc) - never includes banned

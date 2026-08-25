@@ -879,13 +879,14 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           className="w-full mt-3 justify-start"
-          asChild
+          onClick={() => {
+            try { localStorage.removeItem("aliados_session_token"); } catch {}
+            window.location.href = "/api/logout";
+          }}
           data-testid="button-logout"
         >
-          <a href="/api/logout">
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
-          </a>
+          <LogOut className="h-4 w-4 mr-2" />
+          Sair
         </Button>
       </SidebarFooter>
     </Sidebar>
