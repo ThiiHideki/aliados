@@ -292,54 +292,44 @@ export function registerRoutes(
     }
   });
 
-  // Update current user profile (name, photo, steamId) - MUST be before /api/users/:id
   app.patch('/api/users/me', isAuthenticated, async (req: any, res) => {
     try {
       const userId = (req.user?.id || req.user?.claims?.sub);
+      if (!userId) {
+        return res.status(401).json({ message: "Usuário não autenticado" });
+      }
+
       const { firstName, lastName, nickname, profileImageUrl, steamId64 } = req.body;
       
-      // If linking/changing steamId64, check if it already belongs to another user
-      if (steamId64 && steamId64.trim() !== '') {
-        const existingUser = await storage.getUserBySteamId(steamId64);
-        
-        if (existingUser && existingUser.id !== userId) {
-          // Try to merge the existing steam user into current user
-          const mergedUser = await storage.mergeUsers(existingUser.id, userId);
-          if (mergedUser) {
-            // Also update other profile fields if provided
-            const additionalUpdates: any = { updatedAt: new Date() };
-            if (firstName !== undefined) additionalUpdates.firstName = firstName;
-            if (lastName !== undefined) additionalUpdates.lastName = lastName;
-            if (nickname !== undefined) additionalUpdates.nickname = nickname;
-            if (profileImageUrl !== undefined) additionalUpdates.profileImageUrl = profileImageUrl;
-            
-            if (Object.keys(additionalUpdates).length > 1) {
-              const finalUser = await storage.updateUserStats(userId, additionalUpdates);
-              return res.json(finalUser);
-            }
-            return res.json(mergedUser);
-          } else {
-            // Merge failed - user not found or other issue
-            return res.status(400).json({ 
-              message: "Não foi possível vincular este SteamID64. O usuário associado não foi encontrado." 
-            });
-          }
-        }
-      }
-      
-      // Regular update (steamId64 is new/empty or belongs to current user)
       const updates: any = { updatedAt: new Date() };
       if (firstName !== undefined) updates.firstName = firstName;
       if (lastName !== undefined) updates.lastName = lastName;
       if (nickname !== undefined) updates.nickname = nickname;
       if (profileImageUrl !== undefined) updates.profileImageUrl = profileImageUrl;
-      if (steamId64 !== undefined) updates.steamId64 = steamId64;
-      
-      const user = await storage.updateUserStats(userId, updates);
-      res.json(user);
-    } catch (error) {
+      if (steamId64 !== undefined && steamId64.trim() !== '') updates.steamId64 = steamId64;
+
+      let user = await storage.updateUserStats(userId, updates);
+
+      if (!user && (req.user?.steamId64 || steamId64)) {
+        const targetSteamId = req.user?.steamId64 || steamId64;
+        const dbUser = await storage.getUserBySteamId(targetSteamId);
+        if (dbUser) {
+          user = await storage.updateUserStats(dbUser.id, updates);
+        }
+      }
+
+      if (!user) {
+        user = await storage.upsertUser({
+          id: userId,
+          steamId64: req.user?.steamId64 || steamId64 || undefined,
+          ...updates,
+        });
+      }
+
+      return res.json(user);
+    } catch (error: any) {
       console.error("Error updating user profile:", error);
-      res.status(500).json({ message: "Failed to update profile" });
+      res.status(500).json({ message: "Erro ao atualizar perfil", detail: error?.message || String(error) });
     }
   });
 
