@@ -26,13 +26,13 @@ async function getApp() {
   const { registerRoutes } = await import("../server/routes");
   registerRoutes(httpServer, instance);
 
-  // Global error handler
+  // Global error handler - includes full stack trace in response for diagnostic clarity
   instance.use((err: any, _req: any, res: any, _next: any) => {
-    console.error("[Express Error]:", err);
+    console.error("[Express Error Handler]:", err);
     const status = err.status || err.statusCode || 500;
     const message = err.message || "Internal Server Error";
     if (!res.headersSent) {
-      res.status(status).json({ message });
+      res.status(status).json({ message, detail: err?.message || String(err), stack: err?.stack });
     }
   });
 
