@@ -768,7 +768,7 @@ var db = new Proxy({}, {
 });
 
 // server/auth/callback.ts
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 var SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 var COOKIE_NAME = "aliados_session";
 var ADMIN_STEAM_IDS = ["76561198308656936"];
@@ -845,9 +845,8 @@ async function handler(req, res) {
     const isHardcodedAdmin = ADMIN_STEAM_IDS.includes(steamId64);
     let userId = steamAccountId;
     try {
-      const existingBySteam = await db.select().from(users).where(eq(users.steamId64, steamId64));
-      const existingById = await db.select().from(users).where(eq(users.id, steamAccountId));
-      const existingUser = existingBySteam[0] || existingById[0];
+      const existingRows = await db.select().from(users).where(or(eq(users.steamId64, steamId64), eq(users.id, steamAccountId)));
+      const existingUser = existingRows[0];
       if (existingUser) {
         userId = existingUser.id;
         await db.update(users).set({
@@ -876,7 +875,7 @@ async function handler(req, res) {
         });
       }
     } catch (dbErr) {
-      console.error("[SteamAuth DB Upsert Warning]:", dbErr);
+      console.error("[SteamAuth DB Upsert Error]:", dbErr);
     }
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1e3;
     const token = signToken({ userId, steamId64, expiresAt });

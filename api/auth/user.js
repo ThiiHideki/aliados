@@ -768,7 +768,7 @@ var db = new Proxy({}, {
 });
 
 // server/auth/user.ts
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 var SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 var COOKIE_NAME = "aliados_session";
 var ADMIN_STEAM_IDS = ["76561198308656936"];
@@ -816,7 +816,7 @@ async function handler(req, res) {
     const rawSteamId = payload.steamId64 || payload.userId.replace("steam_", "");
     const isHardcodedAdmin = ADMIN_STEAM_IDS.includes(rawSteamId);
     try {
-      const rows = await db.select().from(users).where(eq(users.id, payload.userId));
+      const rows = await db.select().from(users).where(or(eq(users.id, payload.userId), eq(users.steamId64, rawSteamId)));
       if (rows.length > 0) {
         const userObj = rows[0];
         if (isHardcodedAdmin && !userObj.isAdmin) {
@@ -826,7 +826,7 @@ async function handler(req, res) {
         }
         return res.status(200).json(userObj);
       } else {
-        const steamAccountId = payload.userId;
+        const steamAccountId = payload.userId || `steam_${rawSteamId}`;
         const nickname = `Jogador_${rawSteamId.slice(-6)}`;
         const avatar = `https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg`;
         const now = /* @__PURE__ */ new Date();
@@ -847,7 +847,7 @@ async function handler(req, res) {
         }
       }
     } catch (dbErr) {
-      console.error("[Auth User DB Fetch Warning]:", dbErr);
+      console.error("[Auth User DB Fetch Error]:", dbErr);
     }
     const fallbackUser = {
       id: payload.userId,

@@ -93,9 +93,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     let userId = steamAccountId;
 
     try {
-      const existingBySteam = await db.select().from(users).where(eq(users.steamId64, steamId64));
-      const existingById = await db.select().from(users).where(eq(users.id, steamAccountId));
-      const existingUser = existingBySteam[0] || existingById[0];
+      // Find existing user by steamId64 OR by id
+      const existingRows = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.steamId64, steamId64), eq(users.id, steamAccountId)));
+
+      const existingUser = existingRows[0];
 
       if (existingUser) {
         userId = existingUser.id;
@@ -129,7 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
       }
     } catch (dbErr) {
-      console.error("[SteamAuth DB Upsert Warning]:", dbErr);
+      console.error("[SteamAuth DB Upsert Error]:", dbErr);
     }
 
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;

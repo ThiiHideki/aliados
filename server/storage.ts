@@ -199,6 +199,8 @@ export class DatabaseStorage implements IStorage {
         set: {
           email: userData.email,
           firstName: userData.firstName,
+          nickname: userData.nickname,
+          steamId64: userData.steamId64,
           lastName: userData.lastName,
           profileImageUrl: userData.profileImageUrl,
           lastLoginAt: now,

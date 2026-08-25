@@ -2,7 +2,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createHmac } from "crypto";
 import { db } from "../db";
 import { users } from "../../shared/schema";
-import { eq } from "drizzle-orm";
+import { eq, or } from "drizzle-orm";
 
 const SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 const COOKIE_NAME = "aliados_session";
@@ -61,9 +61,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const rawSteamId = payload.steamId64 || payload.userId.replace("steam_", "");
     const isHardcodedAdmin = ADMIN_STEAM_IDS.includes(rawSteamId);
 
-    // Try fetching full user record from database
     try {
-      const rows = await db.select().from(users).where(eq(users.id, payload.userId));
+      // Find user by id OR by steamId64
+      const rows = await db
+        .select()
+        .from(users)
+        .where(or(eq(users.id, payload.userId), eq(users.steamId64, rawSteamId)));
+
       if (rows.length > 0) {
         const userObj = rows[0];
         if (isHardcodedAdmin && !userObj.isAdmin) {
@@ -73,30 +77,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json(userObj);
       } else {
         // Auto-create missing database user record so user appears in user lists!
-        const steamAccountId = payload.userId;
+        const steamAccountId = payload.userId || `steam_${rawSteamId}`;
         const nickname = `Jogador_${rawSteamId.slice(-6)}`;
         const avatar = `https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg`;
         const now = new Date();
 
-        const [createdUser] = await db.insert(users).values({
-          id: steamAccountId,
-          email: null,
-          firstName: nickname,
-          nickname: nickname,
-          lastName: null,
-          profileImageUrl: avatar,
-          steamId64: rawSteamId,
-          isAdmin: isHardcodedAdmin,
-          lastLoginAt: now,
-          updatedAt: now,
-        }).returning().catch(() => []);
+        const [createdUser] = await db
+          .insert(users)
+          .values({
+            id: steamAccountId,
+            email: null,
+            firstName: nickname,
+            nickname: nickname,
+            lastName: null,
+            profileImageUrl: avatar,
+            steamId64: rawSteamId,
+            isAdmin: isHardcodedAdmin,
+            lastLoginAt: now,
+            updatedAt: now,
+          })
+          .returning()
+          .catch(() => []);
 
         if (createdUser) {
           return res.status(200).json(createdUser);
         }
       }
     } catch (dbErr) {
-      console.error("[Auth User DB Fetch Warning]:", dbErr);
+      console.error("[Auth User DB Fetch Error]:", dbErr);
     }
 
     const fallbackUser = {
