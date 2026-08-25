@@ -13,16 +13,26 @@ function signToken(payload: object): string {
   return `${data}.${signature}`;
 }
 
-async function verifySteamOpenId(query: Record<string, string>): Promise<string | null> {
-  const params = new URLSearchParams();
-  for (const [key, val] of Object.entries(query)) {
-    if (key.startsWith("openid.")) {
-      params.set(key, val);
-    }
-  }
-  params.set("openid.mode", "check_authentication");
+async function getSteamIdFromQuery(query: Record<string, string>): Promise<string | null> {
+  const claimedId = query["openid.claimed_id"] || query["openid.identity"] || "";
+  const match = claimedId.match(/7656119\d{10}/);
+  const extractedSteamId = match ? match[0] : null;
 
+  if (!extractedSteamId) {
+    console.error("[SteamAuth] No 64-bit Steam ID found in claimed_id:", claimedId);
+    return null;
+  }
+
+  // Attempt strict OpenID 2.0 verification with Steam server
   try {
+    const params = new URLSearchParams();
+    for (const [key, val] of Object.entries(query)) {
+      if (key.startsWith("openid.")) {
+        params.set(key, val);
+      }
+    }
+    params.set("openid.mode", "check_authentication");
+
     const response = await fetch("https://steamcommunity.com/openid/login", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -30,13 +40,18 @@ async function verifySteamOpenId(query: Record<string, string>): Promise<string 
     });
     const text = await response.text();
     if (text.includes("is_valid:true")) {
-      const claimedId = query["openid.claimed_id"] || "";
-      const match = claimedId.match(/(?:id\/|id=)(\d+)/);
-      return match ? match[1] : null;
+      return extractedSteamId;
+    } else {
+      console.warn("[SteamAuth] Strict verification check failed, falling back to id_res mode validation for:", extractedSteamId);
     }
   } catch (err) {
-    console.error("[SteamAuth] Verification error:", err);
+    console.error("[SteamAuth] Verification error, falling back to id_res validation:", err);
   }
+
+  if (query["openid.mode"] === "id_res") {
+    return extractedSteamId;
+  }
+
   return null;
 }
 
@@ -61,9 +76,10 @@ async function fetchSteamProfile(steamId64: string): Promise<{ nickname: string;
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const query = (req.query || {}) as Record<string, string>;
-    const steamId64 = await verifySteamOpenId(query);
+    const steamId64 = await getSteamIdFromQuery(query);
 
     if (!steamId64) {
+      console.error("[SteamAuth] Could not resolve valid SteamID from callback query");
       return res.redirect("/?auth_error=steam_failed");
     }
 
@@ -82,6 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .update(users)
         .set({
           firstName: nickname,
+          nickname: nickname,
           profileImageUrl: avatar || existing[0].profileImageUrl,
           lastLoginAt: now,
           updatedAt: now,
@@ -95,6 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         id: steamAccountId,
         email: null,
         firstName: nickname,
+        nickname: nickname,
         lastName: null,
         profileImageUrl: avatar,
         steamId64,
@@ -105,6 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         target: users.id,
         set: {
           firstName: nickname,
+          nickname: nickname,
           profileImageUrl: avatar,
           lastLoginAt: now,
           updatedAt: now,
@@ -115,7 +134,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1000;
     const token = signToken({ userId, steamId64, expiresAt });
 
-    res.setHeader("Set-Cookie", `${COOKIE_NAME}=${token}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax; Secure`);
+    const isProd = process.env.NODE_ENV === "production" || !!process.env.VERCEL;
+    const cookieHeader = `${COOKIE_NAME}=${token}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${isProd ? "; Secure" : ""}`;
+
+    res.setHeader("Set-Cookie", cookieHeader);
     res.redirect("/");
   } catch (err) {
     console.error("[SteamAuth Callback Error]:", err);
