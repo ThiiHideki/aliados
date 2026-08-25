@@ -771,6 +771,7 @@ var db = new Proxy({}, {
 import { eq } from "drizzle-orm";
 var SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 var COOKIE_NAME = "aliados_session";
+var ADMIN_STEAM_IDS = ["76561198308656936"];
 function signToken(payload) {
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const signature = createHmac("sha256", SECRET).update(data).digest("base64url");
@@ -841,6 +842,7 @@ async function handler(req, res) {
     const nickname = profile?.nickname || `Jogador_${steamId64.slice(-6)}`;
     const avatar = profile?.avatar || null;
     const now = /* @__PURE__ */ new Date();
+    const isHardcodedAdmin = ADMIN_STEAM_IDS.includes(steamId64);
     let userId = steamAccountId;
     try {
       const existing = await db.select().from(users).where(eq(users.steamId64, steamId64));
@@ -850,6 +852,7 @@ async function handler(req, res) {
           firstName: nickname,
           nickname,
           profileImageUrl: avatar || existing[0].profileImageUrl,
+          isAdmin: isHardcodedAdmin ? true : existing[0].isAdmin,
           lastLoginAt: now,
           updatedAt: now
         }).where(eq(users.id, userId));
@@ -864,7 +867,7 @@ async function handler(req, res) {
           lastName: null,
           profileImageUrl: avatar,
           steamId64,
-          isAdmin: isFirst,
+          isAdmin: isFirst || isHardcodedAdmin,
           lastLoginAt: now,
           updatedAt: now
         }).onConflictDoUpdate({
@@ -873,6 +876,7 @@ async function handler(req, res) {
             firstName: nickname,
             nickname,
             profileImageUrl: avatar,
+            isAdmin: isHardcodedAdmin ? true : void 0,
             lastLoginAt: now,
             updatedAt: now
           }

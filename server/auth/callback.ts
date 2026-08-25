@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 
 const SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 const COOKIE_NAME = "aliados_session";
+const ADMIN_STEAM_IDS = ["76561198308656936"];
 
 function signToken(payload: object): string {
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
@@ -23,7 +24,6 @@ async function getSteamIdFromQuery(query: Record<string, string>): Promise<strin
     return null;
   }
 
-  // Attempt strict OpenID 2.0 verification with Steam server
   try {
     const params = new URLSearchParams();
     for (const [key, val] of Object.entries(query)) {
@@ -88,6 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const nickname = profile?.nickname || `Jogador_${steamId64.slice(-6)}`;
     const avatar = profile?.avatar || null;
     const now = new Date();
+    const isHardcodedAdmin = ADMIN_STEAM_IDS.includes(steamId64);
 
     let userId = steamAccountId;
 
@@ -101,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             firstName: nickname,
             nickname: nickname,
             profileImageUrl: avatar || existing[0].profileImageUrl,
+            isAdmin: isHardcodedAdmin ? true : existing[0].isAdmin,
             lastLoginAt: now,
             updatedAt: now,
           })
@@ -117,7 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           lastName: null,
           profileImageUrl: avatar,
           steamId64,
-          isAdmin: isFirst,
+          isAdmin: isFirst || isHardcodedAdmin,
           lastLoginAt: now,
           updatedAt: now,
         }).onConflictDoUpdate({
@@ -126,6 +128,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             firstName: nickname,
             nickname: nickname,
             profileImageUrl: avatar,
+            isAdmin: isHardcodedAdmin ? true : undefined,
             lastLoginAt: now,
             updatedAt: now,
           },

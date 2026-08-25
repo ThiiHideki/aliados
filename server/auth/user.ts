@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 
 const SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 const COOKIE_NAME = "aliados_session";
+const ADMIN_STEAM_IDS = ["76561198308656936"];
 
 function verifyToken(token: string): { userId: string; steamId64?: string; expiresAt: number } | null {
   try {
@@ -57,17 +58,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
+    const rawSteamId = payload.steamId64 || payload.userId.replace("steam_", "");
+    const isHardcodedAdmin = ADMIN_STEAM_IDS.includes(rawSteamId);
+
     // Try fetching full user record from database
     try {
       const rows = await db.select().from(users).where(eq(users.id, payload.userId));
       if (rows.length > 0) {
-        return res.status(200).json(rows[0]);
+        const userObj = rows[0];
+        if (isHardcodedAdmin && !userObj.isAdmin) {
+          userObj.isAdmin = true;
+        }
+        return res.status(200).json(userObj);
       }
     } catch (dbErr) {
       console.error("[Auth User DB Fetch Warning]:", dbErr);
     }
 
-    const rawSteamId = payload.steamId64 || payload.userId.replace("steam_", "");
     const fallbackUser = {
       id: payload.userId,
       steamId64: rawSteamId,
@@ -76,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       lastName: null,
       email: null,
       profileImageUrl: `https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg`,
-      isAdmin: false,
+      isAdmin: isHardcodedAdmin,
       totalKills: 0,
       totalDeaths: 0,
       totalAssists: 0,
