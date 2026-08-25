@@ -15,6 +15,23 @@ app.use((req: any, _res: any, next: any) => {
   next();
 });
 
+// Diagnostic health endpoints
+app.get("/api/ping", (_req, res) => {
+  res.status(200).json({ status: "ok", time: new Date().toISOString() });
+});
+
+app.get("/api/db-test", async (_req, res) => {
+  try {
+    const { db } = await import("./db");
+    const { sql } = await import("drizzle-orm");
+    const result = await db.execute(sql`SELECT NOW()`);
+    res.status(200).json({ status: "ok", db: "connected", result: result.rows });
+  } catch (err: any) {
+    console.error("[DB Test Error]:", err);
+    res.status(500).json({ status: "error", message: err.message || String(err), stack: err.stack });
+  }
+});
+
 app.use(
   express.json({
     limit: "15mb",
