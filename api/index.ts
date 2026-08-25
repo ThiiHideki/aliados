@@ -22,8 +22,8 @@ async function getApp() {
 
   instance.use(express.urlencoded({ extended: false, limit: "15mb" }));
 
-  // Dynamically import routes so any initialization error is caught
-  const { registerRoutes } = await import("../server/routes");
+  // Dynamically import routes with .js extension for ESM loader compatibility
+  const { registerRoutes } = await import("../server/routes.js");
   registerRoutes(httpServer, instance);
 
   // Global error handler - includes full stack trace in response for diagnostic clarity
