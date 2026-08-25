@@ -5,6 +5,8 @@ import { registerRoutes } from "../server/routes";
 const app = express();
 const httpServer = createServer(app);
 
+app.set("trust proxy", 1);
+
 app.use(
   express.json({
     limit: "15mb",

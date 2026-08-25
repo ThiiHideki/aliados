@@ -17,9 +17,10 @@ async function verifySteamOpenId(query: Record<string, string>): Promise<string 
       body: params.toString(),
     });
     const text = await response.text();
+    console.log("[SteamAuth] Verification response text:", text);
     if (text.includes("is_valid:true")) {
       const claimedId = query["openid.claimed_id"] || "";
-      const match = claimedId.match(/\/id\/(\d+)$/);
+      const match = claimedId.match(/(?:id\/|id=)(\d+)/);
       return match ? match[1] : null;
     }
   } catch (err) {
@@ -51,12 +52,18 @@ async function fetchSteamProfile(
 }
 
 export function setupSteamAuth(app: Express) {
-  app.get("/api/auth/steam", (req, res) => {
+  const handleSteamLogin = (req: any, res: any) => {
     try {
-      const scheme = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
-      const host = (req.headers["x-forwarded-host"] as string) || req.headers.host || req.hostname;
+      const rawProto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
+      const scheme = rawProto.split(",")[0].trim();
+
+      const rawHost = (req.headers["x-forwarded-host"] as string) || req.headers.host || req.hostname || "localhost";
+      const host = rawHost.split(",")[0].trim();
+
       const returnUrl = `${scheme}://${host}/api/auth/steam/callback`;
       const realm = `${scheme}://${host}/`;
+
+      console.log(`[SteamAuth] Initiating auth. returnUrl: ${returnUrl}, realm: ${realm}`);
 
       const params = new URLSearchParams({
         "openid.ns": "http://specs.openid.net/auth/2.0",
@@ -72,9 +79,12 @@ export function setupSteamAuth(app: Express) {
       console.error("[SteamAuth] Error initiating Steam login:", err);
       res.redirect("/?auth_error=init_failed");
     }
-  });
+  };
 
-  app.get("/api/auth/steam/callback", async (req: any, res) => {
+  app.get("/api/auth/steam", handleSteamLogin);
+  app.get("/auth/steam", handleSteamLogin);
+
+  const handleSteamCallback = async (req: any, res: any) => {
     try {
       const query = req.query as Record<string, string>;
       const steamId64 = await verifySteamOpenId(query);
@@ -163,5 +173,8 @@ export function setupSteamAuth(app: Express) {
       console.error("[SteamAuth] Callback error:", error);
       res.redirect("/?auth_error=steam_failed");
     }
-  });
+  };
+
+  app.get("/api/auth/steam/callback", handleSteamCallback);
+  app.get("/auth/steam/callback", handleSteamCallback);
 }
