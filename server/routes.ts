@@ -159,7 +159,7 @@ export function registerRoutes(
   // Recalculate all user stats (admin only)
   app.post('/api/admin/recalculate-all-stats', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -192,7 +192,7 @@ export function registerRoutes(
   // Recalculate MVPs for all existing matches (admin only)
   app.post('/api/admin/recalculate-mvps', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -295,7 +295,7 @@ export function registerRoutes(
   // Update current user profile (name, photo, steamId) - MUST be before /api/users/:id
   app.patch('/api/users/me', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const { firstName, lastName, nickname, profileImageUrl, steamId64 } = req.body;
       
       // If linking/changing steamId64, check if it already belongs to another user
@@ -346,7 +346,7 @@ export function registerRoutes(
   // Update user stats (admin only)
   app.patch('/api/users/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -375,7 +375,7 @@ export function registerRoutes(
   // Link SteamID64 to user account (with automatic merge if already exists)
   app.post('/api/users/link-steam', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const { steamId64 } = req.body;
 
       if (!steamId64 || typeof steamId64 !== 'string') {
@@ -519,7 +519,7 @@ export function registerRoutes(
   // Delete user (admin only)
   app.delete('/api/users/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -549,7 +549,7 @@ export function registerRoutes(
   // Import match data from CSV (admin only)
   app.post('/api/matches/import', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1118,7 +1118,7 @@ export function registerRoutes(
   // Merge two users (admin only)
   app.post('/api/users/merge', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1233,7 +1233,7 @@ export function registerRoutes(
 
   app.post('/api/payments', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1263,7 +1263,7 @@ export function registerRoutes(
 
   app.delete('/api/payments/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1286,7 +1286,7 @@ export function registerRoutes(
   // Report routes
   app.get('/api/reports', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1303,7 +1303,7 @@ export function registerRoutes(
 
   app.post('/api/reports', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const { description, attachmentUrl, attachmentType, isAnonymous } = req.body;
 
       if (!description || typeof description !== 'string' || description.length < 10) {
@@ -1359,7 +1359,7 @@ export function registerRoutes(
 
   app.patch('/api/reports/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1388,7 +1388,7 @@ export function registerRoutes(
 
   app.delete('/api/reports/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1411,7 +1411,7 @@ export function registerRoutes(
   // Championship registration routes
   app.get('/api/championship-registrations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1428,7 +1428,7 @@ export function registerRoutes(
 
   app.get('/api/championship-registrations/me', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const registration = await storage.getChampionshipRegistrationByUser(userId);
       res.json({ registered: !!registration, registration });
     } catch (error) {
@@ -1439,7 +1439,7 @@ export function registerRoutes(
 
   app.post('/api/championship-registrations', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       
       // Check if already registered
       const existing = await storage.getChampionshipRegistrationByUser(userId);
@@ -1460,7 +1460,7 @@ export function registerRoutes(
 
   app.delete('/api/championship-registrations/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1483,7 +1483,7 @@ export function registerRoutes(
   // Monthly Rankings endpoints (Admin only)
   app.get('/api/monthly-rankings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1500,7 +1500,7 @@ export function registerRoutes(
 
   app.post('/api/monthly-rankings', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1605,7 +1605,7 @@ export function registerRoutes(
 
   app.delete('/api/monthly-rankings/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -1777,7 +1777,7 @@ export function registerRoutes(
 
   app.post('/api/trophies/generate/:year/:month', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       
       if (!currentUser?.isAdmin) {
@@ -2044,7 +2044,7 @@ export function registerRoutes(
   // Get user's casino balance
   app.get('/api/casino/balance', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const balance = await storage.getOrCreateCasinoBalance(userId);
       res.json(balance);
     } catch (error) {
@@ -2056,7 +2056,7 @@ export function registerRoutes(
   // Get user's casino transactions
   app.get('/api/casino/transactions', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const transactions = await storage.getCasinoTransactions(userId);
       res.json(transactions);
     } catch (error) {
@@ -2068,7 +2068,7 @@ export function registerRoutes(
   // Get user's bets
   app.get('/api/casino/bets', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const userBets = await storage.getUserBets(userId);
       res.json(userBets);
     } catch (error) {
@@ -2163,7 +2163,7 @@ export function registerRoutes(
   // Place a bet
   app.post('/api/casino/bets', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const { targetPlayerId, amount, items } = req.body;
 
       // Validate minimum bet
@@ -2244,7 +2244,7 @@ export function registerRoutes(
   // Delete a pending bet
   app.delete('/api/casino/bets/:betId', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const { betId } = req.params;
 
       const result = await storage.deleteBet(betId, userId);
@@ -2267,7 +2267,7 @@ export function registerRoutes(
   // Play slot machine (Tigrinho)
   app.post('/api/casino/slot', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const { amount } = req.body;
 
       if (amount < 10) {
@@ -2326,7 +2326,7 @@ export function registerRoutes(
   // Open case (CS:GO case simulation)
   app.post('/api/casino/case', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const { caseType } = req.body;
 
       // Case prices
@@ -2423,7 +2423,7 @@ export function registerRoutes(
 
   app.post('/api/mix/availability/join', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const joinSchema = z.object({
         listDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve estar no formato YYYY-MM-DD"),
         isSub: z.boolean().optional().default(false),
@@ -2463,7 +2463,7 @@ export function registerRoutes(
 
   app.post('/api/mix/availability/leave', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const leaveSchema = z.object({
         listDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data deve estar no formato YYYY-MM-DD"),
       });
@@ -2489,7 +2489,7 @@ export function registerRoutes(
   // Admin: add a player to the mix list
   app.post('/api/mix/availability/admin-add', isAuthenticated, async (req: any, res) => {
     try {
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(adminId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem adicionar jogadores na lista" });
@@ -2527,7 +2527,7 @@ export function registerRoutes(
   // Admin: remove a player from the mix list without penalty
   app.post('/api/mix/availability/admin-remove', isAuthenticated, async (req: any, res) => {
     try {
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(adminId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem remover jogadores da lista" });
@@ -2556,7 +2556,7 @@ export function registerRoutes(
 
   app.get('/api/mix/penalties', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem ver todas as penalidades" });
@@ -2571,7 +2571,7 @@ export function registerRoutes(
 
   app.post('/api/mix/penalties', isAuthenticated, async (req: any, res) => {
     try {
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(adminId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem aplicar penalidades" });
@@ -2616,7 +2616,7 @@ export function registerRoutes(
   // Admin: confirm who played from the mix list
   app.post('/api/mix/confirm-played', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem confirmar a lista" });
@@ -2661,7 +2661,7 @@ export function registerRoutes(
   // Admin: clear penalties for a user
   app.delete('/api/mix/penalties/:userId', isAuthenticated, async (req: any, res) => {
     try {
-      const adminId = req.user.claims.sub;
+      const adminId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(adminId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem limpar penalidades" });
@@ -2840,7 +2840,7 @@ export function registerRoutes(
 
   app.post('/api/news', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem publicar notícias" });
@@ -2877,7 +2877,7 @@ export function registerRoutes(
 
   app.delete('/api/news/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const currentUser = await storage.getUser(userId);
       if (!currentUser?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins podem deletar notícias" });
@@ -2904,7 +2904,7 @@ export function registerRoutes(
 
   app.post('/api/copa/close-registration', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const user = await storage.getUser(userId);
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
       registrationClosed = !registrationClosed;
@@ -2914,7 +2914,7 @@ export function registerRoutes(
 
   app.post('/api/copa/draw', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const user = await storage.getUser(userId);
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
 
@@ -3005,7 +3005,7 @@ export function registerRoutes(
   // Admin: update team status
   app.patch('/api/copa/teams/:id/status', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const user = await storage.getUser(userId);
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
       const { status, adminNotes } = req.body;
@@ -3049,7 +3049,7 @@ export function registerRoutes(
   // Admin: create match
   app.post('/api/copa/matches', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const user = await storage.getUser(userId);
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
       const { round, roundNumber, team1Id, team2Id, scheduledAt, streamUrl, notes } = req.body;
@@ -3067,7 +3067,7 @@ export function registerRoutes(
   // Admin: update match result + stats
   app.patch('/api/copa/matches/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const user = await storage.getUser(userId);
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
       const { team1Score, team2Score, winnerId, mapName, streamUrl, notes, isFinished, scheduledAt, stats } = req.body;
@@ -3093,7 +3093,7 @@ export function registerRoutes(
   // Admin: delete team
   app.delete('/api/copa/teams/:id', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const user = await storage.getUser(userId);
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
       await storage.updateCopaTeamStatus(Number(req.params.id), "rejected", "Removido pelo admin");
@@ -3106,7 +3106,7 @@ export function registerRoutes(
   // Get current user's survey status
   app.get('/api/survey', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const survey = await storage.getSurveyByUserId(userId);
       res.json(survey || null);
     } catch (error) {
@@ -3118,7 +3118,7 @@ export function registerRoutes(
   // Submit / update survey
   app.post('/api/survey', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const {
         bestPlayTimes, faceitLevel, gcLevel, valveLevel,
         improvementSuggestions, reasonNotPlaying, attractMorePlayers,
@@ -3182,7 +3182,7 @@ export function registerRoutes(
   // Admin: get all surveys
   app.get('/api/admin/surveys', isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = (req.user?.id || req.user?.claims?.sub);
       const user = await storage.getUser(userId);
       if (!user?.isAdmin) {
         return res.status(403).json({ message: "Apenas admins" });
@@ -4208,7 +4208,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
       const isAuth = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
       let isAdmin = false;
       if (isAuth && req.user?.claims?.sub) {
-        const u = await storage.getUser(req.user.claims.sub);
+        const u = await storage.getUser((req.user?.id || req.user?.claims?.sub));
         isAdmin = !!u?.isAdmin;
       }
       res.json(teams.map((t) => sanitizeTournament2x2Team(t, isAdmin)));
@@ -4238,7 +4238,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
   // ADMIN: editar
   app.patch("/api/tournament-2x2/teams/:id", isAuthenticated, async (req: any, res: any) => {
     try {
-      const u = await storage.getUser(req.user.claims.sub);
+      const u = await storage.getUser((req.user?.id || req.user?.claims?.sub));
       if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
       const parsed = updateTournament2x2TeamSchema.parse(req.body);
       const updated = await storage.updateTournament2x2Team(Number(req.params.id), parsed);
@@ -4254,7 +4254,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
   // ADMIN: confirmar
   app.post("/api/tournament-2x2/teams/:id/confirm", isAuthenticated, async (req: any, res: any) => {
     try {
-      const u = await storage.getUser(req.user.claims.sub);
+      const u = await storage.getUser((req.user?.id || req.user?.claims?.sub));
       if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
       const { confirmed } = req.body as { confirmed: boolean };
       const updated = await storage.updateTournament2x2Team(Number(req.params.id), { isConfirmed: !!confirmed });
@@ -4269,7 +4269,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
   // ADMIN: excluir
   app.delete("/api/tournament-2x2/teams/:id", isAuthenticated, async (req: any, res: any) => {
     try {
-      const u = await storage.getUser(req.user.claims.sub);
+      const u = await storage.getUser((req.user?.id || req.user?.claims?.sub));
       if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
       const ok = await storage.deleteTournament2x2Team(Number(req.params.id));
       res.json({ ok });
@@ -4299,7 +4299,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
   // ADMIN: sortear chaveamento (apenas times confirmados)
   app.post("/api/tournament-2x2/bracket/draw", isAuthenticated, async (req: any, res: any) => {
     try {
-      const u = await storage.getUser(req.user.claims.sub);
+      const u = await storage.getUser((req.user?.id || req.user?.claims?.sub));
       if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
       const all = await storage.listTournament2x2Teams();
       const confirmed = all.filter((t) => t.isConfirmed);
@@ -4363,7 +4363,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
   // ADMIN: registrar resultado de partida
   app.patch("/api/tournament-2x2/matches/:id", isAuthenticated, async (req: any, res: any) => {
     try {
-      const u = await storage.getUser(req.user.claims.sub);
+      const u = await storage.getUser((req.user?.id || req.user?.claims?.sub));
       if (!u?.isAdmin) return res.status(403).json({ message: "Apenas admin" });
 
       const matchId = Number(req.params.id);
