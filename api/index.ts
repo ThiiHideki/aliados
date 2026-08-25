@@ -1,3 +1,4 @@
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import express from "express";
 import { createServer } from "http";
 import { registerRoutes } from "../server/routes";
@@ -18,7 +19,7 @@ app.use(
 
 app.use(express.urlencoded({ extended: false, limit: "15mb" }));
 
-// Register routes synchronously
+// Register routes
 registerRoutes(httpServer, app);
 
 // Global error handler
@@ -27,8 +28,10 @@ app.use((err: any, _req: any, res: any, _next: any) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
   if (!res.headersSent) {
-    res.status(status).json({ message, detail: err?.message || String(err), stack: err?.stack });
+    res.status(status).json({ message });
   }
 });
 
-export default app;
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  return app(req, res);
+}
