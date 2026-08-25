@@ -1,7 +1,13 @@
-import webpush from "web-push";
 import { db } from "./db";
 import { appSettings, pushSubscriptions } from "@shared/schema";
 import { eq } from "drizzle-orm";
+
+let webpush: any;
+try {
+  webpush = require("web-push");
+} catch (err) {
+  console.warn("[Push] web-push não carregou no ambiente serverless.");
+}
 
 let publicKey = "";
 let privateKey = "";

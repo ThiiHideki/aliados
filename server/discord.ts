@@ -1,7 +1,21 @@
-import { Client, GatewayIntentBits, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder, Events, Interaction, ButtonInteraction } from "discord.js";
 import { storage } from "./storage";
 
-let client: Client | null = null;
+let Client: any, GatewayIntentBits: any, ActionRowBuilder: any, ButtonBuilder: any, ButtonStyle: any, EmbedBuilder: any, Events: any;
+
+try {
+  const djs = require("discord.js");
+  Client = djs.Client;
+  GatewayIntentBits = djs.GatewayIntentBits;
+  ActionRowBuilder = djs.ActionRowBuilder;
+  ButtonBuilder = djs.ButtonBuilder;
+  ButtonStyle = djs.ButtonStyle;
+  EmbedBuilder = djs.EmbedBuilder;
+  Events = djs.Events;
+} catch (err) {
+  console.warn("[Discord] discord.js não carregou no ambiente serverless.");
+}
+
+let client: any = null;
 let ready = false;
 let lastError: string | null = null;
 let botApplicationId: string | null = null;
@@ -9,7 +23,7 @@ let botApplicationId: string | null = null;
 const CHANNEL_ID = process.env.DISCORD_CHANNEL_ID || "";       // #🔫-lista-mix🔫
 const NEWS_CHANNEL_ID = process.env.DISCORD_NEWS_CHANNEL_ID || ""; // #novidades-do-site
 
-export function getDiscordClient(): Client | null {
+export function getDiscordClient(): any {
   return client;
 }
 
