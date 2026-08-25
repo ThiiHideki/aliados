@@ -1,8 +1,7 @@
 import type { Express } from "express";
 import { type Server } from "http";
 import { storage } from "./storage";
-import { setupAuth, isAuthenticated } from "./replitAuth";
-import { setupSteamAuth } from "./steamAuth";
+import { setupNativeSteamAuth, isAuthenticated } from "./steamAuthNative";
 import { updateUserStatsSchema, mixPenalties, users, FANTASY_BUDGET, raffles, type RaffleEligibleEntry, insertTournament2x2TeamSchema, updateTournament2x2TeamSchema, matches, matchStats } from "../shared/schema";
 import { z } from "zod";
 import { db } from "./db";
@@ -90,31 +89,11 @@ export function registerRoutes(
   httpServer: Server,
   app: Express
 ): Server {
-  // Auth middleware
-  setupAuth(app);
-  setupSteamAuth(app);
+  // Auth middleware (Native Steam OpenID + JWT Cookie)
+  setupNativeSteamAuth(app);
 
   // Auth routes - Get current user (public endpoint - returns user if logged in, 401 if not)
-  const handleGetUser = async (req: any, res: any) => {
-    try {
-      const isAuth = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
-      const userId = req.user?.claims?.sub || req.user?.id;
-      if (!isAuth || !userId) {
-        return res.status(401).json({ message: "Unauthorized" });
-      }
-      const user = await storage.getUser(String(userId));
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      res.json(user);
-    } catch (error: any) {
-      console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user", detail: error?.message || String(error) });
-    }
-  };
 
-  app.get('/api/auth/user', handleGetUser);
-  app.get('/auth/user', handleGetUser);
 
   // Get active users only (rankings, mix, mural, etc) - never includes banned
   app.get('/api/users', isAuthenticated, async (_req, res) => {
