@@ -52,21 +52,26 @@ async function fetchSteamProfile(
 
 export function setupSteamAuth(app: Express) {
   app.get("/api/auth/steam", (req, res) => {
-    const scheme = (req.headers["x-forwarded-proto"] as string) || req.protocol;
-    const host = (req.headers["x-forwarded-host"] as string) || req.headers.host || req.hostname;
-    const returnUrl = `${scheme}://${host}/api/auth/steam/callback`;
-    const realm = `${scheme}://${host}/`;
+    try {
+      const scheme = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
+      const host = (req.headers["x-forwarded-host"] as string) || req.headers.host || req.hostname;
+      const returnUrl = `${scheme}://${host}/api/auth/steam/callback`;
+      const realm = `${scheme}://${host}/`;
 
-    const params = new URLSearchParams({
-      "openid.ns": "http://specs.openid.net/auth/2.0",
-      "openid.mode": "checkid_setup",
-      "openid.return_to": returnUrl,
-      "openid.realm": realm,
-      "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
-      "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
-    });
+      const params = new URLSearchParams({
+        "openid.ns": "http://specs.openid.net/auth/2.0",
+        "openid.mode": "checkid_setup",
+        "openid.return_to": returnUrl,
+        "openid.realm": realm,
+        "openid.identity": "http://specs.openid.net/auth/2.0/identifier_select",
+        "openid.claimed_id": "http://specs.openid.net/auth/2.0/identifier_select",
+      });
 
-    res.redirect(`https://steamcommunity.com/openid/login?${params.toString()}`);
+      res.redirect(`https://steamcommunity.com/openid/login?${params.toString()}`);
+    } catch (err) {
+      console.error("[SteamAuth] Error initiating Steam login:", err);
+      res.redirect("/?auth_error=init_failed");
+    }
   });
 
   app.get("/api/auth/steam/callback", async (req: any, res) => {
@@ -75,41 +80,32 @@ export function setupSteamAuth(app: Express) {
       const steamId64 = await verifySteamOpenId(query);
 
       if (!steamId64) {
-        console.error("Steam OpenID verification failed");
+        console.error("[SteamAuth] Steam OpenID verification failed");
         return res.redirect("/?auth_error=steam_failed");
       }
 
-      // Check for both possible accounts:
-      // - steam_ account: created automatically by CSV import (id = "steam_XXXX")
-      // - linked account: any user who manually linked their steamId64 (Replit account, etc.)
       const steamAccountId = `steam_${steamId64}`;
       const [steamAccount, linkedAccount] = await Promise.all([
-        storage.getUser(steamAccountId),
-        storage.getUserBySteamId(steamId64),
+        storage.getUser(steamAccountId).catch(() => undefined),
+        storage.getUserBySteamId(steamId64).catch(() => undefined),
       ]);
 
       let user: Awaited<ReturnType<typeof storage.getUser>>;
 
       if (steamAccount && linkedAccount && steamAccount.id !== linkedAccount.id) {
-        // Two different accounts share the same SteamID64 — merge them.
-        // The non-steam_ account is the "primary" one (user deliberately linked it).
-        // Merge the steam_ (CSV) account INTO the linked (Replit) account.
         console.log(`[SteamAuth] Merging ${steamAccount.id} (CSV) → ${linkedAccount.id} (linked). SteamID: ${steamId64}`);
-        const merged = await storage.mergeUsers(steamAccount.id, linkedAccount.id);
+        const merged = await storage.mergeUsers(steamAccount.id, linkedAccount.id).catch(() => null);
         if (merged) {
-          await storage.recalculateUserStats(linkedAccount.id);
-          user = await storage.getUser(linkedAccount.id);
+          await storage.recalculateUserStats(linkedAccount.id).catch(() => {});
+          user = (await storage.getUser(linkedAccount.id)) || linkedAccount;
         } else {
           user = linkedAccount;
         }
       } else if (linkedAccount) {
-        // Single account found via steamId64 field (could be steam_ or linked Replit)
         user = linkedAccount;
       } else if (steamAccount) {
-        // Only the steam_ CSV account exists (linkedAccount was null or same)
         user = steamAccount;
       } else {
-        // No account found — create a new steam_ account
         const profile = await fetchSteamProfile(steamId64);
         const nickname = profile?.nickname || `Jogador_${steamId64.slice(-6)}`;
         const avatar = profile?.avatar || null;
@@ -128,7 +124,6 @@ export function setupSteamAuth(app: Express) {
         return res.redirect("/?auth_error=steam_failed");
       }
 
-      // Refresh profile from Steam (nickname / avatar)
       const profile = await fetchSteamProfile(steamId64);
       if (profile) {
         await storage.upsertUser({
@@ -138,7 +133,7 @@ export function setupSteamAuth(app: Express) {
           lastName: user.lastName,
           profileImageUrl: profile.avatar || user.profileImageUrl,
           steamId64,
-        });
+        }).catch((err) => console.error("[SteamAuth] Profile refresh error:", err));
         user = (await storage.getUser(user.id)) || user;
       }
 
@@ -150,15 +145,22 @@ export function setupSteamAuth(app: Express) {
         steamId64,
       };
 
-      req.login(sessionUser, (err: any) => {
-        if (err) {
-          console.error("Session login error after Steam auth:", err);
-          return res.redirect("/?auth_error=session_failed");
+      if (typeof req.login === "function") {
+        req.login(sessionUser, (err: any) => {
+          if (err) {
+            console.error("[SteamAuth] Session login error:", err);
+            return res.redirect("/?auth_error=session_failed");
+          }
+          res.redirect("/");
+        });
+      } else {
+        if (req.session) {
+          req.session.passport = { user: sessionUser };
         }
         res.redirect("/");
-      });
+      }
     } catch (error) {
-      console.error("Steam auth callback error:", error);
+      console.error("[SteamAuth] Callback error:", error);
       res.redirect("/?auth_error=steam_failed");
     }
   });

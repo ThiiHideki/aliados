@@ -29,9 +29,15 @@ export function getSession() {
     createTableIfMissing: false,
     ttl: sessionTtl,
     tableName: "sessions",
+    pruneSessionInterval: false,
   });
+
+  sessionStore.on("error", (err: any) => {
+    console.error("[SessionStore Error]:", err?.message || err);
+  });
+
   return session({
-    secret: process.env.SESSION_SECRET || "fallback_session_secret_2026",
+    secret: process.env.SESSION_SECRET || "aliados_inimigosdabala_secret_key_2026",
     store: sessionStore,
     resave: false,
     saveUninitialized: false,

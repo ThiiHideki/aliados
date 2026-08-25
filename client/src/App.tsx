@@ -117,9 +117,6 @@ function LoginRequired() {
             Entrar com Steam
           </a>
         </Button>
-        <Button variant="outline" asChild>
-          <a href="/api/login">Entrar com Replit</a>
-        </Button>
       </div>
     </div>
   );

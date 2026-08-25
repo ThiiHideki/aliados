@@ -63,9 +63,6 @@ export default function Landing() {
                 Entrar com Steam
               </a>
             </Button>
-            <Button asChild data-testid="button-login-replit">
-              <a href="/api/login">Entrar com Replit</a>
-            </Button>
           </div>
         </div>
       </header>
@@ -101,9 +98,6 @@ export default function Landing() {
                   <SiSteam className="h-5 w-5" />
                   Entrar com Steam
                 </a>
-              </Button>
-              <Button size="lg" variant="outline" asChild data-testid="button-get-started">
-                <a href="/api/login">Entrar com Replit</a>
               </Button>
             </div>
             <p className="text-xs text-muted-foreground mt-4">
