@@ -3,6 +3,10 @@
   "outputDirectory": "dist/public",
   "rewrites": [
     {
+      "source": "/api/auth/steam/callback",
+      "destination": "/api/auth/callback"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },
