@@ -1,57 +1,34 @@
 import express from "express";
 import { createServer } from "http";
+import { registerRoutes } from "../server/routes.js";
 
-let app: any = null;
+const app = express();
+const httpServer = createServer(app);
 
-async function getApp() {
-  if (app) return app;
+app.set("trust proxy", 1);
 
-  const instance = express();
-  const httpServer = createServer(instance);
+app.use(
+  express.json({
+    limit: "15mb",
+    verify: (req: any, _res: any, buf: Buffer) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
-  instance.set("trust proxy", 1);
+app.use(express.urlencoded({ extended: false, limit: "15mb" }));
 
-  instance.use(
-    express.json({
-      limit: "15mb",
-      verify: (req: any, _res: any, buf: Buffer) => {
-        req.rawBody = buf;
-      },
-    }),
-  );
+// Register routes synchronously
+registerRoutes(httpServer, app);
 
-  instance.use(express.urlencoded({ extended: false, limit: "15mb" }));
-
-  // Dynamically import routes with .js extension for ESM loader compatibility
-  const { registerRoutes } = await import("../server/routes.js");
-  registerRoutes(httpServer, instance);
-
-  // Global error handler - includes full stack trace in response for diagnostic clarity
-  instance.use((err: any, _req: any, res: any, _next: any) => {
-    console.error("[Express Error Handler]:", err);
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
-    if (!res.headersSent) {
-      res.status(status).json({ message, detail: err?.message || String(err), stack: err?.stack });
-    }
-  });
-
-  app = instance;
-  return app;
-}
-
-export default async function handler(req: any, res: any) {
-  try {
-    const expressApp = await getApp();
-    return expressApp(req, res);
-  } catch (err: any) {
-    console.error("[Vercel Handler Error]:", err);
-    if (!res.headersSent) {
-      res.status(500).json({
-        error: "Initialization Failed",
-        message: err?.message || String(err),
-        stack: err?.stack,
-      });
-    }
+// Global error handler
+app.use((err: any, _req: any, res: any, _next: any) => {
+  console.error("[Express Error Handler]:", err);
+  const status = err.status || err.statusCode || 500;
+  const message = err.message || "Internal Server Error";
+  if (!res.headersSent) {
+    res.status(status).json({ message, detail: err?.message || String(err), stack: err?.stack });
   }
-}
+});
+
+export default app;
