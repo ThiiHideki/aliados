@@ -98,11 +98,11 @@ export function registerRoutes(
   const handleGetUser = async (req: any, res: any) => {
     try {
       const isAuth = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
-      if (!isAuth || !req.user?.claims?.sub) {
+      const userId = req.user?.claims?.sub || req.user?.id;
+      if (!isAuth || !userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const userId = req.user.claims.sub;
-      const user = await storage.getUser(userId);
+      const user = await storage.getUser(String(userId));
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
