@@ -35,7 +35,7 @@ export function getLastError(): string | null {
   return lastError;
 }
 
-async function handleMixJoin(interaction: ButtonInteraction, date: string) {
+async function handleMixJoin(interaction: any, date: string) {
   await interaction.deferReply({ ephemeral: true });
 
   const discordUserId = interaction.user.id;
@@ -91,7 +91,7 @@ export async function initDiscordBot(): Promise<void> {
     intents: [GatewayIntentBits.Guilds],
   });
 
-  client.once(Events.ClientReady, (c) => {
+  client.once(Events.ClientReady, (c: any) => {
     ready = true;
     lastError = null;
     botApplicationId = c.application?.id || c.user.id;
@@ -107,7 +107,7 @@ export async function initDiscordBot(): Promise<void> {
 
     for (const ch of channelsToTest) {
       c.channels.fetch(ch.id)
-        .then((channel) => {
+        .then((channel: any) => {
           if (channel) {
             console.log(`[Discord] Canal ${ch.label} encontrado: #${(channel as any).name || ch.id}`);
           } else {
@@ -115,17 +115,17 @@ export async function initDiscordBot(): Promise<void> {
             if (ch.label === "mix") lastError = `Canal mix não encontrado.`;
           }
         })
-        .catch((err) => {
+        .catch((err: any) => {
           console.error(`[Discord] Erro ao acessar canal ${ch.label} (${ch.id}):`, err.message);
           if (ch.label === "mix") lastError = `Sem acesso ao canal mix: ${err.message}`;
         });
     }
   });
 
-  client.on(Events.InteractionCreate, async (interaction: Interaction) => {
+  client.on(Events.InteractionCreate, async (interaction: any) => {
     if (!interaction.isButton()) return;
 
-    const btnInteraction = interaction as ButtonInteraction;
+    const btnInteraction = interaction;
     const { customId } = btnInteraction;
 
     if (customId.startsWith("mix_join_")) {
@@ -134,7 +134,7 @@ export async function initDiscordBot(): Promise<void> {
     }
   });
 
-  client.on(Events.Error, (err) => {
+  client.on(Events.Error, (err: any) => {
     console.error("[Discord] Erro do cliente:", err);
     lastError = err.message;
   });
@@ -143,40 +143,34 @@ export async function initDiscordBot(): Promise<void> {
     await client.login(token);
   } catch (err: any) {
     console.error("[Discord] Falha ao conectar:", err.message);
-    lastError = err.message;
-    client = null;
+    lastError = `Falha no login: ${err.message}`;
   }
 }
 
-export async function sendMixNotification(date: string, extraMessage?: string): Promise<{ ok: boolean; error?: string }> {
+export async function sendMixNotification(date: string, creatorName: string): Promise<{ ok: boolean; error?: string }> {
   if (!client || !ready) {
-    return { ok: false, error: lastError || "Bot não conectado" };
+    return { ok: false, error: "Bot do Discord não está online" };
   }
-
   if (!CHANNEL_ID) {
-    return { ok: false, error: "ID do canal não configurado (DISCORD_CHANNEL_ID)" };
+    return { ok: false, error: "DISCORD_CHANNEL_ID não configurado no .env" };
   }
 
   try {
     const channel = await client.channels.fetch(CHANNEL_ID);
-    if (!channel) {
-      return { ok: false, error: `Canal ${CHANNEL_ID} não encontrado. Adicione o bot ao servidor Discord.` };
+    if (!channel || !("send" in channel)) {
+      return { ok: false, error: "Canal do Discord não encontrado ou sem permissão de envio" };
     }
-    if (!channel.isTextBased()) {
-      return { ok: false, error: `Canal ${CHANNEL_ID} não é um canal de texto.` };
-    }
-
-    const displayDate = formatDate(date);
 
     const embed = new EmbedBuilder()
-      .setColor(0xff6b00)
-      .setTitle("🎮  Lista do Mix Aberta!")
-      .setDescription(
-        extraMessage
-          ? extraMessage
-          : `A lista do Mix de **${displayDate}** está aberta!\nClique no botão abaixo para reservar sua vaga direto pelo Discord.`
+      .setColor(0x00FF88)
+      .setTitle("🎮 NOVO MIX CRIADO!")
+      .setDescription(`Um novo mix foi criado para **${formatDate(date)}** por **${creatorName}**!`)
+      .addFields(
+        { name: "📅 Data", value: formatDate(date), inline: true },
+        { name: "👑 Criador", value: creatorName, inline: true },
+        { name: "⚡ Ação", value: "Clique no botão abaixo para garantir sua vaga na lista!" }
       )
-      .setFooter({ text: "Aliados • CS2" })
+      .setFooter({ text: "Inimigos da Bala • Sistema de Mix" })
       .setTimestamp();
 
     const button = new ButtonBuilder()
@@ -185,7 +179,7 @@ export async function sendMixNotification(date: string, extraMessage?: string): 
       .setStyle(ButtonStyle.Success)
       .setEmoji("✅");
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button);
+    const row = new ActionRowBuilder().addComponents(button);
 
     // Always mention everyone for mix notifications
     await (channel as any).send({ content: "@everyone", embeds: [embed], components: [row] });

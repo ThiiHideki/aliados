@@ -26,20 +26,24 @@ async function loadOrCreateKeys() {
     const keys = webpush.generateVAPIDKeys();
     pub = keys.publicKey;
     priv = keys.privateKey;
-    await db
-      .insert(appSettings)
-      .values({ key: "vapid_public_key", value: pub })
-      .onConflictDoUpdate({ target: appSettings.key, set: { value: pub, updatedAt: new Date() } });
-    await db
-      .insert(appSettings)
-      .values({ key: "vapid_private_key", value: priv })
-      .onConflictDoUpdate({ target: appSettings.key, set: { value: priv, updatedAt: new Date() } });
-    console.log("[Push] VAPID keys gerados e salvos no banco.");
+    if (pub && priv) {
+      await db
+        .insert(appSettings)
+        .values({ key: "vapid_public_key", value: pub })
+        .onConflictDoUpdate({ target: appSettings.key, set: { value: pub, updatedAt: new Date() } });
+      await db
+        .insert(appSettings)
+        .values({ key: "vapid_private_key", value: priv })
+        .onConflictDoUpdate({ target: appSettings.key, set: { value: priv, updatedAt: new Date() } });
+      console.log("[Push] VAPID keys gerados e salvos no banco.");
+      publicKey = pub;
+      privateKey = priv;
+      if (webpush && publicKey && privateKey) {
+        webpush.setVapidDetails(SUBJECT, publicKey, privateKey);
+      }
+      initialized = true;
+    }
   }
-  publicKey = pub;
-  privateKey = priv;
-  webpush.setVapidDetails(SUBJECT, publicKey, privateKey);
-  initialized = true;
 }
 
 export async function initPush(): Promise<void> {
