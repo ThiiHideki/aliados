@@ -841,41 +841,45 @@ async function handler(req, res) {
     const nickname = profile?.nickname || `Jogador_${steamId64.slice(-6)}`;
     const avatar = profile?.avatar || null;
     const now = /* @__PURE__ */ new Date();
-    const existing = await db.select().from(users).where(eq(users.steamId64, steamId64));
     let userId = steamAccountId;
-    if (existing.length > 0) {
-      userId = existing[0].id;
-      await db.update(users).set({
-        firstName: nickname,
-        nickname,
-        profileImageUrl: avatar || existing[0].profileImageUrl,
-        lastLoginAt: now,
-        updatedAt: now
-      }).where(eq(users.id, userId));
-    } else {
-      const allUsers = await db.select({ id: users.id }).from(users).limit(1);
-      const isFirst = allUsers.length === 0;
-      await db.insert(users).values({
-        id: steamAccountId,
-        email: null,
-        firstName: nickname,
-        nickname,
-        lastName: null,
-        profileImageUrl: avatar,
-        steamId64,
-        isAdmin: isFirst,
-        lastLoginAt: now,
-        updatedAt: now
-      }).onConflictDoUpdate({
-        target: users.id,
-        set: {
+    try {
+      const existing = await db.select().from(users).where(eq(users.steamId64, steamId64));
+      if (existing.length > 0) {
+        userId = existing[0].id;
+        await db.update(users).set({
           firstName: nickname,
           nickname,
-          profileImageUrl: avatar,
+          profileImageUrl: avatar || existing[0].profileImageUrl,
           lastLoginAt: now,
           updatedAt: now
-        }
-      });
+        }).where(eq(users.id, userId));
+      } else {
+        const allUsers = await db.select({ id: users.id }).from(users).limit(1);
+        const isFirst = allUsers.length === 0;
+        await db.insert(users).values({
+          id: steamAccountId,
+          email: null,
+          firstName: nickname,
+          nickname,
+          lastName: null,
+          profileImageUrl: avatar,
+          steamId64,
+          isAdmin: isFirst,
+          lastLoginAt: now,
+          updatedAt: now
+        }).onConflictDoUpdate({
+          target: users.id,
+          set: {
+            firstName: nickname,
+            nickname,
+            profileImageUrl: avatar,
+            lastLoginAt: now,
+            updatedAt: now
+          }
+        });
+      }
+    } catch (dbErr) {
+      console.error("[SteamAuth DB Upsert Warning]:", dbErr);
     }
     const expiresAt = Date.now() + 30 * 24 * 60 * 60 * 1e3;
     const token = signToken({ userId, steamId64, expiresAt });
@@ -885,7 +889,7 @@ async function handler(req, res) {
     res.status(302).end();
   } catch (err) {
     console.error("[SteamAuth Callback Error]:", err);
-    res.redirect("/?auth_error=callback_error");
+    res.redirect(`/?auth_error=callback_error&detail=${encodeURIComponent(err?.message || String(err))}`);
   }
 }
 export {

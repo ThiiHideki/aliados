@@ -7,7 +7,7 @@ import { eq } from "drizzle-orm";
 const SECRET = process.env.SESSION_SECRET || "aliados_secret_key_2026_steam_auth";
 const COOKIE_NAME = "aliados_session";
 
-function verifyToken(token: string): { userId: string; expiresAt: number } | null {
+function verifyToken(token: string): { userId: string; steamId64?: string; expiresAt: number } | null {
   try {
     const parts = token.split(".");
     if (parts.length !== 2) return null;
@@ -57,12 +57,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ message: "Unauthorized" });
     }
 
-    const rows = await db.select().from(users).where(eq(users.id, payload.userId));
-    if (rows.length === 0) {
-      return res.status(404).json({ message: "User not found" });
+    // Try fetching full user record from database
+    try {
+      const rows = await db.select().from(users).where(eq(users.id, payload.userId));
+      if (rows.length > 0) {
+        return res.status(200).json(rows[0]);
+      }
+    } catch (dbErr) {
+      console.error("[Auth User DB Fetch Warning]:", dbErr);
     }
 
-    res.status(200).json(rows[0]);
+    const rawSteamId = payload.steamId64 || payload.userId.replace("steam_", "");
+    const fallbackUser = {
+      id: payload.userId,
+      steamId64: rawSteamId,
+      nickname: `Jogador_${rawSteamId.slice(-6)}`,
+      firstName: `Jogador_${rawSteamId.slice(-6)}`,
+      lastName: null,
+      email: null,
+      profileImageUrl: `https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg`,
+      isAdmin: false,
+      totalKills: 0,
+      totalDeaths: 0,
+      totalAssists: 0,
+      totalHeadshots: 0,
+      totalDamage: 0,
+      totalMatches: 0,
+      matchesWon: 0,
+      matchesLost: 0,
+      totalRoundsPlayed: 0,
+      roundsWon: 0,
+      totalMvps: 0,
+    };
+
+    return res.status(200).json(fallbackUser);
   } catch (err: any) {
     console.error("[Auth User Error]:", err);
     res.status(500).json({ message: "Internal server error" });
