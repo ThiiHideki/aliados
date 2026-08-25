@@ -64,14 +64,14 @@ async function buildAll() {
   console.log("building vercel auth handlers...");
   await esbuild({
     entryPoints: [
-      "api/auth/steam.ts",
-      "api/auth/callback.ts",
-      "api/auth/user.ts",
-      "api/auth/logout.ts",
+      "server/auth/steam.ts",
+      "server/auth/callback.ts",
+      "server/auth/user.ts",
+      "server/auth/logout.ts",
     ],
     platform: "node",
     bundle: true,
-    format: "cjs",
+    format: "esm",
     outdir: "api/auth",
     define: {
       "process.env.NODE_ENV": '"production"',
