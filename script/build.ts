@@ -72,7 +72,7 @@ async function buildAll() {
       "process.env.NODE_ENV": '"production"',
     },
     minify: false,
-    external: externals,
+    external: allDeps,
     logLevel: "info",
   });
 }
