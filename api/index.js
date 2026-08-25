@@ -44153,10 +44153,13 @@ var { Pool: Pool3 } = esm_default;
 var connectionString = process.env.DATABASE_URL || "postgresql://postgres:aliados123%40@db.akvybywdkwyajuvifpic.supabase.co:5432/postgres";
 var pool = new Pool3({
   connectionString,
-  ssl: connectionString.includes("supabase") || true ? { rejectUnauthorized: false } : void 0
+  ssl: connectionString.includes("supabase") || true ? { rejectUnauthorized: false } : void 0,
+  max: 5,
+  idleTimeoutMillis: 3e3,
+  connectionTimeoutMillis: 5e3
 });
 pool.on("error", (err) => {
-  console.error("[PG Pool Error]:", err.message);
+  console.error("[PG Pool Error]:", err?.message || err);
 });
 var db = drizzle({ client: pool, schema: schema_exports });
 
@@ -44164,8 +44167,13 @@ var db = drizzle({ client: pool, schema: schema_exports });
 var DatabaseStorage = class {
   // User operations (required for Replit Auth)
   async getUser(id) {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (err) {
+      console.error("[Storage] getUser error:", err);
+      return void 0;
+    }
   }
   async upsertUser(userData) {
     const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
@@ -44190,12 +44198,17 @@ var DatabaseStorage = class {
   }
   // Extended user operations
   async getAllUsers(includeAll = false) {
-    if (includeAll) {
-      return await db.select().from(users);
+    try {
+      if (includeAll) {
+        return await db.select().from(users);
+      }
+      return await db.select().from(users).where(
+        and(eq(users.isBanned, false), eq(users.isCheaterBanned, false))
+      );
+    } catch (err) {
+      console.error("[Storage] getAllUsers error:", err);
+      return [];
     }
-    return await db.select().from(users).where(
-      and(eq(users.isBanned, false), eq(users.isCheaterBanned, false))
-    );
   }
   async banUser(id) {
     const [user] = await db.update(users).set({ isBanned: true, updatedAt: /* @__PURE__ */ new Date() }).where(eq(users.id, id)).returning();
@@ -44210,12 +44223,22 @@ var DatabaseStorage = class {
     return user;
   }
   async getUserBySteamId(steamId64) {
-    const [user] = await db.select().from(users).where(eq(users.steamId64, steamId64));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.steamId64, steamId64));
+      return user;
+    } catch (err) {
+      console.error("[Storage] getUserBySteamId error:", err);
+      return void 0;
+    }
   }
   async getUserByDiscordId(discordUserId) {
-    const [user] = await db.select().from(users).where(eq(users.discordUserId, discordUserId));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.discordUserId, discordUserId));
+      return user;
+    } catch (err) {
+      console.error("[Storage] getUserByDiscordId error:", err);
+      return void 0;
+    }
   }
   async createPlayerFromSteam(steamId64, playerName) {
     const existingUser = await this.getUserBySteamId(steamId64);

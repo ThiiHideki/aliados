@@ -172,8 +172,13 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations (required for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    } catch (err) {
+      console.error("[Storage] getUser error:", err);
+      return undefined;
+    }
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
@@ -206,12 +211,17 @@ export class DatabaseStorage implements IStorage {
 
   // Extended user operations
   async getAllUsers(includeAll = false): Promise<User[]> {
-    if (includeAll) {
-      return await db.select().from(users);
+    try {
+      if (includeAll) {
+        return await db.select().from(users);
+      }
+      return await db.select().from(users).where(
+        and(eq(users.isBanned, false), eq(users.isCheaterBanned, false))
+      );
+    } catch (err) {
+      console.error("[Storage] getAllUsers error:", err);
+      return [];
     }
-    return await db.select().from(users).where(
-      and(eq(users.isBanned, false), eq(users.isCheaterBanned, false))
-    );
   }
 
   async banUser(id: string): Promise<User | undefined> {
@@ -242,13 +252,23 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserBySteamId(steamId64: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.steamId64, steamId64));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.steamId64, steamId64));
+      return user;
+    } catch (err) {
+      console.error("[Storage] getUserBySteamId error:", err);
+      return undefined;
+    }
   }
 
   async getUserByDiscordId(discordUserId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.discordUserId, discordUserId));
-    return user;
+    try {
+      const [user] = await db.select().from(users).where(eq(users.discordUserId, discordUserId));
+      return user;
+    } catch (err) {
+      console.error("[Storage] getUserByDiscordId error:", err);
+      return undefined;
+    }
   }
 
   async createPlayerFromSteam(steamId64: string, playerName: string): Promise<User> {

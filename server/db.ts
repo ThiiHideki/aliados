@@ -15,10 +15,13 @@ export const pool = new Pool({
     process.env.NODE_ENV === "production"
       ? { rejectUnauthorized: false }
       : undefined,
+  max: 5,
+  idleTimeoutMillis: 3000,
+  connectionTimeoutMillis: 5000,
 });
 
 pool.on("error", (err: any) => {
-  console.error("[PG Pool Error]:", err.message);
+  console.error("[PG Pool Error]:", err?.message || err);
 });
 
 export const db = drizzle({ client: pool, schema });
