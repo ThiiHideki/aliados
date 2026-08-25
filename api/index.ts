@@ -1,10 +1,8 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import express from "express";
-import { createServer } from "http";
 import { registerRoutes } from "../server/routes";
 
 const app = express();
-const httpServer = createServer(app);
 
 app.set("trust proxy", 1);
 
@@ -19,8 +17,8 @@ app.use(
 
 app.use(express.urlencoded({ extended: false, limit: "15mb" }));
 
-// Register routes
-registerRoutes(httpServer, app);
+// Register routes without creating unnecessary HTTP server instances in serverless
+registerRoutes({} as any, app);
 
 // Global error handler
 app.use((err: any, _req: any, res: any, _next: any) => {
