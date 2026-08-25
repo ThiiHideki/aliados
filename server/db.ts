@@ -1,9 +1,8 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import ws from "ws";
+import pg from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
 import * as schema from "@shared/schema";
 
-neonConfig.webSocketConstructor = ws;
+const { Pool } = pg;
 
 if (!process.env.DATABASE_URL) {
   throw new Error(
@@ -11,16 +10,16 @@ if (!process.env.DATABASE_URL) {
   );
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.DATABASE_URL.includes("supabase") || process.env.NODE_ENV === "production"
+    ? { rejectUnauthorized: false }
+    : undefined,
+});
 
-// Prevent unhandled 'error' events from crashing the process
-// Neon terminates idle connections (code 57P01) which is normal behaviour
-pool.on('error', (err: any) => {
-  if (err.code === '57P01') {
-    // Administrative termination of idle connection — expected with Neon serverless
-    return;
-  }
-  console.error('PG Pool error:', err.message);
+pool.on("error", (err: any) => {
+  console.error("PG Pool error:", err.message);
 });
 
 export const db = drizzle({ client: pool, schema });
+
