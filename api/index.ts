@@ -1,39 +1,57 @@
 import express from "express";
 import { createServer } from "http";
-import { registerRoutes } from "../server/routes";
 
-const app = express();
-const httpServer = createServer(app);
+let app: any = null;
 
-app.set("trust proxy", 1);
+async function getApp() {
+  if (app) return app;
 
-app.use(
-  express.json({
-    limit: "15mb",
-    verify: (req: any, _res: any, buf: Buffer) => {
-      req.rawBody = buf;
-    },
-  }),
-);
+  const instance = express();
+  const httpServer = createServer(instance);
 
-app.use(express.urlencoded({ extended: false, limit: "15mb" }));
+  instance.set("trust proxy", 1);
 
-// Diagnostic ping
-app.get("/api/ping", (_req, res) => {
-  res.status(200).json({ status: "ok", time: new Date().toISOString() });
-});
+  instance.use(
+    express.json({
+      limit: "15mb",
+      verify: (req: any, _res: any, buf: Buffer) => {
+        req.rawBody = buf;
+      },
+    }),
+  );
 
-// Register all routes
-registerRoutes(httpServer, app);
+  instance.use(express.urlencoded({ extended: false, limit: "15mb" }));
 
-// Global error handler
-app.use((err: any, _req: any, res: any, _next: any) => {
-  console.error("[Express Error]:", err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
-  if (!res.headersSent) {
-    res.status(status).json({ message });
+  // Dynamically import routes so any initialization error is caught
+  const { registerRoutes } = await import("../server/routes");
+  registerRoutes(httpServer, instance);
+
+  // Global error handler
+  instance.use((err: any, _req: any, res: any, _next: any) => {
+    console.error("[Express Error]:", err);
+    const status = err.status || err.statusCode || 500;
+    const message = err.message || "Internal Server Error";
+    if (!res.headersSent) {
+      res.status(status).json({ message });
+    }
+  });
+
+  app = instance;
+  return app;
+}
+
+export default async function handler(req: any, res: any) {
+  try {
+    const expressApp = await getApp();
+    return expressApp(req, res);
+  } catch (err: any) {
+    console.error("[Vercel Handler Error]:", err);
+    if (!res.headersSent) {
+      res.status(500).json({
+        error: "Initialization Failed",
+        message: err?.message || String(err),
+        stack: err?.stack,
+      });
+    }
   }
-});
-
-export default app;
+}
