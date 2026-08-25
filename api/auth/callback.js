@@ -881,8 +881,11 @@ async function handler(req, res) {
     const token = signToken({ userId, steamId64, expiresAt });
     const isProd = true;
     const cookieHeader = `${COOKIE_NAME}=${token}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${isProd ? "; Secure" : ""}`;
-    res.setHeader("Set-Cookie", cookieHeader);
-    res.redirect("/");
+    res.writeHead(302, {
+      "Set-Cookie": cookieHeader,
+      Location: "/"
+    });
+    res.end();
   } catch (err) {
     console.error("[SteamAuth Callback Error]:", err);
     res.redirect("/?auth_error=callback_error");
