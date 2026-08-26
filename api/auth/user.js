@@ -13899,7 +13899,7 @@ async function handler(req, res) {
     return res.status(200).json(fallbackUser);
   } catch (err) {
     console.error("[Auth User Error]:", err);
-    res.status(500).json({ message: "Internal server error" });
+    res.status(401).json({ message: "Unauthorized" });
   }
 }
 export {

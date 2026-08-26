@@ -150,7 +150,7 @@ export function registerRoutes(
       res.json(user);
     } catch (error) {
       console.error("Error fetching user:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(400).json({ message: "Failed to fetch user" });
     }
   });
 
@@ -183,7 +183,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error recalculating stats:", error);
-      res.status(500).json({ message: "Failed to recalculate stats" });
+      res.status(400).json({ message: "Failed to recalculate stats" });
     }
   });
 
@@ -267,7 +267,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error recalculating MVPs:", error);
-      res.status(500).json({ message: "Failed to recalculate MVPs" });
+      res.status(400).json({ message: "Failed to recalculate MVPs" });
     }
   });
 
@@ -286,7 +286,7 @@ export function registerRoutes(
       res.json({ message: `+1 Desafio LP concedido para ${result.length} jogador(es).`, count: result.length });
     } catch (error) {
       console.error("Error granting desafio to all:", error);
-      res.status(500).json({ message: "Erro ao conceder Desafio LP" });
+      res.status(400).json({ message: "Erro ao conceder Desafio LP" });
     }
   });
 
@@ -358,7 +358,7 @@ export function registerRoutes(
         return res.status(400).json({ message: "Invalid data", errors: error.errors });
       }
       console.error("Error updating user:", error);
-      res.status(500).json({ message: "Failed to update user" });
+      res.status(400).json({ message: "Failed to update user" });
     }
   });
 
@@ -407,7 +407,7 @@ export function registerRoutes(
       res.json(updatedUser);
     } catch (error) {
       console.error("Error linking steam:", error);
-      res.status(500).json({ message: "Failed to link Steam account" });
+      res.status(400).json({ message: "Failed to link Steam account" });
     }
   });
 
@@ -426,7 +426,7 @@ export function registerRoutes(
         winStreak:      user.winStreak       ?? 0,
       });
     } catch (e) {
-      res.status(500).json({ message: "Erro ao buscar itens" });
+      res.status(400).json({ message: "Erro ao buscar itens" });
     }
   });
 
@@ -481,7 +481,7 @@ export function registerRoutes(
       res.json({ message: "Modificador ativado com sucesso!", activeModifier: type });
     } catch (e) {
       console.error("Error activating modifier:", e);
-      res.status(500).json({ message: "Erro ao ativar modificador" });
+      res.status(400).json({ message: "Erro ao ativar modificador" });
     }
   });
 
@@ -502,7 +502,7 @@ export function registerRoutes(
       }).where(eq(users.id, userId));
       res.json({ message: "Modificador cancelado. Item devolvido." });
     } catch (e) {
-      res.status(500).json({ message: "Erro ao cancelar modificador" });
+      res.status(400).json({ message: "Erro ao cancelar modificador" });
     }
   });
 
@@ -532,7 +532,7 @@ export function registerRoutes(
       res.json({ message: "User deleted successfully" });
     } catch (error) {
       console.error("Error deleting user:", error);
-      res.status(500).json({ message: "Failed to delete user" });
+      res.status(400).json({ message: "Failed to delete user" });
     }
   });
 
@@ -894,7 +894,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error importing match:", error);
-      res.status(500).json({ message: "Failed to import match" });
+      res.status(400).json({ message: "Failed to import match" });
     }
   });
 
@@ -905,7 +905,7 @@ export function registerRoutes(
       res.json(matches);
     } catch (error) {
       console.error("Error fetching matches:", error);
-      res.status(500).json({ message: "Failed to fetch matches" });
+      res.status(400).json({ message: "Failed to fetch matches" });
     }
   });
 
@@ -933,7 +933,7 @@ export function registerRoutes(
       res.json(matchesWithStats);
     } catch (error) {
       console.error("Error fetching matches with stats:", error);
-      res.status(500).json({ message: "Failed to fetch matches with stats" });
+      res.status(400).json({ message: "Failed to fetch matches with stats" });
     }
   });
 
@@ -972,7 +972,7 @@ export function registerRoutes(
       res.json({ match, stats });
     } catch (error) {
       console.error("Error fetching match:", error);
-      res.status(500).json({ message: "Failed to fetch match" });
+      res.status(400).json({ message: "Failed to fetch match" });
     }
   });
 
@@ -984,7 +984,7 @@ export function registerRoutes(
       res.json(matchStatsWithMatches);
     } catch (error) {
       console.error("Error fetching user match stats:", error);
-      res.status(500).json({ message: "Failed to fetch user match stats" });
+      res.status(400).json({ message: "Failed to fetch user match stats" });
     }
   });
 
@@ -1095,7 +1095,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error fetching monthly stats:", error);
-      res.status(500).json({ message: "Failed to fetch monthly stats" });
+      res.status(400).json({ message: "Failed to fetch monthly stats" });
     }
   });
 
@@ -1131,7 +1131,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error merging users:", error);
-      res.status(500).json({ message: "Erro ao mesclar usuários" });
+      res.status(400).json({ message: "Erro ao mesclar usuários" });
     }
   });
 
@@ -1151,7 +1151,7 @@ export function registerRoutes(
       res.json({ message: "Usuário banido com sucesso", user: banned });
     } catch (error) {
       console.error("Error banning user:", error);
-      res.status(500).json({ message: "Erro ao banir usuário" });
+      res.status(400).json({ message: "Erro ao banir usuário" });
     }
   });
 
@@ -1170,7 +1170,7 @@ export function registerRoutes(
       res.json({ message: "Usuário desbanido com sucesso", user: unbanned });
     } catch (error) {
       console.error("Error unbanning user:", error);
-      res.status(500).json({ message: "Erro ao desbanir usuário" });
+      res.status(400).json({ message: "Erro ao desbanir usuário" });
     }
   });
 
@@ -1190,7 +1190,7 @@ export function registerRoutes(
       res.json({ message: "Ban permanente aplicado com sucesso", user: banned });
     } catch (error) {
       console.error("Error cheater-banning user:", error);
-      res.status(500).json({ message: "Erro ao aplicar ban de cheater" });
+      res.status(400).json({ message: "Erro ao aplicar ban de cheater" });
     }
   });
 
@@ -1201,7 +1201,7 @@ export function registerRoutes(
       res.json(payments);
     } catch (error) {
       console.error("Error fetching payments:", error);
-      res.status(500).json({ message: "Failed to fetch payments" });
+      res.status(400).json({ message: "Failed to fetch payments" });
     }
   });
 
@@ -1211,7 +1211,7 @@ export function registerRoutes(
       res.json(payments);
     } catch (error) {
       console.error("Error fetching user payments:", error);
-      res.status(500).json({ message: "Failed to fetch user payments" });
+      res.status(400).json({ message: "Failed to fetch user payments" });
     }
   });
 
@@ -1241,7 +1241,7 @@ export function registerRoutes(
       res.json(payment);
     } catch (error) {
       console.error("Error creating payment:", error);
-      res.status(500).json({ message: "Failed to create payment" });
+      res.status(400).json({ message: "Failed to create payment" });
     }
   });
 
@@ -1263,7 +1263,7 @@ export function registerRoutes(
       res.json({ message: "Payment deleted successfully" });
     } catch (error) {
       console.error("Error deleting payment:", error);
-      res.status(500).json({ message: "Failed to delete payment" });
+      res.status(400).json({ message: "Failed to delete payment" });
     }
   });
 
@@ -1281,7 +1281,7 @@ export function registerRoutes(
       res.json(reports);
     } catch (error) {
       console.error("Error fetching reports:", error);
-      res.status(500).json({ message: "Failed to fetch reports" });
+      res.status(400).json({ message: "Failed to fetch reports" });
     }
   });
 
@@ -1337,7 +1337,7 @@ export function registerRoutes(
       res.json(report);
     } catch (error) {
       console.error("Error creating report:", error);
-      res.status(500).json({ message: "Failed to create report" });
+      res.status(400).json({ message: "Failed to create report" });
     }
   });
 
@@ -1366,7 +1366,7 @@ export function registerRoutes(
       res.json(updatedReport);
     } catch (error) {
       console.error("Error updating report:", error);
-      res.status(500).json({ message: "Failed to update report" });
+      res.status(400).json({ message: "Failed to update report" });
     }
   });
 
@@ -1388,7 +1388,7 @@ export function registerRoutes(
       res.json({ message: "Report deleted successfully" });
     } catch (error) {
       console.error("Error deleting report:", error);
-      res.status(500).json({ message: "Failed to delete report" });
+      res.status(400).json({ message: "Failed to delete report" });
     }
   });
 
@@ -1406,7 +1406,7 @@ export function registerRoutes(
       res.json(registrations);
     } catch (error) {
       console.error("Error fetching championship registrations:", error);
-      res.status(500).json({ message: "Failed to fetch registrations" });
+      res.status(400).json({ message: "Failed to fetch registrations" });
     }
   });
 
@@ -1417,7 +1417,7 @@ export function registerRoutes(
       res.json({ registered: !!registration, registration });
     } catch (error) {
       console.error("Error checking registration:", error);
-      res.status(500).json({ message: "Failed to check registration" });
+      res.status(400).json({ message: "Failed to check registration" });
     }
   });
 
@@ -1438,7 +1438,7 @@ export function registerRoutes(
       res.json(registration);
     } catch (error) {
       console.error("Error creating registration:", error);
-      res.status(500).json({ message: "Failed to create registration" });
+      res.status(400).json({ message: "Failed to create registration" });
     }
   });
 
@@ -1460,7 +1460,7 @@ export function registerRoutes(
       res.json({ message: "Registration deleted successfully" });
     } catch (error) {
       console.error("Error deleting registration:", error);
-      res.status(500).json({ message: "Failed to delete registration" });
+      res.status(400).json({ message: "Failed to delete registration" });
     }
   });
 
@@ -1478,7 +1478,7 @@ export function registerRoutes(
       res.json(rankings);
     } catch (error) {
       console.error("Error fetching monthly rankings:", error);
-      res.status(500).json({ message: "Failed to fetch monthly rankings" });
+      res.status(400).json({ message: "Failed to fetch monthly rankings" });
     }
   });
 
@@ -1583,7 +1583,7 @@ export function registerRoutes(
       res.json(newRanking);
     } catch (error) {
       console.error("Error creating monthly ranking:", error);
-      res.status(500).json({ message: "Failed to create monthly ranking" });
+      res.status(400).json({ message: "Failed to create monthly ranking" });
     }
   });
 
@@ -1605,7 +1605,7 @@ export function registerRoutes(
       res.json({ message: "Ranking deleted successfully" });
     } catch (error) {
       console.error("Error deleting monthly ranking:", error);
-      res.status(500).json({ message: "Failed to delete monthly ranking" });
+      res.status(400).json({ message: "Failed to delete monthly ranking" });
     }
   });
 
@@ -1875,7 +1875,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error generating trophies:", error);
-      res.status(500).json({ message: "Failed to generate trophies" });
+      res.status(400).json({ message: "Failed to generate trophies" });
     }
   });
 
@@ -2033,7 +2033,7 @@ export function registerRoutes(
       res.json(balance);
     } catch (error) {
       console.error("Error getting casino balance:", error);
-      res.status(500).json({ message: "Failed to get balance" });
+      res.status(400).json({ message: "Failed to get balance" });
     }
   });
 
@@ -2045,7 +2045,7 @@ export function registerRoutes(
       res.json(transactions);
     } catch (error) {
       console.error("Error getting transactions:", error);
-      res.status(500).json({ message: "Failed to get transactions" });
+      res.status(400).json({ message: "Failed to get transactions" });
     }
   });
 
@@ -2057,7 +2057,7 @@ export function registerRoutes(
       res.json(userBets);
     } catch (error) {
       console.error("Error getting bets:", error);
-      res.status(500).json({ message: "Failed to get bets" });
+      res.status(400).json({ message: "Failed to get bets" });
     }
   });
 
@@ -2140,7 +2140,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error calculating odds:", error);
-      res.status(500).json({ message: "Failed to calculate odds" });
+      res.status(400).json({ message: "Failed to calculate odds" });
     }
   });
 
@@ -2221,7 +2221,7 @@ export function registerRoutes(
       res.json(bet);
     } catch (error) {
       console.error("Error placing bet:", error);
-      res.status(500).json({ message: "Erro ao registrar aposta" });
+      res.status(400).json({ message: "Erro ao registrar aposta" });
     }
   });
 
@@ -2244,7 +2244,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error deleting bet:", error);
-      res.status(500).json({ message: "Erro ao cancelar aposta" });
+      res.status(400).json({ message: "Erro ao cancelar aposta" });
     }
   });
 
@@ -2303,7 +2303,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error playing slot:", error);
-      res.status(500).json({ message: "Erro no jogo" });
+      res.status(400).json({ message: "Erro no jogo" });
     }
   });
 
@@ -2386,7 +2386,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error opening case:", error);
-      res.status(500).json({ message: "Erro ao abrir caixa" });
+      res.status(400).json({ message: "Erro ao abrir caixa" });
     }
   });
 
@@ -2401,7 +2401,7 @@ export function registerRoutes(
       res.json(list);
     } catch (error) {
       console.error("Error fetching mix list:", error);
-      res.status(500).json({ message: "Erro ao buscar lista do mix" });
+      res.status(400).json({ message: "Erro ao buscar lista do mix" });
     }
   });
 
@@ -2441,7 +2441,7 @@ export function registerRoutes(
       res.json({ ...entry, forcedSub: penaltyCount >= 1 && !parsed.data.isSub });
     } catch (error) {
       console.error("Error joining mix list:", error);
-      res.status(500).json({ message: "Erro ao entrar na lista" });
+      res.status(400).json({ message: "Erro ao entrar na lista" });
     }
   });
 
@@ -2466,7 +2466,7 @@ export function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       console.error("Error leaving mix list:", error);
-      res.status(500).json({ message: "Erro ao sair da lista" });
+      res.status(400).json({ message: "Erro ao sair da lista" });
     }
   });
 
@@ -2504,7 +2504,7 @@ export function registerRoutes(
       res.json(entry);
     } catch (error) {
       console.error("Error admin adding to mix list:", error);
-      res.status(500).json({ message: "Erro ao adicionar jogador na lista" });
+      res.status(400).json({ message: "Erro ao adicionar jogador na lista" });
     }
   });
 
@@ -2534,7 +2534,7 @@ export function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       console.error("Error admin removing from mix list:", error);
-      res.status(500).json({ message: "Erro ao remover jogador da lista" });
+      res.status(400).json({ message: "Erro ao remover jogador da lista" });
     }
   });
 
@@ -2549,7 +2549,7 @@ export function registerRoutes(
       res.json(penalties);
     } catch (error) {
       console.error("Error fetching all penalties:", error);
-      res.status(500).json({ message: "Erro ao buscar penalidades" });
+      res.status(400).json({ message: "Erro ao buscar penalidades" });
     }
   });
 
@@ -2575,7 +2575,7 @@ export function registerRoutes(
       res.json(penalty);
     } catch (error) {
       console.error("Error adding penalty:", error);
-      res.status(500).json({ message: "Erro ao aplicar penalidade" });
+      res.status(400).json({ message: "Erro ao aplicar penalidade" });
     }
   });
 
@@ -2593,7 +2593,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error fetching penalties:", error);
-      res.status(500).json({ message: "Erro ao buscar penalidades" });
+      res.status(400).json({ message: "Erro ao buscar penalidades" });
     }
   });
 
@@ -2638,7 +2638,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error confirming mix list:", error);
-      res.status(500).json({ message: "Erro ao confirmar lista" });
+      res.status(400).json({ message: "Erro ao confirmar lista" });
     }
   });
 
@@ -2656,7 +2656,7 @@ export function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       console.error("Error clearing penalties:", error);
-      res.status(500).json({ message: "Erro ao limpar penalidades" });
+      res.status(400).json({ message: "Erro ao limpar penalidades" });
     }
   });
 
@@ -2778,7 +2778,7 @@ export function registerRoutes(
       });
     } catch (error) {
       console.error("Error fetching monthly stats by date:", error);
-      res.status(500).json({ message: "Failed to fetch monthly stats" });
+      res.status(400).json({ message: "Failed to fetch monthly stats" });
     }
   });
 
@@ -2818,7 +2818,7 @@ export function registerRoutes(
       res.status(201).json(item);
     } catch (error: any) {
       console.error("Error generating humor news:", error);
-      res.status(500).json({ message: "Falha ao gerar notícia automatizada", detail: error?.message || String(error) });
+      res.status(400).json({ message: "Falha ao gerar notícia automatizada", detail: error?.message || String(error) });
     }
   });
 
@@ -2855,7 +2855,7 @@ export function registerRoutes(
       res.json(item);
     } catch (error) {
       console.error("Error creating news:", error);
-      res.status(500).json({ message: "Erro ao criar notícia" });
+      res.status(400).json({ message: "Erro ao criar notícia" });
     }
   });
 
@@ -2874,7 +2874,7 @@ export function registerRoutes(
       res.json({ success: true });
     } catch (error) {
       console.error("Error deleting news:", error);
-      res.status(500).json({ message: "Erro ao deletar notícia" });
+      res.status(400).json({ message: "Erro ao deletar notícia" });
     }
   });
 
@@ -2893,7 +2893,7 @@ export function registerRoutes(
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
       registrationClosed = !registrationClosed;
       res.json({ closed: registrationClosed });
-    } catch (e) { res.status(500).json({ message: "Erro ao atualizar status" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao atualizar status" }); }
   });
 
   app.post('/api/copa/draw', isAuthenticated, async (req: any, res) => {
@@ -2939,7 +2939,7 @@ export function registerRoutes(
       res.json({ matches: created, round: roundName });
     } catch (e) {
       console.error("Draw error:", e);
-      res.status(500).json({ message: "Erro ao realizar sorteio" });
+      res.status(400).json({ message: "Erro ao realizar sorteio" });
     }
   });
 
@@ -2948,14 +2948,14 @@ export function registerRoutes(
     try {
       const teams = await storage.getAllCopaTeams();
       res.json(teams);
-    } catch (e) { res.status(500).json({ message: "Erro ao buscar times" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao buscar times" }); }
   });
 
   app.get('/api/copa/matches', async (req, res) => {
     try {
       const matches = await storage.getCopaMatches();
       res.json(matches);
-    } catch (e) { res.status(500).json({ message: "Erro ao buscar partidas" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao buscar partidas" }); }
   });
 
   app.get('/api/copa/stats', async (req, res) => {
@@ -2963,7 +2963,7 @@ export function registerRoutes(
       const stats = await storage.getAllCopaStats();
       const teams = await storage.getAllCopaTeams();
       res.json({ stats, teams });
-    } catch (e) { res.status(500).json({ message: "Erro ao buscar estatísticas" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao buscar estatísticas" }); }
   });
 
   // Register a team (any authenticated user)
@@ -2982,7 +2982,7 @@ export function registerRoutes(
       res.json(fullTeam);
     } catch (e) {
       console.error("Error creating copa team:", e);
-      res.status(500).json({ message: "Erro ao cadastrar time" });
+      res.status(400).json({ message: "Erro ao cadastrar time" });
     }
   });
 
@@ -2995,7 +2995,7 @@ export function registerRoutes(
       const { status, adminNotes } = req.body;
       const team = await storage.updateCopaTeamStatus(Number(req.params.id), status, adminNotes);
       res.json(team);
-    } catch (e) { res.status(500).json({ message: "Erro ao atualizar status" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao atualizar status" }); }
   });
 
   // Admin: edit team info + players
@@ -3026,7 +3026,7 @@ export function registerRoutes(
       res.json({ ...team, players: updatedPlayers });
     } catch (e) {
       console.error("Erro ao editar time:", e);
-      res.status(500).json({ message: "Erro ao editar time" });
+      res.status(400).json({ message: "Erro ao editar time" });
     }
   });
 
@@ -3045,7 +3045,7 @@ export function registerRoutes(
         streamUrl, notes,
       });
       res.json(match);
-    } catch (e) { res.status(500).json({ message: "Erro ao criar partida" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao criar partida" }); }
   });
 
   // Admin: update match result + stats
@@ -3063,7 +3063,7 @@ export function registerRoutes(
         await storage.setCopaMatchStats(match.id, stats);
       }
       res.json(match);
-    } catch (e) { res.status(500).json({ message: "Erro ao atualizar partida" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao atualizar partida" }); }
   });
 
   // Get match stats
@@ -3071,7 +3071,7 @@ export function registerRoutes(
     try {
       const stats = await storage.getCopaMatchStats(Number(req.params.id));
       res.json(stats);
-    } catch (e) { res.status(500).json({ message: "Erro ao buscar stats" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao buscar stats" }); }
   });
 
   // Admin: delete team
@@ -3082,7 +3082,7 @@ export function registerRoutes(
       if (!user?.isAdmin) return res.status(403).json({ message: "Apenas admins" });
       await storage.updateCopaTeamStatus(Number(req.params.id), "rejected", "Removido pelo admin");
       res.json({ success: true });
-    } catch (e) { res.status(500).json({ message: "Erro ao remover time" }); }
+    } catch (e) { res.status(400).json({ message: "Erro ao remover time" }); }
   });
 
   // ── Survey routes ───────────────────────────────────────────────────────────
@@ -3160,7 +3160,7 @@ export function registerRoutes(
       res.json(survey);
     } catch (error) {
       console.error("Error saving survey:", error);
-      res.status(500).json({ message: "Erro ao salvar pesquisa" });
+      res.status(400).json({ message: "Erro ao salvar pesquisa" });
     }
   });
 
@@ -3176,7 +3176,7 @@ export function registerRoutes(
       res.json(allSurveys);
     } catch (error) {
       console.error("Error fetching surveys:", error);
-      res.status(500).json({ message: "Erro ao buscar pesquisas" });
+      res.status(400).json({ message: "Erro ao buscar pesquisas" });
     }
   });
 
@@ -3391,7 +3391,7 @@ export function registerRoutes(
       });
     } catch (err: any) {
       console.error("[admin/report] erro:", err);
-      res.status(500).json({ message: err.message || "Erro ao gerar relatório" });
+      res.status(400).json({ message: err.message || "Erro ao gerar relatório" });
     }
   });
 
@@ -3639,7 +3639,7 @@ export function registerRoutes(
       });
       res.json({ players, budget: FANTASY_BUDGET });
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3651,7 +3651,7 @@ export function registerRoutes(
       );
       res.json(rounds.rows);
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3666,7 +3666,7 @@ export function registerRoutes(
       const marketOpen = isMarketOpen(new Date(r.start_date));
       res.json({ ...r, marketOpen });
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3689,7 +3689,7 @@ export function registerRoutes(
       );
       res.json({ team: team.rows[0], picks: picks.rows });
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3760,7 +3760,7 @@ export function registerRoutes(
       }
       res.json({ success: true, teamId, totalCost, budget: FANTASY_BUDGET });
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3786,7 +3786,7 @@ export function registerRoutes(
       }
       res.json(result);
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3805,7 +3805,7 @@ export function registerRoutes(
       );
       res.json(r.rows[0]);
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3873,7 +3873,7 @@ export function registerRoutes(
       await db.execute(sql`UPDATE fantasy_rounds SET status = 'finished' WHERE id = ${roundId}`);
       res.json({ success: true, message: "Pontuação calculada com sucesso!" });
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3886,7 +3886,7 @@ export function registerRoutes(
       await db.execute(sql`DELETE FROM fantasy_rounds WHERE id = ${parseInt(req.params.id)}`);
       res.json({ success: true });
     } catch (e: any) {
-      res.status(500).json({ message: e.message });
+      res.status(400).json({ message: e.message });
     }
   });
 
@@ -3972,7 +3972,7 @@ export function registerRoutes(
       res.json({ year, month, minMatches, eligible: list });
     } catch (err) {
       console.error("[Raffles] eligible error:", err);
-      res.status(500).json({ message: "Erro ao listar elegíveis" });
+      res.status(400).json({ message: "Erro ao listar elegíveis" });
     }
   });
 
@@ -4018,7 +4018,7 @@ export function registerRoutes(
     } catch (err: any) {
       if (err instanceof z.ZodError) return res.status(400).json({ message: "Dados inválidos", errors: err.errors });
       console.error("[Raffles] create error:", err);
-      res.status(500).json({ message: "Erro ao criar sorteio" });
+      res.status(400).json({ message: "Erro ao criar sorteio" });
     }
   });
 
@@ -4030,7 +4030,7 @@ export function registerRoutes(
       res.json(list);
     } catch (err) {
       console.error("[Raffles] list error:", err);
-      res.status(500).json({ message: "Erro ao listar sorteios" });
+      res.status(400).json({ message: "Erro ao listar sorteios" });
     }
   });
 
@@ -4043,7 +4043,7 @@ export function registerRoutes(
       res.json(r);
     } catch (err) {
       console.error("[Raffles] get error:", err);
-      res.status(500).json({ message: "Erro ao buscar sorteio" });
+      res.status(400).json({ message: "Erro ao buscar sorteio" });
     }
   });
 
@@ -4074,7 +4074,7 @@ export function registerRoutes(
       res.json({ raffle: updated, push: pushResult });
     } catch (err) {
       console.error("[Raffles] notify error:", err);
-      res.status(500).json({ message: "Erro ao notificar vencedor" });
+      res.status(400).json({ message: "Erro ao notificar vencedor" });
     }
   });
 
@@ -4091,7 +4091,7 @@ export function registerRoutes(
       res.json(rows);
     } catch (err) {
       console.error("[Raffles] my-unseen error:", err);
-      res.status(500).json({ message: "Erro ao buscar sorteios" });
+      res.status(400).json({ message: "Erro ao buscar sorteios" });
     }
   });
 
@@ -4109,7 +4109,7 @@ export function registerRoutes(
       res.json(updated);
     } catch (err) {
       console.error("[Raffles] mark-seen error:", err);
-      res.status(500).json({ message: "Erro ao confirmar" });
+      res.status(400).json({ message: "Erro ao confirmar" });
     }
   });
 
@@ -4199,7 +4199,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
       res.json(teams.map((t) => sanitizeTournament2x2Team(t, isAdmin)));
     } catch (e) {
       console.error("[t2x2] list teams", e);
-      res.status(500).json({ message: "Erro ao listar times" });
+      res.status(400).json({ message: "Erro ao listar times" });
     }
   });
 
@@ -4216,7 +4216,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
     } catch (e: any) {
       if (e?.name === "ZodError") return res.status(400).json({ message: "Dados inválidos", errors: e.errors });
       console.error("[t2x2] create team", e);
-      res.status(500).json({ message: "Erro ao cadastrar dupla" });
+      res.status(400).json({ message: "Erro ao cadastrar dupla" });
     }
   });
 
@@ -4232,7 +4232,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
     } catch (e: any) {
       if (e?.name === "ZodError") return res.status(400).json({ message: "Dados inválidos", errors: e.errors });
       console.error("[t2x2] update team", e);
-      res.status(500).json({ message: "Erro ao atualizar" });
+      res.status(400).json({ message: "Erro ao atualizar" });
     }
   });
 
@@ -4247,7 +4247,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
       res.json(updated);
     } catch (e) {
       console.error("[t2x2] confirm", e);
-      res.status(500).json({ message: "Erro" });
+      res.status(400).json({ message: "Erro" });
     }
   });
 
@@ -4260,7 +4260,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
       res.json({ ok });
     } catch (e) {
       console.error("[t2x2] delete", e);
-      res.status(500).json({ message: "Erro" });
+      res.status(400).json({ message: "Erro" });
     }
   });
 
@@ -4277,7 +4277,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
       })));
     } catch (e) {
       console.error("[t2x2] bracket", e);
-      res.status(500).json({ message: "Erro" });
+      res.status(400).json({ message: "Erro" });
     }
   });
 
@@ -4341,7 +4341,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
       res.json(await storage.listTournament2x2Matches());
     } catch (e) {
       console.error("[t2x2] draw", e);
-      res.status(500).json({ message: "Erro ao sortear" });
+      res.status(400).json({ message: "Erro ao sortear" });
     }
   });
 
@@ -4384,7 +4384,7 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
       res.json(updated);
     } catch (e) {
       console.error("[t2x2] match update", e);
-      res.status(500).json({ message: "Erro" });
+      res.status(400).json({ message: "Erro" });
     }
   });
 }

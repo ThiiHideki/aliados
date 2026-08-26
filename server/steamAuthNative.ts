@@ -230,7 +230,7 @@ export function setupNativeSteamAuth(app: Express) {
       res.json(user);
     } catch (error: any) {
       console.error("[SteamAuth] GetUser error:", error);
-      res.status(500).json({ message: "Failed to fetch user" });
+      res.status(401).json({ message: "Failed to fetch user" });
     }
   };
 

@@ -23,10 +23,10 @@ registerRoutes({} as any, app);
 // Global error handler
 app.use((err: any, _req: any, res: any, _next: any) => {
   console.error("[Express Error Handler]:", err);
-  const status = err.status || err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  const status = err.status || err.statusCode || 400;
+  const message = err.message || "Bad Request";
   if (!res.headersSent) {
-    res.status(status).json({ message });
+    res.status(status).json({ message, success: false });
   }
 });
 
