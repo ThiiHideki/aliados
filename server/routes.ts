@@ -104,13 +104,13 @@ export function registerRoutes(
 
 
   // Get active users only (rankings, mix, mural, etc) - never includes banned
-  app.get('/api/users', isAuthenticated, async (_req, res) => {
+  app.get('/api/users', async (_req, res) => {
     try {
-      const users = await storage.getAllUsers(false);
-      res.json(users);
+      const usersList = await storage.getAllUsers(false);
+      res.json(usersList || []);
     } catch (error) {
       console.error("Error fetching users:", error);
-      res.status(500).json({ message: "Failed to fetch users" });
+      res.json([]);
     }
   });
 
@@ -132,10 +132,10 @@ export function registerRoutes(
       const allUsers = await db.select().from(users)
         .where(eq(users.isCheaterBanned, true))
         .orderBy(desc(users.createdAt));
-      res.json(allUsers);
+      res.json(allUsers || []);
     } catch (error) {
       console.error("Error fetching cheater-banned users:", error);
-      res.status(500).json({ message: "Failed to fetch cheater-banned users" });
+      res.json([]);
     }
   });
 
@@ -937,29 +937,23 @@ export function registerRoutes(
     }
   });
 
-  app.get('/api/matches/latest-mvp', isAuthenticated, async (req: any, res) => {
+  app.get('/api/matches/latest-mvp', async (_req, res) => {
     try {
       const result = await storage.getLatestMatchWithMvp();
-      if (!result) {
-        return res.json(null);
-      }
-      res.json(result);
+      res.json(result || null);
     } catch (error) {
       console.error("Error fetching latest MVP:", error);
-      res.status(500).json({ message: "Erro ao buscar MVP" });
+      res.json(null);
     }
   });
 
-  app.get('/api/matches/latest-ace', isAuthenticated, async (req: any, res) => {
+  app.get('/api/matches/latest-ace', async (_req, res) => {
     try {
       const result = await storage.getLatestAce();
-      if (!result) {
-        return res.json(null);
-      }
-      res.json(result);
+      res.json(result || null);
     } catch (error) {
       console.error("Error fetching latest ACE:", error);
-      res.status(500).json({ message: "Erro ao buscar ACE" });
+      res.json(null);
     }
   });
 
@@ -1620,20 +1614,20 @@ export function registerRoutes(
   app.get('/api/trophies/user/:userId', isAuthenticated, async (req: any, res) => {
     try {
       const userTrophies = await storage.getUserTrophies(req.params.userId);
-      res.json(userTrophies);
+      res.json(userTrophies || []);
     } catch (error) {
       console.error("Error fetching user trophies:", error);
-      res.status(500).json({ message: "Failed to fetch trophies" });
+      res.json([]);
     }
   });
 
-  app.get('/api/trophies', isAuthenticated, async (req: any, res) => {
+  app.get('/api/trophies', async (_req, res) => {
     try {
       const allTrophies = await storage.getAllTrophies();
-      res.json(allTrophies);
+      res.json(allTrophies || []);
     } catch (error) {
       console.error("Error fetching trophies:", error);
-      res.status(500).json({ message: "Failed to fetch trophies" });
+      res.json([]);
     }
   });
 
@@ -2789,13 +2783,13 @@ export function registerRoutes(
   });
 
   // News endpoints
-  app.get('/api/news', isAuthenticated, async (req: any, res) => {
+  app.get('/api/news', async (_req, res) => {
     try {
       const allNews = await storage.getAllNews();
-      res.json(allNews);
+      res.json(allNews || []);
     } catch (error) {
       console.error("Error fetching news:", error);
-      res.status(500).json({ message: "Erro ao buscar notícias" });
+      res.json([]);
     }
   });
 
@@ -3094,14 +3088,15 @@ export function registerRoutes(
   // ── Survey routes ───────────────────────────────────────────────────────────
 
   // Get current user's survey status
-  app.get('/api/survey', isAuthenticated, async (req: any, res) => {
+  app.get('/api/survey', async (req: any, res) => {
     try {
       const userId = (req.user?.id || req.user?.claims?.sub);
+      if (!userId) return res.json(null);
       const survey = await storage.getSurveyByUserId(userId);
       res.json(survey || null);
     } catch (error) {
       console.error("Error fetching survey:", error);
-      res.status(500).json({ message: "Erro ao buscar pesquisa" });
+      res.json(null);
     }
   });
 
