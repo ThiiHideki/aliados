@@ -182,33 +182,37 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
-    // Check if this is the first user - if so, make them admin
-    const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
-    const isFirstUser = existingUsers.length === 0;
-    
-    const now = new Date();
-    const [user] = await db
-      .insert(users)
-      .values({
-        ...userData,
-        isAdmin: isFirstUser ? true : (userData.isAdmin ?? false),
-        lastLoginAt: now,
-      })
-      .onConflictDoUpdate({
-        target: users.id,
-        set: {
-          email: userData.email,
-          firstName: userData.firstName,
-          nickname: userData.nickname,
-          steamId64: userData.steamId64,
-          lastName: userData.lastName,
-          profileImageUrl: userData.profileImageUrl,
+    try {
+      const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
+      const isFirstUser = existingUsers.length === 0;
+      
+      const now = new Date();
+      const [user] = await db
+        .insert(users)
+        .values({
+          ...userData,
+          isAdmin: isFirstUser ? true : (userData.isAdmin ?? false),
           lastLoginAt: now,
-          updatedAt: now,
-        },
-      })
-      .returning();
-    return user;
+        })
+        .onConflictDoUpdate({
+          target: users.id,
+          set: {
+            email: userData.email,
+            firstName: userData.firstName,
+            nickname: userData.nickname,
+            steamId64: userData.steamId64,
+            lastName: userData.lastName,
+            profileImageUrl: userData.profileImageUrl,
+            lastLoginAt: now,
+            updatedAt: now,
+          },
+        })
+        .returning();
+      return user;
+    } catch (err) {
+      console.error("[Storage] upsertUser error:", err);
+      return (await this.getUser(userData.id)) || (userData as any);
+    }
   }
 
   // Extended user operations
