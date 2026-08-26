@@ -495,7 +495,7 @@ export function AppSidebar() {
                       <SidebarMenuSubItem>
                         <SidebarMenuSubButton
                           className="justify-between cursor-pointer"
-                          onClick={() => copyToClipboard("https://chat.whatsapp.com/GzgiTtipgNX1sOPF3ybtYt", "whatsapp")}
+                          onClick={() => copyToClipboard("https://chat.whatsapp.com/BjEC3RcvHCUJsN5AVI08XS?s=cl&p=a&ilr=1", "whatsapp")}
                           data-testid="button-copy-whatsapp"
                         >
                           <div className="flex items-center gap-2">

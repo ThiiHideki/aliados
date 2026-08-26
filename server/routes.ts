@@ -300,11 +300,13 @@ export function registerRoutes(
       const { firstName, lastName, nickname, profileImageUrl, steamId64 } = req.body;
       
       const updates: any = { updatedAt: new Date() };
-      if (firstName !== undefined) updates.firstName = firstName;
-      if (lastName !== undefined) updates.lastName = lastName;
-      if (nickname !== undefined) updates.nickname = nickname;
-      if (profileImageUrl !== undefined) updates.profileImageUrl = profileImageUrl;
-      if (steamId64 !== undefined && steamId64.trim() !== '') updates.steamId64 = steamId64;
+      if (firstName !== undefined && firstName !== null) updates.firstName = firstName;
+      if (lastName !== undefined && lastName !== null) updates.lastName = lastName;
+      if (nickname !== undefined && nickname !== null && nickname.trim() !== '') updates.nickname = nickname;
+      if (profileImageUrl !== undefined && profileImageUrl !== null) updates.profileImageUrl = profileImageUrl;
+      if (steamId64 !== undefined && steamId64 !== null && steamId64.trim() !== '' && steamId64 !== req.user?.steamId64) {
+        updates.steamId64 = steamId64;
+      }
 
       let user = await storage.updateUserStats(userId, updates);
 

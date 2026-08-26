@@ -172,7 +172,8 @@ export default function AdminUsers() {
 
   const { data: allUsers, isLoading } = useQuery<User[]>({
     queryKey: ["/api/admin/users"],
-    enabled: !!user?.isAdmin,
+    staleTime: 0,
+    refetchOnMount: "always",
   });
 
   const updateUserMutation = useMutation({

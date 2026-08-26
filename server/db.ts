@@ -11,7 +11,13 @@ let _db: ReturnType<typeof drizzle> | null = null;
 
 export function getDb() {
   if (!_db) {
-    _client = postgres(connectionString, { prepare: false, ssl: "require" });
+    _client = postgres(connectionString, {
+      prepare: false,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idle_timeout: 20,
+      connect_timeout: 10,
+    });
     _db = drizzle(_client, { schema });
   }
   return _db;
