@@ -13774,23 +13774,72 @@ var insertTournament2x2MatchSchema = createInsertSchema(tournament2x2Matches).om
 var connectionString = process.env.DATABASE_URL || "postgresql://postgres:aliados123%40@db.akvybywdkwyajuvifpic.supabase.co:5432/postgres";
 var _client = null;
 var _db = null;
+function resetDb() {
+  try {
+    if (_client) {
+      _client.end({ timeout: 1 }).catch(() => {
+      });
+    }
+  } catch {
+  }
+  _client = null;
+  _db = null;
+}
 function getDb() {
-  if (!_db) {
+  if (!_db || !_client) {
     const isVercel = !!process.env.VERCEL || true;
     _client = src_default(connectionString, {
       prepare: false,
       ssl: { rejectUnauthorized: false },
-      max: isVercel ? 1 : 10,
-      idle_timeout: 1,
-      connect_timeout: 5
+      max: isVercel ? 5 : 10,
+      idle_timeout: 30,
+      connect_timeout: 10,
+      onnotice: () => {
+      }
     });
     _db = drizzle(_client, { schema: schema_exports });
   }
   return _db;
 }
+function isConnectionError(err) {
+  if (!err) return false;
+  const msg = (err.message || String(err)).toLowerCase();
+  const code = err.code || "";
+  return code === "57P01" || code === "ECONNRESET" || code === "ETIMEDOUT" || msg.includes("connection_ended") || msg.includes("socket_closed") || msg.includes("connection error") || msg.includes("connection terminated") || msg.includes("connection timeout");
+}
 var db = new Proxy({}, {
   get(_target, prop) {
-    return getDb()[prop];
+    try {
+      const instance = getDb();
+      const val = instance[prop];
+      if (typeof val === "function") {
+        return function(...args) {
+          try {
+            const res = val.apply(instance, args);
+            if (res && typeof res.catch === "function") {
+              return res.catch((err) => {
+                if (isConnectionError(err)) {
+                  console.warn("[DB Proxy] Connection error detected, resetting pool for next query:", err?.message || err);
+                  resetDb();
+                }
+                throw err;
+              });
+            }
+            return res;
+          } catch (err) {
+            if (isConnectionError(err)) {
+              console.warn("[DB Proxy] Connection error detected, resetting pool:", err?.message || err);
+              resetDb();
+            }
+            throw err;
+          }
+        };
+      }
+      return val;
+    } catch (err) {
+      resetDb();
+      return getDb()[prop];
+    }
   }
 });
 

@@ -3239,12 +3239,17 @@ export function registerRoutes(
   // Send mix notification to Discord (admin only)
   // ===== Web Push (VAPID) =====
   app.get('/api/push/vapid-public-key', async (_req, res) => {
-    let key = getVapidPublicKey();
-    if (!key) {
-      await initPush();
-      key = getVapidPublicKey();
+    try {
+      let key = getVapidPublicKey();
+      if (!key) {
+        await initPush();
+        key = getVapidPublicKey();
+      }
+      res.json({ publicKey: key });
+    } catch (err) {
+      console.error("[Push VAPID Error]:", err);
+      res.json({ publicKey: null });
     }
-    res.json({ publicKey: key });
   });
 
   app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {
@@ -3438,7 +3443,7 @@ export function registerRoutes(
       const parsed = schema.safeParse(req.body);
       if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
 
-      const result = await sendMixNotification(parsed.data.date, parsed.data.message || undefined);
+      const result = await sendMixNotification(parsed.data.date, parsed.data.message ?? undefined);
       if (result.ok) {
         res.json({ success: true, message: "Notificação enviada ao Discord!" });
       } else {
