@@ -272,11 +272,15 @@ export const isAuthenticated = async (req: any, res: any, next: any) => {
       } as any;
     }
 
-    if (session.steamId64 === "76561198308656936") {
+    if (user && session.steamId64 === "76561198308656936") {
       user.isAdmin = true;
     }
 
-    req.user = user;
+    req.user = {
+      ...user,
+      claims: { sub: user?.id || session.userId, email: user?.email || null },
+    };
+    req.isAuthenticated = () => true;
     next();
   } catch (err) {
     console.error("[isAuthenticated Error]:", err);

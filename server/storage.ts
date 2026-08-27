@@ -172,6 +172,7 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   // User operations (required for Replit Auth)
   async getUser(id: string): Promise<User | undefined> {
+    if (!id) return undefined;
     try {
       const [user] = await db.select().from(users).where(eq(users.id, id));
       return user;
@@ -182,6 +183,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    if (!userData || !userData.id) throw new Error("ID do usuário é obrigatório para upsert");
     try {
       const existingUsers = await db.select({ id: users.id }).from(users).limit(1);
       const isFirstUser = existingUsers.length === 0;
@@ -231,6 +233,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async banUser(id: string): Promise<User | undefined> {
+    if (!id) return undefined;
     const [user] = await db
       .update(users)
       .set({ isBanned: true, updatedAt: new Date() })
@@ -240,6 +243,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async unbanUser(id: string): Promise<User | undefined> {
+    if (!id) return undefined;
     const [user] = await db
       .update(users)
       .set({ isBanned: false, updatedAt: new Date() })
@@ -249,6 +253,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async cheaterBanUser(id: string): Promise<User | undefined> {
+    if (!id) return undefined;
     const [user] = await db
       .update(users)
       .set({ isBanned: true, isCheaterBanned: true, updatedAt: new Date() })
@@ -258,6 +263,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserBySteamId(steamId64: string): Promise<User | undefined> {
+    if (!steamId64) return undefined;
     try {
       const [user] = await db.select().from(users).where(eq(users.steamId64, steamId64));
       return user;
@@ -268,6 +274,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByDiscordId(discordUserId: string): Promise<User | undefined> {
+    if (!discordUserId) return undefined;
     try {
       const [user] = await db.select().from(users).where(eq(users.discordUserId, discordUserId));
       return user;
@@ -838,20 +845,51 @@ export class DatabaseStorage implements IStorage {
 
   // Casino operations
   async getCasinoBalance(userId: string): Promise<CasinoBalance | undefined> {
-    const [balance] = await db.select().from(casinoBalances).where(eq(casinoBalances.userId, userId));
-    return balance;
+    if (!userId) return undefined;
+    try {
+      const [balance] = await db.select().from(casinoBalances).where(eq(casinoBalances.userId, userId));
+      return balance;
+    } catch (err) {
+      console.error("[Storage] getCasinoBalance error:", err);
+      return undefined;
+    }
   }
 
   async getOrCreateCasinoBalance(userId: string): Promise<CasinoBalance> {
+    if (!userId) {
+      return {
+        id: "default",
+        userId: "unknown",
+        balance: 10000000,
+        totalWon: 0,
+        totalLost: 0,
+        totalBets: 0,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+    }
     let balance = await this.getCasinoBalance(userId);
     if (!balance) {
-      const [newBalance] = await db.insert(casinoBalances).values({
-        userId,
-        balance: 10000000, // R$10 million starting balance
-      }).returning();
-      balance = newBalance;
+      try {
+        const [newBalance] = await db.insert(casinoBalances).values({
+          userId,
+          balance: 10000000, // R$10 million starting balance
+        }).returning();
+        balance = newBalance;
+      } catch (err) {
+        console.error("[Storage] getOrCreateCasinoBalance insert error:", err);
+      }
     }
-    return balance;
+    return balance || {
+      id: "default",
+      userId,
+      balance: 10000000,
+      totalWon: 0,
+      totalLost: 0,
+      totalBets: 0,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
   }
 
   async updateCasinoBalance(userId: string, delta: number, type: string, description: string): Promise<CasinoBalance | undefined> {

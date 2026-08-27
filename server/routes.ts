@@ -3184,41 +3184,56 @@ export function registerRoutes(
 
   // Get Discord bot status + diagnostics
   app.get('/api/discord/status', isAuthenticated, async (req: any, res) => {
-    res.json({
-      connected: isDiscordReady(),
-      error: getLastError(),
-      inviteUrl: getBotInviteUrl(),
-    });
+    try {
+      res.json({
+        connected: isDiscordReady(),
+        error: getLastError(),
+        inviteUrl: getBotInviteUrl(),
+      });
+    } catch (err) {
+      console.error("[Discord Status Error]:", err);
+      res.json({ connected: false, error: "Falha ao verificar Discord", inviteUrl: null });
+    }
   });
 
   // Link Discord user ID to profile
   app.post('/api/discord/link', isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
-    if (!userId) return res.status(401).json({ message: "Não autenticado" });
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Não autenticado" });
 
-    const schema = z.object({ discordUserId: z.string().min(15).max(32) });
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "ID do Discord inválido" });
+      const schema = z.object({ discordUserId: z.string().min(15).max(32) });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "ID do Discord inválido" });
 
-    const { discordUserId } = parsed.data;
+      const { discordUserId } = parsed.data;
 
-    // Check if already taken
-    const existing = await storage.getUserByDiscordId(discordUserId);
-    if (existing && existing.id !== userId) {
-      return res.status(409).json({ message: "Este ID do Discord já está vinculado a outra conta" });
+      // Check if already taken
+      const existing = await storage.getUserByDiscordId(discordUserId);
+      if (existing && existing.id !== userId) {
+        return res.status(409).json({ message: "Este ID do Discord já está vinculado a outra conta" });
+      }
+
+      await db.update(users).set({ discordUserId }).where(eq(users.id, userId));
+      const updated = await storage.getUser(userId);
+      res.json(updated);
+    } catch (err: any) {
+      console.error("[Discord Link Error]:", err);
+      res.status(400).json({ message: err.message || "Erro ao vincular Discord" });
     }
-
-    await db.update(users).set({ discordUserId }).where(eq(users.id, userId));
-    const updated = await storage.getUser(userId);
-    res.json(updated);
   });
 
   // Unlink Discord
   app.delete('/api/discord/link', isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
-    if (!userId) return res.status(401).json({ message: "Não autenticado" });
-    await db.update(users).set({ discordUserId: null }).where(eq(users.id, userId));
-    res.json({ success: true });
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Não autenticado" });
+      await db.update(users).set({ discordUserId: null }).where(eq(users.id, userId));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[Discord Unlink Error]:", err);
+      res.status(400).json({ message: err.message || "Erro ao desvincular Discord" });
+    }
   });
 
   // Send mix notification to Discord (admin only)
@@ -3233,62 +3248,77 @@ export function registerRoutes(
   });
 
   app.post('/api/push/subscribe', isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub ?? req.user?.id;
-    if (!userId) return res.status(401).json({ message: "Não autenticado" });
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Não autenticado" });
 
-    const schema = z.object({
-      endpoint: z.string().url(),
-      p256dh: z.string().min(1),
-      auth: z.string().min(1),
-      userAgent: z.string().optional(),
-    });
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
-
-    const { endpoint, p256dh, auth, userAgent } = parsed.data;
-    await db
-      .insert(pushSubscriptions)
-      .values({ userId, endpoint, p256dh, auth, userAgent: userAgent ?? null })
-      .onConflictDoUpdate({
-        target: pushSubscriptions.endpoint,
-        set: { userId, p256dh, auth, userAgent: userAgent ?? null },
+      const schema = z.object({
+        endpoint: z.string().url(),
+        p256dh: z.string().min(1),
+        auth: z.string().min(1),
+        userAgent: z.string().optional(),
       });
-    res.json({ success: true });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+
+      const { endpoint, p256dh, auth, userAgent } = parsed.data;
+      await db
+        .insert(pushSubscriptions)
+        .values({ userId, endpoint, p256dh, auth, userAgent: userAgent ?? null })
+        .onConflictDoUpdate({
+          target: pushSubscriptions.endpoint,
+          set: { userId, p256dh, auth, userAgent: userAgent ?? null },
+        });
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[Push Subscribe Error]:", err);
+      res.status(400).json({ message: err.message || "Erro ao inscrever push" });
+    }
   });
 
   app.post('/api/push/unsubscribe', isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub ?? req.user?.id;
-    if (!userId) return res.status(401).json({ message: "Não autenticado" });
-    const schema = z.object({ endpoint: z.string().url() });
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
-    await db
-      .delete(pushSubscriptions)
-      .where(and(eq(pushSubscriptions.endpoint, parsed.data.endpoint), eq(pushSubscriptions.userId, userId)));
-    res.json({ success: true });
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      if (!userId) return res.status(401).json({ message: "Não autenticado" });
+      const schema = z.object({ endpoint: z.string().url() });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+      await db
+        .delete(pushSubscriptions)
+        .where(and(eq(pushSubscriptions.endpoint, parsed.data.endpoint), eq(pushSubscriptions.userId, userId)));
+      res.json({ success: true });
+    } catch (err: any) {
+      console.error("[Push Unsubscribe Error]:", err);
+      res.status(400).json({ message: err.message || "Erro ao desinscrever push" });
+    }
   });
 
   // Admin: send a push notification to ALL subscribers (used for mix list announcements)
   app.post('/api/mix/push-notify', isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub ?? req.user?.id;
-    const currentUser = await storage.getUser(userId);
-    if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const currentUser = userId ? await storage.getUser(userId) : null;
+      if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
 
-    const schema = z.object({
-      title: z.string().min(1).max(120).optional(),
-      body: z.string().min(1).max(300).optional(),
-      url: z.string().optional(),
-    });
-    const parsed = schema.safeParse(req.body ?? {});
-    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+      const schema = z.object({
+        title: z.string().min(1).max(120).optional(),
+        body: z.string().min(1).max(300).optional(),
+        url: z.string().optional(),
+      });
+      const parsed = schema.safeParse(req.body ?? {});
+      if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
 
-    const result = await sendPushToAll({
-      title: parsed.data.title ?? "Lista do Mix aberta!",
-      body: parsed.data.body ?? "A lista de hoje está aberta. Garanta sua vaga agora!",
-      url: parsed.data.url ?? "/mix/disponibilidade",
-      tag: "mix-list-open",
-    });
-    res.json({ success: true, ...result });
+      const result = await sendPushToAll({
+        title: parsed.data.title ?? "Lista do Mix aberta!",
+        body: parsed.data.body ?? "A lista de hoje está aberta. Garanta sua vaga agora!",
+        url: parsed.data.url ?? "/mix/disponibilidade",
+        tag: "mix-list-open",
+      });
+      res.json({ success: true, ...result });
+    } catch (err: any) {
+      console.error("[Push Notify Error]:", err);
+      res.status(400).json({ message: err.message || "Erro ao enviar notificação push" });
+    }
   });
 
   // Admin: aggregated activity report
@@ -3396,44 +3426,54 @@ export function registerRoutes(
   });
 
   app.post('/api/discord/mix-notify', isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
-    const currentUser = await storage.getUser(userId);
-    if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const currentUser = userId ? await storage.getUser(userId) : null;
+      if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
 
-    const schema = z.object({
-      date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      message: z.string().optional(),
-    });
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+      const schema = z.object({
+        date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        message: z.string().optional(),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
 
-    const result = await sendMixNotification(parsed.data.date, parsed.data.message);
-    if (result.ok) {
-      res.json({ success: true, message: "Notificação enviada ao Discord!" });
-    } else {
-      res.status(503).json({ message: result.error || "Falha ao enviar notificação" });
+      const result = await sendMixNotification(parsed.data.date, parsed.data.message || undefined);
+      if (result.ok) {
+        res.json({ success: true, message: "Notificação enviada ao Discord!" });
+      } else {
+        res.status(503).json({ message: result.error || "Falha ao enviar notificação" });
+      }
+    } catch (err: any) {
+      console.error("[Discord Mix Notify Error]:", err);
+      res.status(400).json({ message: err.message || "Erro ao notificar Discord" });
     }
   });
 
   // Send custom news notification to Discord (admin only)
   app.post('/api/discord/notify', isAuthenticated, async (req: any, res) => {
-    const userId = req.user?.claims?.sub;
-    const currentUser = await storage.getUser(userId);
-    if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
+    try {
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const currentUser = userId ? await storage.getUser(userId) : null;
+      if (!currentUser?.isAdmin) return res.status(403).json({ message: "Acesso negado" });
 
-    const schema = z.object({
-      title: z.string().min(1).max(200),
-      description: z.string().min(1).max(2000),
-      mentionEveryone: z.boolean().optional().default(false),
-    });
-    const parsed = schema.safeParse(req.body);
-    if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
+      const schema = z.object({
+        title: z.string().min(1).max(200),
+        description: z.string().min(1).max(2000),
+        mentionEveryone: z.boolean().optional().default(false),
+      });
+      const parsed = schema.safeParse(req.body);
+      if (!parsed.success) return res.status(400).json({ message: "Dados inválidos" });
 
-    const result = await sendNewsNotification(parsed.data.title, parsed.data.description, parsed.data.mentionEveryone);
-    if (result.ok) {
-      res.json({ success: true, message: "Notificação enviada ao Discord!" });
-    } else {
-      res.status(503).json({ message: result.error || "Falha ao enviar notificação" });
+      const result = await sendNewsNotification(parsed.data.title, parsed.data.description, parsed.data.mentionEveryone);
+      if (result.ok) {
+        res.json({ success: true, message: "Notificação enviada ao Discord!" });
+      } else {
+        res.status(503).json({ message: result.error || "Falha ao enviar notificação" });
+      }
+    } catch (err: any) {
+      console.error("[Discord Notify Error]:", err);
+      res.status(400).json({ message: err.message || "Erro ao notificar Discord" });
     }
   });
 
@@ -3812,8 +3852,8 @@ export function registerRoutes(
   // POST /api/fantasy/rounds/:id/calculate — admin calculates points
   app.post("/api/fantasy/rounds/:id/calculate", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims?.sub || req.user.id;
-      const adminUser = await storage.getUser(userId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const adminUser = userId ? await storage.getUser(userId) : null;
       if (!adminUser?.isAdmin) return res.status(403).json({ message: "Acesso negado." });
       const roundId = parseInt(req.params.id);
       const round = await db.execute(
@@ -3880,8 +3920,8 @@ export function registerRoutes(
   // DELETE /api/fantasy/rounds/:id — admin deletes a round
   app.delete("/api/fantasy/rounds/:id", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user.claims?.sub || req.user.id;
-      const adminUser = await storage.getUser(userId);
+      const userId = req.user?.id || req.user?.claims?.sub;
+      const adminUser = userId ? await storage.getUser(userId) : null;
       if (!adminUser?.isAdmin) return res.status(403).json({ message: "Acesso negado." });
       await db.execute(sql`DELETE FROM fantasy_rounds WHERE id = ${parseInt(req.params.id)}`);
       res.json({ success: true });
@@ -3947,7 +3987,7 @@ export function registerRoutes(
   }
 
   async function ensureAdmin(req: any, res: any) {
-    const userId = req.user?.claims?.sub;
+    const userId = req.user?.id || req.user?.claims?.sub;
     if (!userId) {
       res.status(401).json({ message: "Não autenticado" });
       return null;
@@ -4081,7 +4121,7 @@ export function registerRoutes(
   // For the winner: get unseen wins, mark as seen
   app.get("/api/raffles/my-unseen-wins", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id || req.user?.claims?.sub;
       if (!userId) return res.status(401).json({ message: "Não autenticado" });
       const rows = await db
         .select()
@@ -4097,7 +4137,7 @@ export function registerRoutes(
 
   app.post("/api/raffles/:id/mark-seen", isAuthenticated, async (req: any, res) => {
     try {
-      const userId = req.user?.claims?.sub;
+      const userId = req.user?.id || req.user?.claims?.sub;
       if (!userId) return res.status(401).json({ message: "Não autenticado" });
       const [r] = await db.select().from(raffles).where(eq(raffles.id, req.params.id));
       if (!r || r.winnerUserId !== userId) return res.status(404).json({ message: "Sorteio não encontrado" });
@@ -4190,10 +4230,10 @@ export function registerTournament2x2Routes(app: any, isAuthenticated: any) {
   app.get("/api/tournament-2x2/teams", async (req: any, res: any) => {
     try {
       const teams = await storage.listTournament2x2Teams();
-      const isAuth = typeof req.isAuthenticated === 'function' ? req.isAuthenticated() : false;
+      const userId = req.user?.id || req.user?.claims?.sub;
       let isAdmin = false;
-      if (isAuth && req.user?.claims?.sub) {
-        const u = await storage.getUser((req.user?.id || req.user?.claims?.sub));
+      if (userId) {
+        const u = await storage.getUser(userId);
         isAdmin = !!u?.isAdmin;
       }
       res.json(teams.map((t) => sanitizeTournament2x2Team(t, isAdmin)));
