@@ -3,30 +3,6 @@
   "outputDirectory": "dist/public",
   "rewrites": [
     {
-      "source": "/api/auth/steam/callback",
-      "destination": "/api/auth/callback"
-    },
-    {
-      "source": "/api/auth/steam",
-      "destination": "/api/auth/steam"
-    },
-    {
-      "source": "/api/auth/user",
-      "destination": "/api/auth/user"
-    },
-    {
-      "source": "/api/auth/logout",
-      "destination": "/api/auth/logout"
-    },
-    {
-      "source": "/api/logout",
-      "destination": "/api/auth/logout"
-    },
-    {
-      "source": "/api/ping",
-      "destination": "/api/ping"
-    },
-    {
       "source": "/api/(.*)",
       "destination": "/api"
     },

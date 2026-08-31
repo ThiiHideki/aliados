@@ -214,6 +214,7 @@ export function setupNativeSteamAuth(app: Express) {
   };
 
   app.get("/api/auth/steam/callback", handleSteamCallback);
+  app.get("/api/auth/callback", handleSteamCallback);
   app.get("/auth/steam/callback", handleSteamCallback);
 
   // 3. Get Current Logged-in User
