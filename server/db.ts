@@ -22,12 +22,19 @@ export function resetDb() {
 export function getDb() {
   if (!_db || !_client) {
     const isVercel = !!process.env.VERCEL || process.env.NODE_ENV === "production";
-    _client = postgres(connectionString, {
+
+    let url = connectionString;
+    if (isVercel && url.includes(".supabase.co:5432")) {
+      url = url.replace(".supabase.co:5432", ".supabase.co:6543");
+    }
+
+    _client = postgres(url, {
       prepare: false,
       ssl: { rejectUnauthorized: false },
-      max: isVercel ? 5 : 10,
-      idle_timeout: 30,
+      max: isVercel ? 2 : 10,
+      idle_timeout: 10,
       connect_timeout: 10,
+      max_lifetime: 60,
       onnotice: () => {},
     });
     _db = drizzle(_client, { schema });
@@ -47,8 +54,53 @@ function isConnectionError(err: any): boolean {
     msg.includes("socket_closed") ||
     msg.includes("connection error") ||
     msg.includes("connection terminated") ||
-    msg.includes("connection timeout")
+    msg.includes("connection timeout") ||
+    msg.includes("too many clients")
   );
+}
+
+function makeSafeProxy(obj: any): any {
+  if (!obj || (typeof obj !== "object" && typeof obj !== "function")) {
+    return obj;
+  }
+
+  return new Proxy(obj, {
+    get(target, prop, receiver) {
+      const val = Reflect.get(target, prop, receiver);
+
+      if (prop === "then" && typeof val === "function") {
+        return function (onFulfilled?: any, onRejected?: any) {
+          return val.call(target, onFulfilled, (err: any) => {
+            if (isConnectionError(err)) {
+              console.warn("[DB SafeProxy] Connection error detected, resetting pool:", err?.message || err);
+              resetDb();
+            }
+            if (typeof onRejected === "function") {
+              return onRejected(err);
+            }
+            throw err;
+          });
+        };
+      }
+
+      if (typeof val === "function") {
+        return function (...args: any[]) {
+          try {
+            const res = val.apply(target, args);
+            return makeSafeProxy(res);
+          } catch (err: any) {
+            if (isConnectionError(err)) {
+              console.warn("[DB SafeProxy] Synchronous call connection error, resetting pool:", err?.message || err);
+              resetDb();
+            }
+            throw err;
+          }
+        };
+      }
+
+      return makeSafeProxy(val);
+    },
+  });
 }
 
 export const db = new Proxy({} as any, {
@@ -60,16 +112,7 @@ export const db = new Proxy({} as any, {
         return function (...args: any[]) {
           try {
             const res = val.apply(instance, args);
-            if (res && typeof res.catch === "function") {
-              return res.catch((err: any) => {
-                if (isConnectionError(err)) {
-                  console.warn("[DB Proxy] Connection error detected, resetting pool for next query:", err?.message || err);
-                  resetDb();
-                }
-                throw err;
-              });
-            }
-            return res;
+            return makeSafeProxy(res);
           } catch (err: any) {
             if (isConnectionError(err)) {
               console.warn("[DB Proxy] Connection error detected, resetting pool:", err?.message || err);
@@ -79,10 +122,10 @@ export const db = new Proxy({} as any, {
           }
         };
       }
-      return val;
+      return makeSafeProxy(val);
     } catch (err) {
       resetDb();
-      return (getDb() as any)[prop];
+      return makeSafeProxy((getDb() as any)[prop]);
     }
   },
 });
