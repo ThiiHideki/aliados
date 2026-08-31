@@ -13788,12 +13788,17 @@ function resetDb() {
 function getDb() {
   if (!_db || !_client) {
     const isVercel = !!process.env.VERCEL || true;
-    _client = src_default(connectionString, {
+    let url = connectionString;
+    if (isVercel && url.includes(".supabase.co:5432")) {
+      url = url.replace(".supabase.co:5432", ".supabase.co:6543");
+    }
+    _client = src_default(url, {
       prepare: false,
       ssl: { rejectUnauthorized: false },
-      max: isVercel ? 5 : 10,
-      idle_timeout: 30,
+      max: isVercel ? 2 : 10,
+      idle_timeout: 10,
       connect_timeout: 10,
+      max_lifetime: 60,
       onnotice: () => {
       }
     });
@@ -13805,7 +13810,46 @@ function isConnectionError(err) {
   if (!err) return false;
   const msg = (err.message || String(err)).toLowerCase();
   const code = err.code || "";
-  return code === "57P01" || code === "ECONNRESET" || code === "ETIMEDOUT" || msg.includes("connection_ended") || msg.includes("socket_closed") || msg.includes("connection error") || msg.includes("connection terminated") || msg.includes("connection timeout");
+  return code === "57P01" || code === "ECONNRESET" || code === "ETIMEDOUT" || msg.includes("connection_ended") || msg.includes("socket_closed") || msg.includes("connection error") || msg.includes("connection terminated") || msg.includes("connection timeout") || msg.includes("too many clients");
+}
+function makeSafeProxy(obj) {
+  if (!obj || typeof obj !== "object" && typeof obj !== "function") {
+    return obj;
+  }
+  return new Proxy(obj, {
+    get(target, prop, receiver) {
+      const val = Reflect.get(target, prop, receiver);
+      if (prop === "then" && typeof val === "function") {
+        return function(onFulfilled, onRejected) {
+          return val.call(target, onFulfilled, (err) => {
+            if (isConnectionError(err)) {
+              console.warn("[DB SafeProxy] Connection error detected, resetting pool:", err?.message || err);
+              resetDb();
+            }
+            if (typeof onRejected === "function") {
+              return onRejected(err);
+            }
+            throw err;
+          });
+        };
+      }
+      if (typeof val === "function") {
+        return function(...args) {
+          try {
+            const res = val.apply(target, args);
+            return makeSafeProxy(res);
+          } catch (err) {
+            if (isConnectionError(err)) {
+              console.warn("[DB SafeProxy] Synchronous call connection error, resetting pool:", err?.message || err);
+              resetDb();
+            }
+            throw err;
+          }
+        };
+      }
+      return makeSafeProxy(val);
+    }
+  });
 }
 var db = new Proxy({}, {
   get(_target, prop) {
@@ -13816,16 +13860,7 @@ var db = new Proxy({}, {
         return function(...args) {
           try {
             const res = val.apply(instance, args);
-            if (res && typeof res.catch === "function") {
-              return res.catch((err) => {
-                if (isConnectionError(err)) {
-                  console.warn("[DB Proxy] Connection error detected, resetting pool for next query:", err?.message || err);
-                  resetDb();
-                }
-                throw err;
-              });
-            }
-            return res;
+            return makeSafeProxy(res);
           } catch (err) {
             if (isConnectionError(err)) {
               console.warn("[DB Proxy] Connection error detected, resetting pool:", err?.message || err);
@@ -13835,10 +13870,10 @@ var db = new Proxy({}, {
           }
         };
       }
-      return val;
+      return makeSafeProxy(val);
     } catch (err) {
       resetDb();
-      return getDb()[prop];
+      return makeSafeProxy(getDb()[prop]);
     }
   }
 });
