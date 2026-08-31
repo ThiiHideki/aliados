@@ -24,6 +24,26 @@ async function buildAll() {
     external: externals,
     logLevel: "info",
   });
+
+  console.log("building vercel auth handlers...");
+  await esbuild({
+    entryPoints: [
+      "server/auth/steam.ts",
+      "server/auth/callback.ts",
+      "server/auth/user.ts",
+      "server/auth/logout.ts",
+    ],
+    platform: "node",
+    bundle: true,
+    format: "esm",
+    outdir: "api/auth",
+    define: {
+      "process.env.NODE_ENV": '"production"',
+    },
+    minify: false,
+    external: externals,
+    logLevel: "info",
+  });
 }
 
 buildAll().catch((err) => {

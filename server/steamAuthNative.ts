@@ -113,7 +113,7 @@ export function setupNativeSteamAuth(app: Express) {
       const rawHost = (req.headers["x-forwarded-host"] as string) || req.headers.host || req.hostname || "localhost";
       const host = rawHost.split(",")[0].trim();
 
-      const returnUrl = `${scheme}://${host}/api/auth/steam/callback`;
+      const returnUrl = `${scheme}://${host}/api/auth/callback`;
       const realm = `${scheme}://${host}/`;
 
       const params = new URLSearchParams({
