@@ -78,9 +78,10 @@ app.use((req, res, next) => {
   sendInitialNotificationsIfNeeded().catch((err) => console.error("[InitNotif] Erro:", err));
   initPush().catch((err) => console.error("[Push] Falha ao iniciar:", err));
 
-  app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
-    const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+  app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+    console.error(`[Server Error ${req.method} ${req.url}]:`, err);
+    const status = err.status || err.statusCode || 400;
+    const message = err.message || "Erro no servidor";
 
     if (!res.headersSent) {
       res.status(status).json({ message });

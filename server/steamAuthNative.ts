@@ -223,10 +223,58 @@ export function setupNativeSteamAuth(app: Express) {
       if (!session || !session.userId) {
         return res.status(401).json({ message: "Unauthorized" });
       }
-      const user = await storage.getUser(session.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
+
+      let user = await storage.getUser(session.userId);
+      if (!user && session.steamId64) {
+        user = await storage.getUserBySteamId(session.steamId64);
       }
+
+      const isHardcodedAdmin = session.steamId64 === "76561198308656936";
+
+      if (!user) {
+        const rawSteamId = session.steamId64 || session.userId.replace("steam_", "");
+        const nickname = `Jogador_${rawSteamId.slice(-6)}`;
+        const avatar = "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg";
+
+        user = await storage.upsertUser({
+          id: session.userId,
+          steamId64: rawSteamId,
+          firstName: nickname,
+          nickname: nickname,
+          profileImageUrl: avatar,
+          isAdmin: isHardcodedAdmin,
+        }).catch(() => undefined);
+      }
+
+      if (!user) {
+        const rawSteamId = session.steamId64 || session.userId.replace("steam_", "");
+        user = {
+          id: session.userId,
+          steamId64: rawSteamId,
+          nickname: `Jogador_${rawSteamId.slice(-6)}`,
+          firstName: `Jogador_${rawSteamId.slice(-6)}`,
+          lastName: null,
+          email: null,
+          profileImageUrl: "https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg",
+          isAdmin: isHardcodedAdmin,
+          totalKills: 0,
+          totalDeaths: 0,
+          totalAssists: 0,
+          totalHeadshots: 0,
+          totalDamage: 0,
+          totalMatches: 0,
+          matchesWon: 0,
+          matchesLost: 0,
+          totalRoundsPlayed: 0,
+          roundsWon: 0,
+          totalMvps: 0,
+        } as any;
+      }
+
+      if (user && isHardcodedAdmin) {
+        user.isAdmin = true;
+      }
+
       res.json(user);
     } catch (error: any) {
       console.error("[SteamAuth] GetUser error:", error);
@@ -251,39 +299,40 @@ export function setupNativeSteamAuth(app: Express) {
 }
 
 export const isAuthenticated = async (req: any, res: any, next: any) => {
-  try {
-    const session = getSessionFromReq(req);
-    if (!session || !session.userId) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+  const session = getSessionFromReq(req);
+  if (!session || !session.userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
 
-    let user = await storage.getUser(session.userId);
+  let user: any;
+  try {
+    user = await storage.getUser(session.userId);
     if (!user && session.steamId64) {
       user = await storage.getUserBySteamId(session.steamId64);
     }
-
-    if (!user) {
-      const isHardcodedAdmin = session.steamId64 === "76561198308656936";
-      user = {
-        id: session.userId,
-        steamId64: session.steamId64,
-        nickname: `Jogador_${session.steamId64 ? session.steamId64.slice(-6) : "000000"}`,
-        isAdmin: isHardcodedAdmin,
-      } as any;
-    }
-
-    if (user && session.steamId64 === "76561198308656936") {
-      user.isAdmin = true;
-    }
-
-    req.user = {
-      ...user,
-      claims: { sub: user?.id || session.userId, email: user?.email || null },
-    };
-    req.isAuthenticated = () => true;
-    next();
-  } catch (err) {
-    console.error("[isAuthenticated Error]:", err);
-    res.status(401).json({ message: "Unauthorized" });
+  } catch (dbErr) {
+    console.error("[isAuthenticated DB Error]:", dbErr);
   }
+
+  if (!user) {
+    const isHardcodedAdmin = session.steamId64 === "76561198308656936";
+    user = {
+      id: session.userId,
+      steamId64: session.steamId64,
+      nickname: `Jogador_${session.steamId64 ? session.steamId64.slice(-6) : "000000"}`,
+      isAdmin: isHardcodedAdmin,
+    } as any;
+  }
+
+  if (user && session.steamId64 === "76561198308656936") {
+    user.isAdmin = true;
+  }
+
+  req.user = {
+    ...user,
+    claims: { sub: user?.id || session.userId, email: user?.email || null },
+  };
+  req.isAuthenticated = () => true;
+
+  return next();
 };
