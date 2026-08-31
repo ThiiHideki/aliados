@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, fetchWithAuth, queryClient } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -57,9 +57,8 @@ export default function AdminSorteios() {
   const eligibleQuery = useQuery<EligibleResponse>({
     queryKey: ["/api/admin/raffles/eligible", year, month, minMatches],
     queryFn: async () => {
-      const res = await fetch(
-        `/api/admin/raffles/eligible?year=${year}&month=${month}&minMatches=${minMatches}`,
-        { credentials: "include" },
+      const res = await fetchWithAuth(
+        `/api/admin/raffles/eligible?year=${year}&month=${month}&minMatches=${minMatches}`
       );
       if (!res.ok) throw new Error("Erro ao carregar elegíveis");
       return res.json();

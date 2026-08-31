@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, fetchWithAuth, queryClient } from "@/lib/queryClient";
 import { 
   User as UserIcon, Trophy, Target, Crosshair, Shield, Star, TrendingUp, 
   Zap, Award, Eye, Link2, Check, AlertCircle, Edit2, Save, X, ArrowLeft,
@@ -39,7 +39,7 @@ export default function PerfilJogador() {
     queryKey: ["/api/users", id],
     queryFn: async ({ queryKey }) => {
       const playerId = queryKey[1];
-      const res = await fetch(`/api/users/${playerId}`, { credentials: "include" });
+      const res = await fetchWithAuth(`/api/users/${playerId}`);
       if (!res.ok) throw new Error("Failed to fetch player");
       return res.json();
     },
@@ -81,7 +81,7 @@ export default function PerfilJogador() {
     queryKey: ['/api/users', id, 'matches'],
     queryFn: async () => {
       if (!id) return [];
-      const res = await fetch(`/api/users/${id}/matches`, { credentials: 'include' });
+      const res = await fetchWithAuth(`/api/users/${id}/matches`);
       if (!res.ok) return [];
       return res.json();
     },

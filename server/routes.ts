@@ -298,13 +298,14 @@ export function registerRoutes(
         return res.status(401).json({ message: "Usuário não autenticado" });
       }
 
-      const { firstName, lastName, nickname, profileImageUrl, steamId64 } = req.body;
+      const { firstName, lastName, nickname, profileImageUrl, steamId64, discordUserId } = req.body;
       
       const updates: any = { updatedAt: new Date() };
       if (firstName !== undefined && firstName !== null) updates.firstName = firstName;
       if (lastName !== undefined && lastName !== null) updates.lastName = lastName;
       if (nickname !== undefined && nickname !== null && nickname.trim() !== '') updates.nickname = nickname;
       if (profileImageUrl !== undefined && profileImageUrl !== null) updates.profileImageUrl = profileImageUrl;
+      if (discordUserId !== undefined && discordUserId !== null) updates.discordUserId = discordUserId;
       if (steamId64 !== undefined && steamId64 !== null && steamId64.trim() !== '' && steamId64 !== req.user?.steamId64) {
         updates.steamId64 = steamId64;
       }

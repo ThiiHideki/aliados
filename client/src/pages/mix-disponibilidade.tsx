@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, fetchWithAuth } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation, Link } from "wouter";
@@ -117,7 +117,7 @@ export default function MixDisponibilidade() {
   const { data: mixList = [], isLoading } = useQuery<MixEntry[]>({
     queryKey: ['/api/mix/availability', currentDate],
     queryFn: async () => {
-      const res = await fetch(`/api/mix/availability/${currentDate}`, { credentials: 'include' });
+      const res = await fetchWithAuth(`/api/mix/availability/${currentDate}`);
       if (!res.ok) throw new Error('Failed to fetch');
       return res.json();
     },
@@ -126,7 +126,7 @@ export default function MixDisponibilidade() {
   const { data: penaltyData } = useQuery<{ count: number; forcedSub: boolean; suspended: boolean }>({
     queryKey: ['/api/mix/penalties', user?.id],
     queryFn: async () => {
-      const res = await fetch(`/api/mix/penalties/${user?.id}`, { credentials: 'include' });
+      const res = await fetchWithAuth(`/api/mix/penalties/${user?.id}`);
       if (!res.ok) return { count: 0, forcedSub: false, suspended: false };
       return res.json();
     },

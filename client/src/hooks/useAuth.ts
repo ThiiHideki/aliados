@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import type { User } from "@shared/schema";
 
 const TOKEN_KEY = "aliados_session_token";
@@ -58,8 +59,20 @@ async function fetchUser(): Promise<User | null> {
   return response.json();
 }
 
+export function logoutUser() {
+  try {
+    localStorage.removeItem(TOKEN_KEY);
+  } catch {}
+  queryClient.clear();
+  window.location.href = "/api/auth/logout";
+}
+
+export function loginWithSteam() {
+  window.location.href = "/api/auth/steam";
+}
+
 export function useAuth() {
-  const { data: user, isLoading, isError } = useQuery<User | null>({
+  const { data: user, isLoading, isError, refetch } = useQuery<User | null>({
     queryKey: ["/api/auth/user"],
     queryFn: fetchUser,
     retry: false,
@@ -72,5 +85,9 @@ export function useAuth() {
     isLoading,
     isAuthenticated: !!user,
     isError,
+    logout: logoutUser,
+    loginWithSteam,
+    refetchUser: refetch,
   };
 }
+

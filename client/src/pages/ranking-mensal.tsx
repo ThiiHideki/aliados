@@ -11,7 +11,7 @@ import { Link } from "wouter";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, fetchWithAuth, queryClient } from "@/lib/queryClient";
 import { LevelBadge } from "@/components/ui/level-badge";
 import { getLevel } from "@/lib/level-utils";
 
@@ -90,7 +90,7 @@ export default function RankingMensal() {
   const { data, isLoading } = useQuery<MonthlyStatsResponse>({
     queryKey: ['/api/stats/monthly', selectedMonth.year, selectedMonth.month],
     queryFn: async () => {
-      const res = await fetch(`/api/stats/monthly/${selectedMonth.year}/${selectedMonth.month}`, { credentials: 'include' });
+      const res = await fetchWithAuth(`/api/stats/monthly/${selectedMonth.year}/${selectedMonth.month}`);
       if (!res.ok) throw new Error('Failed to fetch');
       return res.json();
     },

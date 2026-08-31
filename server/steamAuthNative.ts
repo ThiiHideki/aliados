@@ -206,7 +206,7 @@ export function setupNativeSteamAuth(app: Express) {
       const cookieHeader = `${COOKIE_NAME}=${token}; Path=/; Max-Age=2592000; HttpOnly; SameSite=Lax${isProd ? "; Secure" : ""}`;
 
       res.setHeader("Set-Cookie", cookieHeader);
-      res.redirect("/");
+      res.redirect(`/?token=${token}&login=success`);
     } catch (error) {
       console.error("[SteamAuth] Callback error:", error);
       res.redirect("/?auth_error=steam_failed");

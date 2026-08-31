@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, fetchWithAuth } from "@/lib/queryClient";
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
@@ -64,7 +64,7 @@ export function usePushNotifications() {
       }
       const reg = await navigator.serviceWorker.ready;
 
-      const keyRes = await fetch("/api/push/vapid-public-key", { credentials: "include" });
+      const keyRes = await fetchWithAuth("/api/push/vapid-public-key");
       const { publicKey } = await keyRes.json();
       if (!publicKey) throw new Error("VAPID public key indisponível");
 

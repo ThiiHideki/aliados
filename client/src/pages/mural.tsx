@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient, apiRequest } from "@/lib/queryClient";
+import { queryClient, apiRequest, fetchWithAuth } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -100,7 +100,7 @@ export default function Mural() {
   const { data: latestMvp } = useQuery<{ match: Match; mvpStats: MatchStats; mvpUser: UserType } | null>({
     queryKey: ["/api/matches/latest-mvp"],
     queryFn: async () => {
-      const res = await fetch("/api/matches/latest-mvp", { credentials: "include" });
+      const res = await fetchWithAuth("/api/matches/latest-mvp");
       if (!res.ok) return null;
       return res.json();
     },
@@ -113,7 +113,7 @@ export default function Mural() {
   const { data: latestAceData } = useQuery<{ match: any; aceStats: any; aceUser: any } | null>({
     queryKey: ["/api/matches/latest-ace"],
     queryFn: async () => {
-      const res = await fetch("/api/matches/latest-ace", { credentials: "include" });
+      const res = await fetchWithAuth("/api/matches/latest-ace");
       if (!res.ok) return null;
       return res.json();
     },
@@ -151,7 +151,7 @@ export default function Mural() {
   const { data: cheaterBannedUsers = [] } = useQuery<UserType[]>({
     queryKey: ["/api/users/cheater-banned"],
     queryFn: async () => {
-      const res = await fetch("/api/users/cheater-banned", { credentials: "include" });
+      const res = await fetchWithAuth("/api/users/cheater-banned");
       if (!res.ok) return [];
       return res.json();
     },

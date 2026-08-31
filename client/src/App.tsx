@@ -79,14 +79,11 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
           <span className="font-semibold text-sm hidden sm:inline">Aliados</span>
         </div>
         <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" asChild>
+          <Button size="sm" asChild>
             <a href="/api/auth/steam" className="flex items-center gap-2">
               <SiSteam className="h-4 w-4" />
-              <span className="hidden sm:inline">Steam</span>
+              <span>Entrar com Steam</span>
             </a>
-          </Button>
-          <Button size="sm" asChild>
-            <a href="/api/login">Entrar</a>
           </Button>
         </div>
       </header>
@@ -98,6 +95,7 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
 }
 
 function LoginRequired() {
+  const { loginWithSteam } = useAuth();
   return (
     <div className="flex flex-col items-center justify-center py-24 gap-5 text-center">
       <div className="flex items-center justify-center w-16 h-16 rounded-full bg-muted">
@@ -110,11 +108,9 @@ function LoginRequired() {
         </p>
       </div>
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
-        <Button asChild>
-          <a href="/api/auth/steam" className="flex items-center gap-2">
-            <SiSteam className="h-4 w-4" />
-            Entrar com Steam
-          </a>
+        <Button onClick={loginWithSteam} className="flex items-center gap-2">
+          <SiSteam className="h-4 w-4" />
+          Entrar com Steam
         </Button>
       </div>
     </div>
@@ -122,6 +118,7 @@ function LoginRequired() {
 }
 
 function BannedScreen() {
+  const { logout } = useAuth();
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-background px-4 text-center">
       <div className="flex items-center justify-center w-20 h-20 rounded-full bg-destructive/10 border-2 border-destructive/30">
@@ -133,14 +130,15 @@ function BannedScreen() {
           Você não está podendo acessar. Contate um administrador para mais informações.
         </p>
       </div>
-      <Button variant="outline" asChild>
-        <a href="/api/logout">Sair</a>
+      <Button variant="outline" onClick={logout}>
+        Sair
       </Button>
     </div>
   );
 }
 
 function CheaterBannedScreen() {
+  const { logout } = useAuth();
   return (
     <div className="flex flex-col items-center justify-center min-h-screen gap-6 bg-background px-4 text-center">
       <div className="flex items-center justify-center w-24 h-24 rounded-full bg-red-500/10 border-2 border-red-500/40">
@@ -153,8 +151,8 @@ function CheaterBannedScreen() {
           Sua conta foi banida permanentemente por uso de cheats. Este ban não pode ser revertido.
         </p>
       </div>
-      <Button variant="outline" asChild>
-        <a href="/api/logout">Sair</a>
+      <Button variant="outline" onClick={logout}>
+        Sair
       </Button>
     </div>
   );

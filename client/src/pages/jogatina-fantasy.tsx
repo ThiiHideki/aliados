@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, fetchWithAuth, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -229,7 +229,7 @@ function PlayerPickerDialog({
 
   const { data: playersData } = useQuery<{ players: FantasyPlayer[]; budget: number }>({
     queryKey: ["/api/fantasy/players"],
-    queryFn: () => fetch("/api/fantasy/players", { credentials: "include" }).then(r => r.json()),
+    queryFn: () => fetchWithAuth("/api/fantasy/players").then(r => r.json()),
   });
 
   const allPlayers = playersData?.players ?? [];
@@ -396,7 +396,7 @@ function PlayerPickerDialog({
 function RankingTab({ roundId, myUserId }: { roundId: number; myUserId: string }) {
   const { data: ranking = [], isLoading } = useQuery<RankingEntry[]>({
     queryKey: ["/api/fantasy/ranking", roundId],
-    queryFn: () => fetch(`/api/fantasy/ranking/${roundId}`, { credentials: "include" }).then(r => r.json()),
+    queryFn: () => fetchWithAuth(`/api/fantasy/ranking/${roundId}`).then(r => r.json()),
   });
 
   if (isLoading) return <div className="text-center py-8 text-muted-foreground">Carregando...</div>;
@@ -453,19 +453,19 @@ export default function JogatinaFantasy() {
 
   const { data: playersData } = useQuery<{ players: FantasyPlayer[]; budget: number }>({
     queryKey: ["/api/fantasy/players"],
-    queryFn: () => fetch("/api/fantasy/players", { credentials: "include" }).then(r => r.json()),
+    queryFn: () => fetchWithAuth("/api/fantasy/players").then(r => r.json()),
   });
   const statsMap = Object.fromEntries((playersData?.players ?? []).map(p => [p.id, p]));
 
   const { data: activeRound, isLoading: roundLoading } = useQuery<Round | null>({
     queryKey: ["/api/fantasy/rounds/active"],
-    queryFn: () => fetch("/api/fantasy/rounds/active", { credentials: "include" }).then(r => r.json()),
+    queryFn: () => fetchWithAuth("/api/fantasy/rounds/active").then(r => r.json()),
   });
 
   const { data: myTeam, isLoading: teamLoading, refetch: refetchTeam } = useQuery<TeamData | null>({
     queryKey: ["/api/fantasy/my-team", activeRound?.id],
     queryFn: () => activeRound
-      ? fetch(`/api/fantasy/my-team/${activeRound.id}`, { credentials: "include" }).then(r => r.json())
+      ? fetchWithAuth(`/api/fantasy/my-team/${activeRound.id}`).then(r => r.json())
       : Promise.resolve(null),
     enabled: !!activeRound,
   });

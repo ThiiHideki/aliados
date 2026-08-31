@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { fetchWithAuth } from "@/lib/queryClient";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -138,7 +139,7 @@ export default function AdminPesquisa() {
   const { data: surveys = [], isLoading } = useQuery<SurveyWithUser[]>({
     queryKey: ["/api/admin/surveys"],
     queryFn: async () => {
-      const res = await fetch("/api/admin/surveys", { credentials: "include" });
+      const res = await fetchWithAuth("/api/admin/surveys");
       if (!res.ok) throw new Error("Erro ao buscar pesquisas");
       return res.json();
     },

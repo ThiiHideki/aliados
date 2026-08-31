@@ -66,7 +66,7 @@ import { SiDiscord } from "react-icons/si";
 import logoUrl from "/aliados_logo.png";
 
 export function AppSidebar() {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [location] = useLocation();
   const { toast } = useToast();
   const [copiedLink, setCopiedLink] = useState<string | null>(null);
@@ -879,10 +879,7 @@ export function AppSidebar() {
         <Button
           variant="ghost"
           className="w-full mt-3 justify-start"
-          onClick={() => {
-            try { localStorage.removeItem("aliados_session_token"); } catch {}
-            window.location.href = "/api/logout";
-          }}
+          onClick={logout}
           data-testid="button-logout"
         >
           <LogOut className="h-4 w-4 mr-2" />

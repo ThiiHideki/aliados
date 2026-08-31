@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, queryClient } from "@/lib/queryClient";
+import { apiRequest, fetchWithAuth, queryClient } from "@/lib/queryClient";
 import { 
   User, Trophy, Target, Crosshair, Shield, Star, TrendingUp, 
   Zap, Award, Eye, Link2, Check, AlertCircle, Edit2, Save, X,
@@ -85,7 +85,7 @@ export default function Perfil() {
     queryKey: ['/api/users', user?.id, 'matches'],
     queryFn: async () => {
       if (!user?.id) return [];
-      const res = await fetch(`/api/users/${user.id}/matches`, { credentials: 'include' });
+      const res = await fetchWithAuth(`/api/users/${user.id}/matches`);
       if (!res.ok) return [];
       return res.json();
     },
