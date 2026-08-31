@@ -60,7 +60,7 @@ import {
   type InsertTournament2x2Match,
 } from "../shared/schema";
 import { db } from "./db";
-import { eq, sql, desc, and } from "drizzle-orm";
+import { eq, sql, desc, and, inArray } from "drizzle-orm";
 
 export interface IStorage {
   // User operations (required for Replit Auth)
@@ -87,6 +87,7 @@ export interface IStorage {
   
   // Match stats operations
   getMatchStats(matchId: string): Promise<MatchStats[]>;
+  getMatchStatsForMatches(matchIds: string[]): Promise<MatchStats[]>;
   getUserMatchStats(userId: string): Promise<MatchStats[]>;
   getUserMatchStatsWithMatches(userId: string): Promise<Array<{ stats: MatchStats; match: Match }>>;
   createMatchStats(stats: InsertMatchStats): Promise<MatchStats>;
@@ -577,6 +578,19 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(matchStats)
       .where(eq(matchStats.matchId, matchId));
+  }
+
+  async getMatchStatsForMatches(matchIds: string[]): Promise<MatchStats[]> {
+    if (!matchIds || matchIds.length === 0) return [];
+    try {
+      return await db
+        .select()
+        .from(matchStats)
+        .where(inArray(matchStats.matchId, matchIds));
+    } catch (err) {
+      console.error("[storage.getMatchStatsForMatches Error]:", err);
+      return [];
+    }
   }
 
   async getUserMatchStats(userId: string): Promise<MatchStats[]> {

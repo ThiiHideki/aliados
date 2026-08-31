@@ -1025,48 +1025,50 @@ export function registerRoutes(
         seenMatches: Set<string>;
       }> = {};
       
-      for (const match of monthlyMatches) {
-        const stats = await storage.getMatchStats(match.id);
+      const matchIds = monthlyMatches.map(m => m.id);
+      const matchMap = new Map(monthlyMatches.map(m => [m.id, m]));
+      const allStats = matchIds.length > 0 ? await storage.getMatchStatsForMatches(matchIds) : [];
+
+      for (const stat of allStats) {
+        const match = matchMap.get(stat.matchId);
+        if (!match) continue;
+
+        if (!playerStats[stat.userId]) {
+          playerStats[stat.userId] = {
+            userId: stat.userId,
+            kills: 0,
+            deaths: 0,
+            assists: 0,
+            headshots: 0,
+            damage: 0,
+            mvps: 0,
+            matchesPlayed: 0,
+            matchesWon: 0,
+            total5ks: 0,
+            total4ks: 0,
+            total3ks: 0,
+            seenMatches: new Set(),
+          };
+        }
         
-        for (const stat of stats) {
-          if (!playerStats[stat.userId]) {
-            playerStats[stat.userId] = {
-              userId: stat.userId,
-              kills: 0,
-              deaths: 0,
-              assists: 0,
-              headshots: 0,
-              damage: 0,
-              mvps: 0,
-              matchesPlayed: 0,
-              matchesWon: 0,
-              total5ks: 0,
-              total4ks: 0,
-              total3ks: 0,
-              seenMatches: new Set(),
-            };
-          }
+        const ps = playerStats[stat.userId];
+        ps.kills += stat.kills;
+        ps.deaths += stat.deaths;
+        ps.assists += stat.assists;
+        ps.headshots += stat.headshots;
+        ps.damage += stat.damage;
+        ps.mvps += stat.mvps;
+        ps.total5ks += stat.enemy5ks;
+        ps.total4ks += stat.enemy4ks;
+        ps.total3ks += stat.enemy3ks;
+        
+        // Count match only once per player (deduplicate by matchId)
+        if (!ps.seenMatches.has(match.id)) {
+          ps.seenMatches.add(match.id);
+          ps.matchesPlayed += 1;
           
-          const ps = playerStats[stat.userId];
-          ps.kills += stat.kills;
-          ps.deaths += stat.deaths;
-          ps.assists += stat.assists;
-          ps.headshots += stat.headshots;
-          ps.damage += stat.damage;
-          ps.mvps += stat.mvps;
-          ps.total5ks += stat.enemy5ks;
-          ps.total4ks += stat.enemy4ks;
-          ps.total3ks += stat.enemy3ks;
-          
-          // Count match only once per player (deduplicate by matchId)
-          if (!ps.seenMatches.has(match.id)) {
-            ps.seenMatches.add(match.id);
-            ps.matchesPlayed += 1;
-            
-            // Check if player won this match by comparing their team with winnerTeam
-            if (match.winnerTeam && stat.team === match.winnerTeam) {
-              ps.matchesWon += 1;
-            }
+          if (match.winnerTeam && stat.team === match.winnerTeam) {
+            ps.matchesWon += 1;
           }
         }
       }
@@ -2683,68 +2685,72 @@ export function registerRoutes(
         seenMatches: Set<string>;
       }> = {};
 
-      for (const match of monthlyMatches) {
-        const stats = await storage.getMatchStats(match.id);
-        for (const stat of stats) {
-          if (!playerStats[stat.userId]) {
-            playerStats[stat.userId] = {
-              userId: stat.userId,
-              kills: 0, deaths: 0, assists: 0,
-              headshots: 0, damage: 0, mvps: 0,
-              matchesPlayed: 0, matchesWon: 0,
-              total5ks: 0, total4ks: 0, total3ks: 0,
-              seenMatches: new Set(),
-            };
-          }
-          const ps = playerStats[stat.userId];
-          ps.kills += stat.kills;
-          ps.deaths += stat.deaths;
-          ps.assists += stat.assists;
-          ps.headshots += stat.headshots;
-          ps.damage += stat.damage;
-          ps.mvps += stat.mvps;
-          ps.total5ks += stat.enemy5ks;
-          ps.total4ks += stat.enemy4ks;
-          ps.total3ks += stat.enemy3ks;
+      const monthlyMatchIds = monthlyMatches.map(m => m.id);
+      const monthlyMatchMap = new Map(monthlyMatches.map(m => [m.id, m]));
+      const allMonthlyStats = monthlyMatchIds.length > 0 ? await storage.getMatchStatsForMatches(monthlyMatchIds) : [];
 
-          if (!ps.seenMatches.has(match.id)) {
-            ps.seenMatches.add(match.id);
-            ps.matchesPlayed += 1;
-            // Check if player won this match by comparing their team with winnerTeam
-            if (match.winnerTeam && stat.team === match.winnerTeam) {
-              ps.matchesWon += 1;
-            }
+      for (const stat of allMonthlyStats) {
+        const match = monthlyMatchMap.get(stat.matchId);
+        if (!match) continue;
+
+        if (!playerStats[stat.userId]) {
+          playerStats[stat.userId] = {
+            userId: stat.userId,
+            kills: 0, deaths: 0, assists: 0,
+            headshots: 0, damage: 0, mvps: 0,
+            matchesPlayed: 0, matchesWon: 0,
+            total5ks: 0, total4ks: 0, total3ks: 0,
+            seenMatches: new Set(),
+          };
+        }
+        const ps = playerStats[stat.userId];
+        ps.kills += stat.kills;
+        ps.deaths += stat.deaths;
+        ps.assists += stat.assists;
+        ps.headshots += stat.headshots;
+        ps.damage += stat.damage;
+        ps.mvps += stat.mvps;
+        ps.total5ks += stat.enemy5ks;
+        ps.total4ks += stat.enemy4ks;
+        ps.total3ks += stat.enemy3ks;
+
+        if (!ps.seenMatches.has(match.id)) {
+          ps.seenMatches.add(match.id);
+          ps.matchesPlayed += 1;
+          // Check if player won this match by comparing their team with winnerTeam
+          if (match.winnerTeam && stat.team === match.winnerTeam) {
+            ps.matchesWon += 1;
           }
         }
       }
 
       // Calculate monthly LP per player based on match performance
       const playerMonthlyLP: Record<string, number> = {};
-      for (const match of monthlyMatches) {
-        const stats = await storage.getMatchStats(match.id);
-        for (const stat of stats) {
-          const matchRounds = (match.team1Score || 0) + (match.team2Score || 0);
-          let wonMatch = false;
-          if (match.winnerTeam) {
-            wonMatch = match.winnerTeam === stat.team;
-          } else {
-            const isTeam1 = stat.team === match.team1Name;
-            const t1 = match.team1Score || 0;
-            const t2 = match.team2Score || 0;
-            wonMatch = isTeam1 ? t1 > t2 : t2 > t1;
-          }
-          const kills          = Number(stat.kills)          || 0;
-          const damage         = Number(stat.damage)         || 0;
-          const rounds         = matchRounds || 24;
-          const entryWins      = Number(stat.entryWins)      || 0;
-          const entryCount     = Number(stat.entryCount)     || 0;
-          const utilityDamage  = Number(stat.utilityDamage)  || 0;
-          const enemiesFlashed = Number(stat.enemiesFlashed) || 0;
-          const v1Wins         = Number(stat.v1Wins)         || 0;
-          const v2Wins         = Number(stat.v2Wins)         || 0;
-          const lp = calcMatchLP(wonMatch, kills, damage, rounds, entryWins, entryCount, utilityDamage, enemiesFlashed, v1Wins, v2Wins);
-          playerMonthlyLP[stat.userId] = (playerMonthlyLP[stat.userId] ?? 0) + lp;
+      for (const stat of allMonthlyStats) {
+        const match = monthlyMatchMap.get(stat.matchId);
+        if (!match) continue;
+
+        const matchRounds = (match.team1Score || 0) + (match.team2Score || 0);
+        let wonMatch = false;
+        if (match.winnerTeam) {
+          wonMatch = match.winnerTeam === stat.team;
+        } else {
+          const isTeam1 = stat.team === match.team1Name;
+          const t1 = match.team1Score || 0;
+          const t2 = match.team2Score || 0;
+          wonMatch = isTeam1 ? t1 > t2 : t2 > t1;
         }
+        const kills          = Number(stat.kills)          || 0;
+        const damage         = Number(stat.damage)         || 0;
+        const rounds         = matchRounds || 24;
+        const entryWins      = Number(stat.entryWins)      || 0;
+        const entryCount     = Number(stat.entryCount)     || 0;
+        const utilityDamage  = Number(stat.utilityDamage)  || 0;
+        const enemiesFlashed = Number(stat.enemiesFlashed) || 0;
+        const v1Wins         = Number(stat.v1Wins)         || 0;
+        const v2Wins         = Number(stat.v2Wins)         || 0;
+        const lp = calcMatchLP(wonMatch, kills, damage, rounds, entryWins, entryCount, utilityDamage, enemiesFlashed, v1Wins, v2Wins);
+        playerMonthlyLP[stat.userId] = (playerMonthlyLP[stat.userId] ?? 0) + lp;
       }
 
       const result = Object.values(playerStats).map(ps => {
@@ -3941,13 +3947,12 @@ export function registerRoutes(
       const d = new Date(m.date);
       return d >= firstDay && d <= lastDay;
     });
+    const monthMatchIds = monthMatches.map((m) => m.id);
+    const stats = monthMatchIds.length > 0 ? await storage.getMatchStatsForMatches(monthMatchIds) : [];
     const counts = new Map<string, Set<string>>();
-    for (const match of monthMatches) {
-      const stats = await storage.getMatchStats(match.id);
-      for (const s of stats) {
-        if (!counts.has(s.userId)) counts.set(s.userId, new Set());
-        counts.get(s.userId)!.add(match.id);
-      }
+    for (const s of stats) {
+      if (!counts.has(s.userId)) counts.set(s.userId, new Set());
+      counts.get(s.userId)!.add(s.matchId);
     }
     const map = new Map<string, number>();
     Array.from(counts.entries()).forEach(([uid, set]) => map.set(uid, set.size));
